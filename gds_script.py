@@ -2,34 +2,45 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 import gdswriter
 
-# Initialize the design with the GDSDesign class
-design = gdswriter.GDSDesign()
+# Initialize the GDS design
+design = gdswriter.GDSDesign(size=(2000, 2000), units='um')
 
 # Define layers
-design.define_layer('Metal1', 1)
-design.define_layer('Oxide2', 2)
+design.define_layer("Metal", 1, min_feature_size=10, min_spacing=0.2)
+design.define_layer("Via", 2, min_feature_size=0.1, min_spacing=0.1)
 
-# Create a cell for a circle with a diameter of 10um
-circle_10um_cell_name = 'Circle10umCell'
-design.add_cell(circle_10um_cell_name)
-# Add the circle to the cell; since the diameter is 10um, radius is 5um
-design.add_circle(circle_10um_cell_name, (0, 0), 10, 'Metal1')
+# Add some geometric shapes
+design.add_rectangle("TopCell", layer_name="Metal", lower_left=(10, 10), upper_right=(100, 50))
+design.add_circle_as_polygon("TopCell", center=(200, 200), radius=50, layer_name="Via", num_points=100)
+points = [(300, 300), (400, 400), (500, 300), (400, 200)]
+design.add_path_as_polygon("TopCell", points=points, width=10, layer_name="Metal")
 
-# Create a cell for a circle with a diameter of 8um
-circle_8um_cell_name = 'Circle8umCell'
-design.add_cell(circle_8um_cell_name)
-# Add the circle to the cell; since the diameter is 8um, radius is 4um
-design.add_circle(circle_8um_cell_name, (0, 0), 20, 'Oxide2')
+# Parameters for circle creation
+circle_diameter1 = 10  # Diameter for the larger circles in um
+circle_diameter2 = 8   # Diameter for the smaller circles in um
+circle_radius1 = circle_diameter1 / 2
+circle_radius2 = circle_diameter2 / 2
+array_size = 16  # Size of the arrays (16x16)
+pitch = 30  # Pitch in um
 
-# Array parameters
-n, m = 16, 16  # Number of copies in x and y directions
-pitch = 30  # Spacing between the centers of adjacent circles
+# Create a cell with a single larger circle for 'Metal' layer
+circle_cell_name1 = "Circle10um"
+design.add_cell(circle_cell_name1)
+design.add_circle_as_polygon(circle_cell_name1, center=(0, 0), radius=circle_radius1, layer_name="Metal", num_points=100)
 
-# Create a 16x16 array of the 10um diameter circles on Metal1 layer
-design.add_cell_array('TopCell', circle_10um_cell_name, n, m, pitch, pitch, origin=(0, 0))
+# Create an array of the larger circle cell on 'Metal' layer
+design.add_cell_array("TopCell", circle_cell_name1, n=array_size, m=array_size, spacing_x=pitch, spacing_y=pitch, origin=(0, 0))
 
-# Create a 16x16 array of the 8um diameter circles on Oxide2 layer
-design.add_cell_array('TopCell', circle_8um_cell_name, n, m, pitch, pitch, origin=(0, 0))
+# Create a cell with a single smaller circle for 'Via' layer
+circle_cell_name2 = "Circle8um"
+design.add_cell(circle_cell_name2)
+design.add_circle_as_polygon(circle_cell_name2, center=(0, 0), radius=circle_radius2, layer_name="Via", num_points=100)
 
-# Write the design to a GDS file
-design.write_gds('two_circle_arrays.gds')
+# Create an array of the smaller circle cell on 'Via' layer
+design.add_cell_array("TopCell", circle_cell_name2, n=array_size, m=array_size, spacing_x=pitch, spacing_y=pitch, origin=(0, 0))
+
+# Run design rule checks
+design.run_drc_checks()
+
+# Write to a GDS file
+design.write_gds("example_design.gds")
