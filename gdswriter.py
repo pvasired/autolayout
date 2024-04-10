@@ -161,7 +161,8 @@ class GDSDesign:
         ref = gdspy.CellReference(child_cell, origin=origin, magnification=magnification, rotation=rotation)
         parent_cell.add(ref)
 
-    def add_cell_array(self, target_cell_name, cell_name_to_array, n, m, spacing_x, spacing_y, origin=(0, 0)):
+    def add_cell_array(self, target_cell_name, cell_name_to_array, n, m, spacing_x, spacing_y, origin=(0, 0),
+                       magnification=1, rotation=0):
         target_cell = self.check_cell_exists(target_cell_name)
         cell_to_array = self.check_cell_exists(cell_name_to_array)
         
@@ -176,7 +177,8 @@ class GDSDesign:
                 x_position = start_x + (i * spacing_x)
                 y_position = start_y + (j * spacing_y)
                 # Add a cell reference (arrayed cell) at the calculated position to the target cell
-                ref = gdspy.CellReference(cell_to_array, origin=(x_position, y_position))
+                ref = gdspy.CellReference(cell_to_array, origin=(x_position, y_position), magnification=magnification, 
+                                          rotation=rotation)
                 target_cell.add(ref)
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
@@ -261,7 +263,7 @@ class GDSDesign:
         # Check if all features are within the design bounds
         print("Checking if all features are within the design bounds...")
         self.check_features_within_bounds(self.top_cell_name)
-        print("DRC checks completed.")
+        print("DRC checks passed.")
     
     def check_features_within_bounds(self, cell_name):
         """
