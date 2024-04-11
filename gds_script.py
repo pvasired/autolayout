@@ -50,10 +50,10 @@ design.add_alignment_cross("TopCell", layer_name="Metal", center=(-350, -350), w
 design.add_alignment_cross("TopCell", layer_name="Metal", center=(-350, 350), width=10, extent_x=100, extent_y=100)
 design.add_alignment_cross("TopCell", layer_name="Metal", center=(350, -350), width=10, extent_x=100, extent_y=100)
 design.add_alignment_cross("TopCell", layer_name="Metal", center=(350, 350), width=10, extent_x=100, extent_y=100)
-design.add_text("TopCell", text="s", layer_name="Metal", position=(0, 500), height=100)
+design.add_text("TopCell", text="A", layer_name="Metal", position=(0, 500), height=100)
 
 # Run design rule checks
-#design.run_drc_checks()
+design.run_drc_checks()
 
 # Write to a GDS file
 design.write_gds("example_design.gds")
