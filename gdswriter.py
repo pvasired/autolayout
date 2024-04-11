@@ -98,6 +98,41 @@ class GDSDesign:
         # Create and add the rectangle
         rectangle = gdspy.Rectangle(lower_left, upper_right, layer=layer_number, datatype=datatype)
         self.cells[cell_name].add(rectangle)
+    
+    def add_alignment_cross(self, cell_name, layer_name, center, width, extent_x, extent_y, datatype=0):
+        """
+        Add an alignment cross to the specified cell and layer.
+
+        Args:
+        - cell_name (str): The name of the cell to add the cross to.
+        - layer_name (str): The name of the layer to add the cross to.
+        - center (tuple): (x, y) coordinates for the center of the cross.
+        - width (float): The width of the arms of the cross.
+        - extent_x (float): The total length of the cross arm along the x-axis.
+        - extent_y (float): The total length of the cross arm along the y-axis.
+        - datatype (int): The datatype for the layer (default: 0).
+        """
+        cell = self.check_cell_exists(cell_name)
+        layer_number = self.get_layer_number(layer_name)
+
+        # Calculate the coordinates for the horizontal and vertical parts of the cross
+        horizontal_lower_left = (center[0] - extent_x / 2, center[1] - width / 2)
+        horizontal_upper_right = (center[0] + extent_x / 2, center[1] + width / 2)
+        vertical_lower_left = (center[0] - width / 2, center[1] - extent_y / 2)
+        vertical_upper_right = (center[0] + width / 2, center[1] + extent_y / 2)
+
+        # Create rectangles for the cross
+        horizontal_rect = gdspy.Rectangle(horizontal_lower_left, horizontal_upper_right, layer=layer_number, datatype=datatype)
+        vertical_rect = gdspy.Rectangle(vertical_lower_left, vertical_upper_right, layer=layer_number, datatype=datatype)
+
+        # Add the rectangles to the cell
+        cell.add(horizontal_rect)
+        cell.add(vertical_rect)
+
+    def add_text(self, cell_name, text, layer_name, position, height, angle=0, horizontal=True, datatype=0):
+        layer_number = self.get_layer_number(layer_name)
+        text = gdspy.Text(text, height, position, horizontal=horizontal, angle=angle, layer=layer_number, datatype=datatype)
+        self.check_cell_exists(cell_name).add(text)
 
     def add_polygon(self, cell_name, points, layer_name, datatype=0):
         layer_number = self.get_layer_number(layer_name)
@@ -317,7 +352,7 @@ def cluster_intersecting_polygons(polygons):
 
             for idx in intersecting_indices:
                 neighbor = polygons[idx]  # Directly reference the polygon using its index
-                if neighbor.intersects(poly) and idx not in visited:
+                if (neighbor.intersects(poly) or neighbor.touches(poly)) and idx not in visited:
                     visited.add(idx)  # Mark this index as processed
                     cluster.append(neighbor)
 
