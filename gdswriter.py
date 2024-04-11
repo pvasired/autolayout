@@ -1,5 +1,8 @@
 import gdspy
 import numpy as np
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
+from shapely.strtree import STRtree
 
 class GDSDesign:
     def __init__(self, lib_name='default_lib', top_cell_name='TopCell', size=(10000, 10000), units='um'):
@@ -203,7 +206,6 @@ class GDSDesign:
                     if width < min_size or height < min_size:
                         raise ValueError(f"Feature on layer '{layer_name}' in cell '{cell_name}' is smaller than the minimum size {min_size}.")
 
-
     def check_minimum_spacing(self, cell_name, layer_name, min_spacing):
         """
         Check if the spacing between all shapes on a specified layer in a cell meets the minimum spacing requirement.
@@ -213,33 +215,38 @@ class GDSDesign:
         - layer_name (str): Name of the layer to check.
         - min_spacing (float): Minimum spacing between shapes.
         """
-        self.check_cell_exists(cell_name)
+        cell = self.check_cell_exists(cell_name)
         layer_number = self.get_layer_number(layer_name)
 
-        polygons = [poly for poly in self.cells[cell_name].polygons if poly.layer == layer_number]
-        for i, poly1 in enumerate(polygons):
-            for poly2 in polygons[i+1:]:
-                distance = self.calculate_distance_between_polygons(poly1, poly2)
+        # Get polygons by specification (layer and datatype)
+        polygons_by_spec = cell.get_polygons(by_spec=True)
+
+        # Filter for the specific layer (and possibly datatype if relevant)
+        layer_polygons = []
+        for (lay, dat), polys in polygons_by_spec.items():
+            if lay == layer_number:
+                for poly in polys:
+                    layer_polygons.append(poly)
+        
+        # Convert gdspy polygons to shapely polygons
+        shapely_polygons = [Polygon(poly) for poly in layer_polygons]
+
+        # Cluster intersecting polygons
+        clusters = cluster_intersecting_polygons(shapely_polygons)
+
+        # Merge clusters into single polygons
+        merged_polygons = [unary_union(cluster) for cluster in clusters]
+
+        # Efficiently check for spacing violations between merged polygons
+        if len(merged_polygons) < 2:
+            return  # If there is less than two polygons, no minimum spacing issues can occur
+
+        # Calculate minimum spacing between merged polygons
+        for i in range(len(merged_polygons)):
+            for j in range(i + 1, len(merged_polygons)):
+                distance = merged_polygons[i].distance(merged_polygons[j])
                 if distance < min_spacing:
-                    raise ValueError(f"Spacing between features on layer '{layer_name}' in cell '{cell_name}' is less than the minimum spacing {min_spacing}.")
-
-    def calculate_distance_between_polygons(self, poly1, poly2):
-        """
-        Calculate the minimum distance between two polygons.
-
-        Args:
-        - poly1, poly2: Polygons to calculate the distance between.
-
-        Returns:
-        - The minimum distance between the two polygons.
-        """
-        # Extract the points from the polygons
-        points1 = poly1.points
-        points2 = poly2.points
-
-        # Calculate all pairwise distances and return the minimum
-        distances = np.sqrt(np.sum((points1[:, np.newaxis, :] - points2[np.newaxis, :, :]) ** 2, axis=2))
-        return np.min(distances)
+                    raise ValueError(f"Minimum spacing of {min_spacing}um not met; found spacing is {distance}um.")
     
     def run_drc_checks(self):
         """
@@ -255,10 +262,10 @@ class GDSDesign:
                 print(f"Checking minimum feature size ({min_feature_size}um) on layer '{layer_name}'...")
                 self.check_minimum_feature_size(self.top_cell_name, layer_name, min_feature_size)
 
-            # # Check minimum spacing
-            # if min_spacing:
-            #     print(f"Checking minimum spacing ({min_spacing}um) on layer '{layer_name}'...")
-            #     self.check_minimum_spacing(self.top_cell_name, layer_name, min_spacing)
+            # Check minimum spacing
+            if min_spacing:
+                print(f"Checking minimum spacing ({min_spacing}um) on layer '{layer_name}'...")
+                self.check_minimum_spacing(self.top_cell_name, layer_name, min_spacing)
         
         # Check if all features are within the design bounds
         print("Checking if all features are within the design bounds...")
@@ -290,3 +297,31 @@ class GDSDesign:
         self.lib.write_gds(filename)
         print(f'GDS file written to {filename}')
 
+def cluster_intersecting_polygons(polygons):
+    """Groups intersecting polygons into clusters using an R-tree for efficient spatial indexing.
+    
+    Returns:
+        List of clusters, where each cluster is a list of polygons that intersect with each other.
+    """
+    # Create an R-tree from the list of polygons
+    tree = STRtree(polygons)
+    visited = set()  # Set to track processed polygons by index to avoid duplicates
+    clusters = []
+
+    # Iterate over the polygons using their index to manage direct references
+    for i, poly in enumerate(polygons):
+        if i not in visited:
+            # Find all polygons that intersect with the current polygon using their indices
+            intersecting_indices = tree.query(poly)
+            cluster = []
+
+            for idx in intersecting_indices:
+                neighbor = polygons[idx]  # Directly reference the polygon using its index
+                if neighbor.intersects(poly) and idx not in visited:
+                    visited.add(idx)  # Mark this index as processed
+                    cluster.append(neighbor)
+
+            if cluster:
+                clusters.append(cluster)  # Only add non-empty clusters
+
+    return clusters

@@ -6,8 +6,8 @@ import gdswriter
 design = gdswriter.GDSDesign(size=(32000, 32000), units='um')
 
 # Define layers
-design.define_layer("Metal", 1, min_feature_size=1, min_spacing=0.2)
-design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=0.1)
+design.define_layer("Metal", 1, min_feature_size=1, min_spacing=1)
+design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=1)
 
 # # Add some geometric shapes
 # design.add_rectangle("TopCell", layer_name="Metal", lower_left=(10, 10), upper_right=(100, 50))
@@ -16,8 +16,8 @@ design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=0.1)
 # design.add_path_as_polygon("TopCell", points=points, width=10, layer_name="Metal")
 
 # Parameters for circle creation
-circle_diameter1 = 10  # Diameter for the larger circles in um
-circle_diameter2 = 8   # Diameter for the smaller circles in um
+circle_diameter1 = 5  # Diameter for the larger circles in um
+circle_diameter2 = 4   # Diameter for the smaller circles in um
 circle_radius1 = circle_diameter1 / 2
 circle_radius2 = circle_diameter2 / 2
 array_size = 16  # Size of the arrays (16x16)
