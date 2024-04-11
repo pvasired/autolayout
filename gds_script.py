@@ -29,7 +29,7 @@ design.add_cell(circle_cell_name1)
 design.add_circle_as_polygon(circle_cell_name1, center=(0, 0), radius=circle_radius1, layer_name="Metal", num_points=100)
 
 # Create an array of the larger circle cell on 'Metal' layer
-design.add_cell_array("TopCell", circle_cell_name1, n=array_size, m=array_size, spacing_x=pitch, spacing_y=pitch, origin=(0, 0))
+design.add_cell_array("TopCell", circle_cell_name1, copies_x=array_size, copies_y=array_size, spacing_x=pitch, spacing_y=pitch, origin=(0, 0))
 
 # Create a cell with a single smaller circle for 'Via' layer
 circle_cell_name2 = "Circle8um"
@@ -37,15 +37,15 @@ design.add_cell(circle_cell_name2)
 design.add_circle_as_polygon(circle_cell_name2, center=(0, 0), radius=circle_radius2, layer_name="Oxide", num_points=100)
 
 # Create an array of the smaller circle cell on 'Via' layer
-design.add_cell_array("TopCell", circle_cell_name2, n=array_size, m=array_size, spacing_x=pitch, spacing_y=pitch, origin=(0, 0))
+design.add_cell_array("TopCell", circle_cell_name2, copies_x=array_size, copies_y=array_size, spacing_x=pitch, spacing_y=pitch, origin=(0, 0))
 
 pad_cell_name = "Pad"
 design.add_cell(pad_cell_name)
 design.add_rectangle(pad_cell_name, layer_name="Metal", center=(0, 0), width=120, height=1200)
 design.add_rectangle(pad_cell_name, layer_name="Oxide", center=(0, 0), width=100, height=1180)
 
-design.add_cell_array("TopCell", pad_cell_name, m=1, n=128, spacing_x=200, spacing_y=0, origin=(0, 16000-850))
-design.add_cell_array("TopCell", pad_cell_name, m=1, n=128, spacing_x=200, spacing_y=0, origin=(0, -(16000-850)))
+design.add_cell_array("TopCell", pad_cell_name, copies_y=1, copies_x=128, spacing_x=200, spacing_y=0, origin=(0, 16000-850))
+design.add_cell_array("TopCell", pad_cell_name, copies_y=1, copies_x=128, spacing_x=200, spacing_y=0, origin=(0, -(16000-850)))
 
 # Run design rule checks
 design.run_drc_checks()

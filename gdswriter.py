@@ -2,7 +2,7 @@ import gdspy
 import numpy as np
 
 class GDSDesign:
-    def __init__(self, lib_name='default_lib', top_cell_name='TopCell', size=(100, 100), units='um'):
+    def __init__(self, lib_name='default_lib', top_cell_name='TopCell', size=(10000, 10000), units='um'):
         """
         Initialize a new GDS design library with an optional top cell, design size, and units.
         
@@ -161,19 +161,19 @@ class GDSDesign:
         ref = gdspy.CellReference(child_cell, origin=origin, magnification=magnification, rotation=rotation)
         parent_cell.add(ref)
 
-    def add_cell_array(self, target_cell_name, cell_name_to_array, n, m, spacing_x, spacing_y, origin=(0, 0),
+    def add_cell_array(self, target_cell_name, cell_name_to_array, copies_x, copies_y, spacing_x, spacing_y, origin=(0, 0),
                        magnification=1, rotation=0):
         target_cell = self.check_cell_exists(target_cell_name)
         cell_to_array = self.check_cell_exists(cell_name_to_array)
         
         # Calculate the start position to center the array around the specified origin
-        total_length_x = spacing_x * (n - 1)
-        total_length_y = spacing_y * (m - 1)
+        total_length_x = spacing_x * (copies_x - 1)
+        total_length_y = spacing_y * (copies_y - 1)
         start_x = origin[0] - (total_length_x / 2)
         start_y = origin[1] - (total_length_y / 2)
         
-        for i in range(n):
-            for j in range(m):
+        for i in range(copies_x):
+            for j in range(copies_y):
                 x_position = start_x + (i * spacing_x)
                 y_position = start_y + (j * spacing_y)
                 # Add a cell reference (arrayed cell) at the calculated position to the target cell
