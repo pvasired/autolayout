@@ -32,7 +32,6 @@ class GDSDesign:
         self.cells[cell_name] = {}
         self.cells[cell_name]['cell'] = cell
         self.cells[cell_name]['polygons'] = []
-        self.cells[cell_name]['layer_numbers'] = []
         self.cells[cell_name]['netIDs'] = []
         return cell
 
@@ -42,16 +41,14 @@ class GDSDesign:
             assert layer_number is not None, "Layer number must be specified for polygons."
             cell.add(component)
             self.cells[cell_name]['polygons'].append(component.polygons[0])
-            self.cells[cell_name]['layer_numbers'].append(layer_number)
-            self.cells[cell_name]['netIDs'].append(netID)
+            self.cells[cell_name]['netIDs'].append((layer_number, netID))
         elif isinstance(component, gdspy.CellReference):
             cell.add(component)
             polygons_by_spec = component.get_polygons(by_spec=True)
             for (lay, dat), polys in polygons_by_spec.items():
                 for poly in polys:
                     self.cells[cell_name]['polygons'].append(poly)
-                    self.cells[cell_name]['layer_numbers'].append(lay)
-                    self.cells[cell_name]['netIDs'].append(netID)
+                    self.cells[cell_name]['netIDs'].append((lay, netID))
         else:
             raise ValueError(f"Error: Unsupported component type '{type(component)}'. Please use gdspy.Polygon or gdspy.CellReference.")
 
