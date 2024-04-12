@@ -57,3 +57,5 @@ design.run_drc_checks()
 
 # Write to a GDS file
 design.write_gds("example_design.gds")
+
+import pdb; pdb.set_trace()
