@@ -2,6 +2,7 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 import gdswriter
 import numpy as np
+import shapely
 
 # Initialize the GDS design
 design = gdswriter.GDSDesign(size=(32000, 32000), units='um')
@@ -71,8 +72,11 @@ routing_inds = np.where((top_cell_netIDs[:, 1] != 0) & (top_cell_netIDs[:, 0] ==
 uniqueIDs, inverse, counts = np.unique(top_cell_netIDs[routing_inds], axis=0, return_inverse=True, return_counts=True)
 routing_filter = np.where(counts > 1)[0]
 
-index_groups = {}
+routing_groups = {}
 for i in range(len(routing_filter)):
-    index_groups[i] = routing_inds[np.where(inverse == routing_filter[i])[0]]
+    routing_groups[i] = routing_inds[np.where(inverse == routing_filter[i])[0]]
+    shapely_polygons = [shapely.geometry.Polygon(polygon) for polygon in top_cell_polygons[routing_groups[i]]]
+    merged_polygons = gdswriter.cluster_intersecting_polygons(shapely_polygons)
+    import pdb; pdb.set_trace()
 
 import pdb; pdb.set_trace()
