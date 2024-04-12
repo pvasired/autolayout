@@ -32,13 +32,28 @@ class GDSDesign:
         self.cells[cell_name] = {}
         self.cells[cell_name]['cell'] = cell
         self.cells[cell_name]['polygons'] = []
+        self.cells[cell_name]['layer_numbers'] = []
         self.cells[cell_name]['netIDs'] = []
         return cell
 
-    def add_component(self, cell, cell_name, component, netID):
-        cell.add(component)
-        self.cells[cell_name]['polygons'].append(component.polygons)
-        self.cells[cell_name]['netIDs'].append(netID)
+    def add_component(self, cell, cell_name, component, netID, layer_number=None):
+        # Check if component is a polygon or a CellReference
+        if isinstance(component, gdspy.Polygon) or isinstance(component, gdspy.Rectangle) or isinstance(component, gdspy.Text):
+            assert layer_number is not None, "Layer number must be specified for polygons."
+            cell.add(component)
+            self.cells[cell_name]['polygons'].append(component.polygons[0])
+            self.cells[cell_name]['layer_numbers'].append(layer_number)
+            self.cells[cell_name]['netIDs'].append(netID)
+        elif isinstance(component, gdspy.CellReference):
+            cell.add(component)
+            polygons_by_spec = component.get_polygons(by_spec=True)
+            for (lay, dat), polys in polygons_by_spec.items():
+                for poly in polys:
+                    self.cells[cell_name]['polygons'].append(poly)
+                    self.cells[cell_name]['layer_numbers'].append(lay)
+                    self.cells[cell_name]['netIDs'].append(netID)
+        else:
+            raise ValueError(f"Error: Unsupported component type '{type(component)}'. Please use gdspy.Polygon or gdspy.CellReference.")
 
     def define_layer(self, layer_name, layer_number, description=None, min_feature_size=None, min_spacing=None):
         """
@@ -106,7 +121,7 @@ class GDSDesign:
 
         # Create and add the rectangle
         rectangle = gdspy.Rectangle(lower_left, upper_right, layer=layer_number, datatype=datatype)
-        self.add_component(cell, cell_name, rectangle, netID)
+        self.add_component(cell, cell_name, rectangle, netID, layer_number)
     
     def add_alignment_cross(self, cell_name, layer_name, center, width, extent_x, extent_y, datatype=0, netID=0):
         """
@@ -135,20 +150,20 @@ class GDSDesign:
         vertical_rect = gdspy.Rectangle(vertical_lower_left, vertical_upper_right, layer=layer_number, datatype=datatype)
 
         # Add the rectangles to the cell
-        self.add_component(cell, cell_name, horizontal_rect, netID)
-        self.add_component(cell, cell_name, vertical_rect, netID)
+        self.add_component(cell, cell_name, horizontal_rect, netID, layer_number)
+        self.add_component(cell, cell_name, vertical_rect, netID, layer_number)
 
     def add_text(self, cell_name, text, layer_name, position, height, angle=0, horizontal=True, datatype=0, netID=0):
         layer_number = self.get_layer_number(layer_name)
         cell = self.check_cell_exists(cell_name)
         text = gdspy.Text(text, height, position, horizontal=horizontal, angle=angle, layer=layer_number, datatype=datatype)
-        self.add_component(cell, cell_name, text, netID)
+        self.add_component(cell, cell_name, text, netID, layer_number)
 
     def add_polygon(self, cell_name, points, layer_name, datatype=0, netID=0):
         layer_number = self.get_layer_number(layer_name)
         cell = self.check_cell_exists(cell_name)
         polygon = gdspy.Polygon(points, layer=layer_number, datatype=datatype)
-        self.add_component(cell, cell_name, polygon, netID)
+        self.add_component(cell, cell_name, polygon, netID, layer_number)
 
     def add_path_as_polygon(self, cell_name, points, width, layer_name, datatype=0, netID=0):
         """
@@ -174,7 +189,7 @@ class GDSDesign:
         # Add the generated polygons to the cell
         for poly in path_polygons.polygons:
             path_polygon = gdspy.Polygon(poly, layer=layer_number, datatype=datatype)
-            self.add_component(cell, cell_name, path_polygon, netID)
+            self.add_component(cell, cell_name, path_polygon, netID, layer_number)
 
     def add_circle_as_polygon(self, cell_name, center, radius, layer_name, num_points=100, datatype=0, netID=0):
         """
@@ -203,18 +218,14 @@ class GDSDesign:
 
         # Create and add the polygon to the specified cell and layer
         polygon = gdspy.Polygon(points, layer=layer_number, datatype=datatype)
-        self.add_component(cell, cell_name, polygon, netID)
+        self.add_component(cell, cell_name, polygon, netID, layer_number)
 
     def add_cell_reference(self, parent_cell_name, child_cell_name, origin=(0, 0), magnification=1, rotation=0,
                            netID=0):
         parent_cell = self.check_cell_exists(parent_cell_name)
         child_cell = self.check_cell_exists(child_cell_name)
         ref = gdspy.CellReference(child_cell, origin=origin, magnification=magnification, rotation=rotation)
-        polygons_by_spec = ref.get_polygons(by_spec=True)
-        for (lay, dat), polys in polygons_by_spec.items():
-            for poly in polys:
-                polygon = gdspy.Polygon(poly, lay, dat)
-                self.add_component(parent_cell, parent_cell_name, polygon, netID)
+        self.add_component(parent_cell, parent_cell_name, ref, netID)
 
     def add_cell_array(self, target_cell_name, cell_name_to_array, copies_x, copies_y, spacing_x, spacing_y, origin=(0, 0),
                        magnification=1, rotation=0, netIDs=None):
@@ -227,9 +238,7 @@ class GDSDesign:
         start_x = origin[0] - (total_length_x / 2)
         start_y = origin[1] - (total_length_y / 2)
 
-        if netIDs is None:
-            cnt = 0
-        
+        cnt = 0
         for i in range(copies_x):
             for j in range(copies_y):
                 x_position = start_x + (i * spacing_x)
@@ -237,17 +246,8 @@ class GDSDesign:
                 # Add a cell reference (arrayed cell) at the calculated position to the target cell
                 ref = gdspy.CellReference(cell_to_array, origin=(x_position, y_position), magnification=magnification, 
                                           rotation=rotation)
-                polygons_by_spec = ref.get_polygons(by_spec=True)
-                for (lay, dat), polys in polygons_by_spec.items():
-                    for poly in polys:
-                        polygon = gdspy.Polygon(poly, lay, dat)
-                        if netIDs is None:
-                            self.add_component(target_cell, target_cell_name, polygon, cnt)
-                        else:
-                            self.add_component(target_cell, target_cell_name, polygon, netIDs[i][j])
-                
-                if netIDs is None:
-                    cnt += 1
+                self.add_component(target_cell, target_cell_name, ref, netIDs[i][j] if netIDs is not None else cnt)
+                cnt += 1
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
         # Assume `layer_number` is already determined from `layer_name`
