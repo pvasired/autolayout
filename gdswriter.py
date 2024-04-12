@@ -145,7 +145,7 @@ class GDSDesign:
 
         Args:
         - cell_name (str): The name of the cell to which the path will be added.
-        - points (list of tuples): The waypoints of the path.
+        - points (list of tuples): The waypoints of the path: points along the center of the path.
         - width (float): The width of the path.
         - layer_name (str): The name of the layer.
         - datatype (int): The datatype for the polygon.
@@ -267,10 +267,7 @@ class GDSDesign:
         shapely_polygons = [Polygon(poly) for poly in layer_polygons]
 
         # Cluster intersecting polygons
-        clusters = cluster_intersecting_polygons(shapely_polygons)
-
-        # Merge clusters into single polygons
-        merged_polygons = [unary_union(cluster) for cluster in clusters]
+        merged_polygons = cluster_intersecting_polygons(shapely_polygons)
 
         # Efficiently check for spacing violations between merged polygons
         if len(merged_polygons) < 2:
@@ -333,12 +330,13 @@ class GDSDesign:
         print(f'GDS file written to {filename}')
 
 def cluster_intersecting_polygons(polygons):
-    """Groups intersecting polygons into clusters using an R-tree for efficient spatial indexing.
+    """Groups intersecting polygons into clusters using an R-tree for efficient spatial indexing,
+    ensuring isolated polygons are also included as individual clusters.
     
     Returns:
-        List of clusters, where each cluster is a list of polygons that intersect with each other.
+        List of clusters, where each cluster is a union of polygons that intersect with each other,
+        including isolated polygons as individual clusters.
     """
-    # Create an R-tree from the list of polygons
     tree = STRtree(polygons)
     visited = set()  # Set to track processed polygons by index to avoid duplicates
     clusters = []
@@ -346,17 +344,26 @@ def cluster_intersecting_polygons(polygons):
     # Iterate over the polygons using their index to manage direct references
     for i, poly in enumerate(polygons):
         if i not in visited:
-            # Find all polygons that intersect with the current polygon using their indices
             intersecting_indices = tree.query(poly)
             cluster = []
+            found_neighbors = False
 
             for idx in intersecting_indices:
                 neighbor = polygons[idx]  # Directly reference the polygon using its index
                 if (neighbor.intersects(poly) or neighbor.touches(poly)) and idx not in visited:
                     visited.add(idx)  # Mark this index as processed
                     cluster.append(neighbor)
+                    found_neighbors = True
 
-            if cluster:
-                clusters.append(cluster)  # Only add non-empty clusters
+            # Add the current polygon to the cluster if it has neighbors
+            if found_neighbors:
+                if i not in visited:
+                    visited.add(i)
+                    cluster.append(poly)
+                clusters.append(cluster)
+            else:
+                # If no neighbors were found, treat this polygon as an isolated cluster
+                visited.add(i)
+                clusters.append([poly])  # Include isolated polygon as its own cluster
 
-    return clusters
+    return [unary_union(cluster) for cluster in clusters] # Merge clusters into single polygons
