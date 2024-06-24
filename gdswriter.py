@@ -218,14 +218,14 @@ class GDSDesign:
         self.add_component(cell, cell_name, polygon, netID, layer_number)
 
     def add_cell_reference(self, parent_cell_name, child_cell_name, origin=(0, 0), magnification=1, rotation=0,
-                           netID=0):
+                            x_reflection=False, netID=0):
         parent_cell = self.check_cell_exists(parent_cell_name)
         child_cell = self.check_cell_exists(child_cell_name)
-        ref = gdspy.CellReference(child_cell, origin=origin, magnification=magnification, rotation=rotation)
+        ref = gdspy.CellReference(child_cell, origin=origin, magnification=magnification, rotation=rotation, x_reflection=x_reflection)
         self.add_component(parent_cell, parent_cell_name, ref, netID)
 
     def add_cell_array(self, target_cell_name, cell_name_to_array, copies_x, copies_y, spacing_x, spacing_y, origin=(0, 0),
-                       magnification=1, rotation=0, netIDs=None):
+                       magnification=1, rotation=0, x_reflection=False, netIDs=None):
         target_cell = self.check_cell_exists(target_cell_name)
         cell_to_array = self.check_cell_exists(cell_name_to_array)
         
@@ -242,7 +242,7 @@ class GDSDesign:
                 y_position = start_y + (j * spacing_y)
                 # Add a cell reference (arrayed cell) at the calculated position to the target cell
                 ref = gdspy.CellReference(cell_to_array, origin=(x_position, y_position), magnification=magnification, 
-                                          rotation=rotation)
+                                          rotation=rotation, x_reflection=x_reflection)
                 self.add_component(target_cell, target_cell_name, ref, netIDs[i][j] if netIDs is not None else cnt)
                 cnt += 1
 
@@ -394,3 +394,30 @@ def cluster_intersecting_polygons(polygons):
                 clusters.append([poly])  # Include isolated polygon as its own cluster
 
     return [unary_union(cluster) for cluster in clusters] # Merge clusters into single polygons
+
+def create_hinged_path(start_point, angle, level_y, final_x):
+    x0, y0 = start_point
+    angle_radians = angle * np.pi / 180
+    
+    # If the angle is directly horizontal or the start y is already at level_y, adjust behavior
+    if angle > 90 or y0 == level_y:
+        # Directly horizontal or already at level_y
+        raise ValueError('Improper Usage')
+    
+    # Calculate x where the path should level off
+    # y = y0 + (x - x0) * tan(angle) --> x = x0 + (level_y - y0) / tan(angle)
+    # Avoid division by zero if angle is 90 or 270 degrees
+    if angle == 90:
+        hinge_x = x0  # Vertical line case
+    else:
+        hinge_x = x0 + (level_y - y0) / np.tan(angle_radians)
+    
+    hinge_point = (hinge_x, level_y)
+    
+    # Points from start to hinge
+    path_points = [start_point, hinge_point]
+    
+    # Continue horizontally from hinge point
+    path_points.append((final_x, level_y))  # Extend horizontally for some length
+    
+    return path_points
