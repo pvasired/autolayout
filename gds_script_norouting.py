@@ -3,11 +3,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 import gdswriter
 
 # Initialize the GDS design
-design = gdswriter.GDSDesign(size=(32000, 32000), units='um')
+design = gdswriter.GDSDesign(bounds=[-16000, 16000, -16000, 16000], unit=1e-6)
 
 # Define layers
-design.define_layer("Metal", 1, min_feature_size=1, min_spacing=1)
-design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=1)
+design.define_layer("Metal", 1, min_feature_size=1, min_spacing=10)
+design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=10)
 
 # Parameters for circle creation
 circle_diameter1 = 5  # Diameter for the larger circles in um

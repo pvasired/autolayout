@@ -5,7 +5,8 @@ from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
 class GDSDesign:
-    def __init__(self, lib_name='default_lib', top_cell_name='TopCell', size=(10000, 10000), units='um'):
+    def __init__(self, lib_name='default_lib', filename=None, top_cell_names=['TopCell'], bounds=[-np.inf, np.inf, -np.inf, np.inf], unit=1e-6, precision=1e-9,
+                 default_netID=0, default_feature_size=5, default_spacing=5):
         """
         Initialize a new GDS design library with an optional top cell, design size, and units.
         
@@ -13,16 +14,55 @@ class GDSDesign:
         - lib_name (str): Name of the GDS library.
         - top_cell_name (str): Name of the top-level cell.
         - size (tuple): Overall size of the design (width, height).
-        - units (str): Units of measurement (e.g., 'um' for micrometers, 'nm' for nanometers).
+        - unit (str): Units of measurement (e.g., 'um' for micrometers, 'nm' for nanometers).
         """
-        self.lib = gdspy.GdsLibrary(name=lib_name, unit=1e-6 if units == 'um' else 1e-9, precision=1e-9)
-        self.cells = {}  # Cells by name
-        self.top_cell_name = top_cell_name
-        self.top_cell = self.add_cell(top_cell_name)
-        self.layers = {}  # Layer properties by layer name
-        self.drc_rules = {}  # DRC rules for each layer
-        self.size = size  # Design size
-        self.units = units  # Measurement units
+        if filename is None:
+            self.lib = gdspy.GdsLibrary(name=lib_name, unit=unit, precision=precision)
+            self.cells = {}  # Cells by name
+            self.top_cell_names = top_cell_names
+            for top_cell_name in top_cell_names:
+                self.add_cell(top_cell_name)
+            self.layers = {}  # Layer properties by layer name
+            self.drc_rules = {}  # DRC rules for each layer
+            self.bounds = bounds  # Design size
+            self.unit = unit  # Measurement units
+            self.precision = precision
+        else:
+            self.lib = gdspy.GdsLibrary(infile=filename)
+            self.cells = {}  # Cells by name
+            unique_layers = set()
+            for cell_name in self.lib.cells.keys():
+                if cell_name != '$$$CONTEXT_INFO$$$':
+                    self.cells[cell_name] = {}
+                    self.cells[cell_name]['cell'] = self.lib.cells[cell_name]
+                    self.cells[cell_name]['polygons'] = []
+                    self.cells[cell_name]['netIDs'] = []
+                    polygons_by_spec = self.lib.cells[cell_name].get_polygons(by_spec=True)
+                    for (lay, dat), polys in polygons_by_spec.items():
+                        unique_layers.add(lay)
+                        for poly in polys:
+                            self.cells[cell_name]['polygons'].append(poly)
+                            self.cells[cell_name]['netIDs'].append((lay, default_netID))
+
+            top_cells = self.lib.top_level()
+            self.top_cell_names = [cell.name for cell in top_cells if cell.name != '$$$CONTEXT_INFO$$$']
+            self.layers = {}  # Layer properties by layer name
+            self.drc_rules = {}  # DRC rules for each layer
+            for layer in unique_layers:
+                self.define_layer(f"Layer{layer}", layer, min_feature_size=default_feature_size, 
+                                  min_spacing=default_spacing)   # TODO update with real values
+
+            max_x, min_x, max_y, min_y = -np.inf, np.inf, -np.inf, np.inf
+            for cell in top_cells:
+                for poly in cell.get_polygons():
+                    max_x = max(max_x, np.amax(poly[:, 0]))
+                    min_x = min(min_x, np.amin(poly[:, 0]))
+                    max_y = max(max_y, np.amax(poly[:, 1]))
+                    min_y = min(min_y, np.amin(poly[:, 1]))
+            
+            self.bounds = [min_x, max_x, min_y, max_y]
+            self.unit = self.lib.unit
+            self.precision = self.lib.precision
 
     def add_cell(self, cell_name):
         if cell_name in self.cells:
@@ -319,16 +359,19 @@ class GDSDesign:
             # Check minimum feature size
             if min_feature_size:
                 print(f"Checking minimum feature size ({min_feature_size}um) on layer '{layer_name}'...")
-                self.check_minimum_feature_size(self.top_cell_name, layer_name, min_feature_size)
+                for cell_name in self.top_cell_names:
+                    self.check_minimum_feature_size(cell_name, layer_name, min_feature_size)
 
             # Check minimum spacing
             if min_spacing:
                 print(f"Checking minimum spacing ({min_spacing}um) on layer '{layer_name}'...")
-                self.check_minimum_spacing(self.top_cell_name, layer_name, min_spacing)
+                for cell_name in self.top_cell_names:
+                    self.check_minimum_spacing(cell_name, layer_name, min_spacing)
         
         # Check if all features are within the design bounds
         print("Checking if all features are within the design bounds...")
-        self.check_features_within_bounds(self.top_cell_name)
+        for cell_name in self.top_cell_names:
+            self.check_features_within_bounds(cell_name)
         print("DRC checks passed.")
     
     def check_features_within_bounds(self, cell_name):
@@ -340,16 +383,17 @@ class GDSDesign:
         - cell_name (str): Name of the cell to check.
         """
         cell = self.check_cell_exists(cell_name)
-        half_width, half_height = np.array(self.size) / 2
 
         for poly in cell.get_polygons():
             points = np.array(poly)
             
             # Calculate the maximum extent of the polygon in both x and y directions from the origin
-            max_extent_x = np.max(np.abs(points[:, 0]))
-            max_extent_y = np.max(np.abs(points[:, 1]))
+            min_x = np.amin(points[:, 0])
+            max_x = np.amax(points[:, 0])
+            min_y = np.amin(points[:, 1])
+            max_y = np.amax(points[:, 1])
             
-            if max_extent_x > half_width or max_extent_y > half_height:
+            if min_x < self.bounds[0] or max_x > self.bounds[1] or min_y < self.bounds[2] or max_y > self.bounds[3]:
                 raise ValueError(f"Feature in cell '{cell_name}' exceeds the design bounds.")
 
     def write_gds(self, filename):
