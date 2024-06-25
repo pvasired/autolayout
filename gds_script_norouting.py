@@ -6,8 +6,8 @@ import gdswriter
 design = gdswriter.GDSDesign(bounds=[-16000, 16000, -16000, 16000], unit=1e-6)
 
 # Define layers
-design.define_layer("Metal", 1, min_feature_size=1, min_spacing=10)
-design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=10)
+design.define_layer("Metal", 1, min_feature_size=1, min_spacing=5)
+design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=5)
 
 # Parameters for circle creation
 circle_diameter1 = 5  # Diameter for the larger circles in um
@@ -15,7 +15,7 @@ circle_diameter2 = 4.6   # Diameter for the smaller circles in um
 circle_radius1 = circle_diameter1 / 2
 circle_radius2 = circle_diameter2 / 2
 array_size = 16  # Size of the arrays (16x16)
-pitch = 30  # Pitch in um
+pitch = 10  # Pitch in um
 
 # Create a cell with a single larger circle for 'Metal' layer
 circle_cell_name1 = "Circle5um"

@@ -3,7 +3,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 import gdswriter
 
 # Initialize the GDS design
-design = gdswriter.GDSDesign(filename='Test_Structures.GDS')
+design = gdswriter.GDSDesign(filename='Test_Structures.GDS', default_feature_size=1, default_spacing=10)
 
 # Run design rule checks
 design.run_drc_checks()

@@ -3,6 +3,7 @@ import numpy as np
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
+import matplotlib.pyplot as plt
 
 class GDSDesign:
     def __init__(self, lib_name='default_lib', filename=None, top_cell_names=['TopCell'], bounds=[-np.inf, np.inf, -np.inf, np.inf], unit=1e-6, precision=1e-9,
@@ -334,18 +335,30 @@ class GDSDesign:
         shapely_polygons = [Polygon(poly) for poly in layer_polygons]
 
         # Cluster intersecting polygons
-        merged_polygons = cluster_intersecting_polygons(shapely_polygons)
+        # IMPORTANT: Need to iterate until no more intersections are found
+        while True:
+            merged_polygons = cluster_intersecting_polygons(shapely_polygons)
+            if len(merged_polygons) == len(shapely_polygons):
+                break
+            shapely_polygons = merged_polygons
 
         # Efficiently check for spacing violations between merged polygons
         if len(merged_polygons) < 2:
             return  # If there is less than two polygons, no minimum spacing issues can occur
 
-        # Calculate minimum spacing between merged polygons
-        for i in range(len(merged_polygons)):
-            for j in range(i + 1, len(merged_polygons)):
-                distance = merged_polygons[i].distance(merged_polygons[j])
-                if distance < min_spacing:
-                    raise ValueError(f"Minimum spacing of {min_spacing}um not met; found spacing is {distance}um.")
+        tree = STRtree(merged_polygons)
+
+        for i, poly1 in enumerate(merged_polygons):
+            idxs, dists = tree.query_nearest(poly1, exclusive=True, return_distance=True)
+            distance = min(dists)
+            j = idxs[np.argmin(dists)]
+            if distance < min_spacing:
+                plt.figure(figsize=(8, 8))
+                plt.plot(merged_polygons[i].exterior.xy[0], merged_polygons[i].exterior.xy[1], label='Polygon 1')
+                plt.plot(merged_polygons[j].exterior.xy[0], merged_polygons[j].exterior.xy[1], label='Polygon 2')
+                plt.legend()
+                plt.show()
+                raise ValueError(f"Minimum spacing of {min_spacing}um not met; found spacing is {distance}um.")
     
     def run_drc_checks(self):
         """
@@ -415,29 +428,20 @@ def cluster_intersecting_polygons(polygons):
     # Iterate over the polygons using their index to manage direct references
     for i, poly in enumerate(polygons):
         if i not in visited:
-            intersecting_indices = tree.query(poly)
+            intersecting_indices = tree.query(poly, predicate='intersects')
             cluster = []
-            found_neighbors = False
-
             for idx in intersecting_indices:
-                neighbor = polygons[idx]  # Directly reference the polygon using its index
-                if (neighbor.intersects(poly) or neighbor.touches(poly)) and idx not in visited:
-                    visited.add(idx)  # Mark this index as processed
-                    cluster.append(neighbor)
-                    found_neighbors = True
+                if idx != i:
+                    neighbor = polygons[idx]  # Directly reference the polygon using its index
+                    if neighbor.intersects(poly) and idx not in visited:
+                        visited.add(idx)  # Mark this index as processed
+                        cluster.append(neighbor)
 
-            # Add the current polygon to the cluster if it has neighbors
-            if found_neighbors:
-                if i not in visited:
-                    visited.add(i)
-                    cluster.append(poly)
-                clusters.append(cluster)
-            else:
-                # If no neighbors were found, treat this polygon as an isolated cluster
-                visited.add(i)
-                clusters.append([poly])  # Include isolated polygon as its own cluster
-
-    return [unary_union(cluster) for cluster in clusters] # Merge clusters into single polygons
+            visited.add(i)  # Mark the original polygon as processed
+            cluster.append(poly)  # Add the original polygon to the cluster
+            clusters.append(unary_union(cluster))
+    
+    return clusters
 
 def create_hinged_path(start_point, angle, level_y, final_x):
     x0, y0 = start_point
