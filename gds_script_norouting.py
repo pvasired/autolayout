@@ -54,6 +54,11 @@ design.add_cell(resistance_test_name)
 design.add_resistance_test_structure("ResTest", layer_name="Metal", center=(0, 0),
                                      add_interlayer_short=True, layer_name_short="Oxide")
 
+# Add line test structure
+line_test_name = "LineTest"
+design.add_cell(line_test_name)
+design.add_line_test_structure("LineTest", layer_name="Metal", center=(0, 0), text="P MTL TRACE")
+
 # Run design rule checks
 #design.run_drc_checks()
 

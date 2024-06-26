@@ -155,16 +155,14 @@ class GDSDesign:
         for i in range(switchbacks):
             current_x += x_extent + plug_width + probe_pad_width
             path_points.append((current_x, current_y))
-            distance += x_extent + plug_width + probe_pad_width
             current_y += trace_spacing
             path_points.append((current_x, current_y))
-            distance += trace_spacing
             current_x -= x_extent + plug_width + probe_pad_width
             path_points.append((current_x, current_y))
-            distance += x_extent + plug_width + probe_pad_width
             current_y += trace_spacing
             path_points.append((current_x, current_y))
-            distance += trace_spacing
+
+            distance += 2 * (trace_spacing + x_extent + plug_width + probe_pad_width)
 
         path_points.append((center[0]-plug_width-probe_pad_width/2-x_extent, center[1]+probe_pad_spacing/2))
         distance += center[1]+probe_pad_spacing/2 - current_y
@@ -178,6 +176,7 @@ class GDSDesign:
 
         if add_interlayer_short:
             assert layer_name_short is not None, "Error: Layer name for the short must be specified."
+            # 0.75 is an arbitrary factor to place the short in a nice spot
             self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]+probe_pad_height*0.75), 
                                width=probe_pad_width, height=probe_pad_height)
             self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]-probe_pad_height*0.75), 
@@ -185,9 +184,16 @@ class GDSDesign:
             text = "INTERLAYER SHORT"
             self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*0.5, center[1]), text_height, 0, text_horizontal)
 
-    # def add_line_test_structure(self, cell_name, layer_name, center, line_width=800, probe_pad_height=80, num_lines=4, line_spacing=80,
-    #                             text_height=40, text_angle=0, text_horizontal=True, text_position=None):
-
+    def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, probe_pad_height=80, num_lines=4, line_spacing=80,
+                                text_height=40, text_angle=0, text_horizontal=True, text_position=None):
+        rect_center = (center[0], center[1]+(num_lines-1)*line_spacing)
+        for i in range(num_lines):
+            self.add_rectangle(cell_name, layer_name, center=rect_center, width=line_width, height=probe_pad_height)
+            rect_center = (rect_center[0], rect_center[1]-2*line_spacing)
+        
+        if text_position is None:
+            text_position = (center[0]-len(text)*text_height*0.5, center[1]+(num_lines-1)*line_spacing+text_height*2)
+        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
 
     def add_component(self, cell, cell_name, component, netID, layer_number=None):
         # Check if component is a polygon or a CellReference
