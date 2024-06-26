@@ -3,12 +3,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 import gdswriter
 
 # Initialize the GDS design
-design = gdswriter.GDSDesign(bounds=[-16000, 16000, -16000, 16000], unit=1e-6)
+design = gdswriter.GDSDesign(bounds=[-100000, 100000, -100000, 100000], unit=1e-6)
 
 # Define layers
 design.define_layer("Metal", 1, min_feature_size=1, min_spacing=5)
 design.define_layer("Metal2", 3, min_feature_size=1, min_spacing=5)
 design.define_layer("Via", 2, min_feature_size=1, min_spacing=5)
+design.define_layer("Outline", 4, min_feature_size=None, min_spacing=None)
 
 # Add alignment crosses
 alignment_cross_name = "AlignmentCross"
@@ -19,7 +20,8 @@ design.add_MLA_alignment_mark("AlignmentCross", layer_name="Metal", center=(0, 0
 resistance_test_name = "ResTest"
 design.add_cell(resistance_test_name)
 design.add_resistance_test_structure("ResTest", layer_name="Metal", center=(0, 0), trace_width=5,
-                                     add_interlayer_short=True, layer_name_short="Metal2")
+                                     add_interlayer_short=True, layer_name_short="Metal2", switchbacks=30,
+                                     trace_spacing=30)
 
 # Add line test structure
 line_test_name = "LineTest"
@@ -46,6 +48,8 @@ design.add_cell_reference("TopCell", line_test_name, origin=(3000, 0))
 design.add_cell_reference("TopCell", p_via_test_name, origin=(1000, 3000))
 design.add_cell_reference("TopCell", electronics_via_test_name, origin=(0, -3000))
 design.add_cell_reference("TopCell", short_test_name, origin=(-3000, 3000))
+
+design.add_circle_as_polygon("TopCell", layer_name="Outline", center=(0, 0), radius=50000)
 
 # Run design rule checks
 #design.run_drc_checks()

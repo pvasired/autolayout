@@ -174,7 +174,7 @@ class GDSDesign:
         self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
         text = f"RESISTANCE {distance/1000}MM TRACE WIDTH {trace_width}UM"
         if text_position is None:
-            text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-3.75*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
+            text_position = (center[0]+probe_pad_width/2+1.5*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
 
         if add_interlayer_short:
@@ -276,6 +276,15 @@ class GDSDesign:
         if text_position is None:
             text_position = (center[0]-rect_spacing/2-rect_width-text_height, center[1] - len(text)*text_height*TEXT_SPACING_FACTOR)
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
+
+    def add_MLA_alignment_cell(self, box1_layer, box2_layer, cross1_layer, cross2_layer,
+                               box_width=2000, box_height=2000, cell_name="MLA_Alignment"):
+        cell = self.add_cell(cell_name)
+        self.add_rectangle(cell_name, box1_layer, center=(0, 0), width=box_width, height=box_height)
+        self.add_rectangle(cell_name, box2_layer, center=(0, 0), width=box_width, height=box_height)
+        self.add_MLA_alignment_mark(cell_name, cross1_layer, center=(-box_width/2, -box_width/2))
+        self.add_MLA_alignment_mark(cell_name, cross1_layer, center=(box_width/2, box_width/2))
+        self.add_MLA_alignment_mark(cell_name, cross2_layer, center=(0, 0))
                 
     def add_component(self, cell, cell_name, component, netID, layer_number=None):
         # Check if component is a polygon or a CellReference
