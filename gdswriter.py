@@ -128,9 +128,9 @@ class GDSDesign:
 
     def add_resistance_test_structure(self, cell_name, layer_name, center, probe_pad_width=1000, probe_pad_height=1000,
                                       probe_pad_spacing=3000, plug_width=200, plug_height=200, trace_width=5,
-                                      trace_spacing=50, switchbacks=18, x_extent=100, text_height=250,
+                                      trace_spacing=50, switchbacks=18, x_extent=100, text_height=250, text=None,
                                       text_angle=90, text_position=None, add_interlayer_short=False,
-                                      layer_name_short=None):
+                                      short_text=None, layer_name_short=None):
 
         # Add probe pads and plugs
         self.add_rectangle(cell_name, layer_name, center=(center[0], center[1]-probe_pad_spacing/2), width=probe_pad_width, height=probe_pad_height)
@@ -172,20 +172,24 @@ class GDSDesign:
         path_points.append((center[0]-plug_width-probe_pad_width/2, center[1]+probe_pad_spacing/2))
         distance += x_extent
         self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
-        text = f"RESISTANCE {distance/1000}MM TRACE WIDTH {trace_width}UM"
+        if text is None:
+            text = f"RESISTANCE {distance/1000}MM TRACE WIDTH {trace_width}UM"
+        else:
+            text += f" RESISTANCE {distance/1000}MM TRACE WIDTH {trace_width}UM"
+
         if text_position is None:
             text_position = (center[0]+probe_pad_width/2+1.5*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
 
         if add_interlayer_short:
             assert layer_name_short is not None, "Error: Layer name for the short must be specified."
+            assert short_text is not None, "Error: Text for the short must be specified."
             # 0.75 is an arbitrary factor to place the short in a nice spot
             self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]+probe_pad_height*0.75), 
                                width=probe_pad_width, height=probe_pad_height)
             self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]-probe_pad_height*0.75), 
                                width=probe_pad_width, height=probe_pad_height)
-            text = "INTERLAYER SHORT"
-            self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]), text_height, 0)
+            self.add_text(cell_name, short_text, layer_name_short, (center[0]-probe_pad_width/2-len(short_text)*text_height*TEXT_SPACING_FACTOR, center[1]), text_height, 0)
 
     def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, line_height=80, num_lines=4, line_spacing=80,
                                 text_height=250, text_angle=0, text_position=None):
