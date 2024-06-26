@@ -195,6 +195,24 @@ class GDSDesign:
             text_position = (center[0]-len(text)*text_height*0.5, center[1]+(num_lines-1)*line_spacing+text_height*2)
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
 
+    def add_p_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text, layer1_rect_spacing=150,
+                                 layer1_rect_width=700, layer1_rect_height=250, layer2_rect_width=600, layer2_rect_height=550,
+                                 via_width=7, via_height=7, text_height=80, text_angle=90, text_horizontal=True, text_position=None):
+        # Add rectangles for the first layer
+        self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]+layer1_rect_spacing/2+layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
+        self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]-layer1_rect_spacing/2-layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
+        
+        # Add rectangle for the second layer
+        self.add_rectangle(cell_name, layer_name_2, center=(center[0], center[1]), width=layer2_rect_width, height=layer2_rect_height)
+
+        # Add vias
+        self.add_rectangle(cell_name, via_layer, center=(center[0], center[1]+layer1_rect_spacing/2+layer1_rect_height/2), width=via_width, height=via_height)
+        self.add_rectangle(cell_name, via_layer, center=(center[0], center[1]-layer1_rect_spacing/2-layer1_rect_height/2), width=via_width, height=via_height)
+
+        if text_position is None:
+            text_position = (center[0]-layer1_rect_width/2 - text_height, center[1] - len(text)*text_height*0.5)
+        self.add_text(cell_name, text, layer_name_1, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+
     def add_component(self, cell, cell_name, component, netID, layer_number=None):
         # Check if component is a polygon or a CellReference
         if isinstance(component, gdspy.Polygon) or isinstance(component, gdspy.Rectangle) or isinstance(component, gdspy.Text):

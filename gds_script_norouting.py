@@ -8,6 +8,7 @@ design = gdswriter.GDSDesign(bounds=[-16000, 16000, -16000, 16000], unit=1e-6)
 # Define layers
 design.define_layer("Metal", 1, min_feature_size=1, min_spacing=5)
 design.define_layer("Oxide", 2, min_feature_size=1, min_spacing=5)
+design.define_layer("Via", 3, min_feature_size=1, min_spacing=5)
 
 # Parameters for circle creation
 circle_diameter1 = 5  # Diameter for the larger circles in um
@@ -58,6 +59,10 @@ design.add_resistance_test_structure("ResTest", layer_name="Metal", center=(0, 0
 line_test_name = "LineTest"
 design.add_cell(line_test_name)
 design.add_line_test_structure("LineTest", layer_name="Metal", center=(0, 0), text="P MTL TRACE")
+
+p_via_test_name = "P_Via_Test"
+design.add_cell(p_via_test_name)
+design.add_p_via_test_structure("P_Via_Test", layer_name_1="Metal", layer_name_2="Oxide", via_layer="Via", center=(0, 0), text="P VIA RESISTANCE")
 
 # Run design rule checks
 #design.run_drc_checks()
