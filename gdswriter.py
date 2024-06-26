@@ -76,6 +76,119 @@ class GDSDesign:
         self.cells[cell_name]['netIDs'] = []
         return cell
 
+    def add_MLA_alignment_mark(self, cell_name, layer_name, center, rect_width=500, rect_height=20, width_interior=5,
+                               extent_x_interior=50, extent_y_interior=50, datatype=0, netID=0, add_text=False, text_height=20,
+                               text_angle=0, text_horizontal=True, text_position=None):
+        assert rect_width > width_interior, "Error: The width of the rectangle must be greater than the thickness of the interior cross."
+        assert rect_height > width_interior, "Error: The height of the rectangle must be greater than the thickness of the interior cross."
+        cell = self.check_cell_exists(cell_name)
+        layer_number = self.get_layer_number(layer_name)
+
+        # Calculate the coordinates for the horizontal and vertical parts of the cross
+        horizontal_lower_left = (center[0] - extent_x_interior / 2, center[1] - width_interior / 2)
+        horizontal_upper_right = (center[0] + extent_x_interior / 2, center[1] + width_interior / 2)
+        vertical_lower_left = (center[0] - width_interior / 2, center[1] - extent_y_interior / 2)
+        vertical_upper_right = (center[0] + width_interior / 2, center[1] + extent_y_interior / 2)
+
+        # Create rectangles for the cross
+        horizontal_rect = gdspy.Rectangle(horizontal_lower_left, horizontal_upper_right, layer=layer_number, datatype=datatype)
+        vertical_rect = gdspy.Rectangle(vertical_lower_left, vertical_upper_right, layer=layer_number, datatype=datatype)
+
+        # Add the rectangles to the cell
+        self.add_component(cell, cell_name, horizontal_rect, netID, layer_number)
+        self.add_component(cell, cell_name, vertical_rect, netID, layer_number)
+
+        outer_L_lower_left = (center[0] - extent_x_interior / 2 - rect_width, center[1] - rect_height / 2)
+        outer_L_upper_right = (center[0] - extent_x_interior / 2, center[1] + rect_height / 2)
+        outer_R_lower_left = (center[0] + extent_x_interior / 2, center[1] - rect_height / 2)
+        outer_R_upper_right = (center[0] + extent_x_interior / 2 + rect_width, center[1] + rect_height / 2)
+        outer_T_lower_left = (center[0] - rect_height / 2, center[1] + extent_y_interior / 2)
+        outer_T_upper_right = (center[0] + rect_height / 2, center[1] + extent_y_interior / 2 + rect_width)
+        outer_B_lower_left = (center[0] - rect_height / 2, center[1] - extent_y_interior / 2 - rect_width)
+        outer_B_upper_right = (center[0] + rect_height / 2, center[1] - extent_y_interior / 2)
+
+        outer_L = gdspy.Rectangle(outer_L_lower_left, outer_L_upper_right, layer=layer_number, datatype=datatype)
+        outer_R = gdspy.Rectangle(outer_R_lower_left, outer_R_upper_right, layer=layer_number, datatype=datatype)
+        outer_T = gdspy.Rectangle(outer_T_lower_left, outer_T_upper_right, layer=layer_number, datatype=datatype)
+        outer_B = gdspy.Rectangle(outer_B_lower_left, outer_B_upper_right, layer=layer_number, datatype=datatype)
+
+        self.add_component(cell, cell_name, outer_L, netID, layer_number)
+        self.add_component(cell, cell_name, outer_R, netID, layer_number)
+        self.add_component(cell, cell_name, outer_T, netID, layer_number)
+        self.add_component(cell, cell_name, outer_B, netID, layer_number)
+
+        if add_text:
+            text = f"{center}"
+            if text_position is None:
+                text_position = (center[0] - rect_width/2-len(text)*text_height*0.5, center[1] + rect_width/2)
+            self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle, text_horizontal)
+
+    def add_resistance_test_structure(self, cell_name, layer_name, center, probe_pad_width=1000, probe_pad_height=1000,
+                                      probe_pad_spacing=3000, plug_width=200, plug_height=200, trace_width=5,
+                                      trace_spacing=50, switchbacks=18, x_extent=100, text_height=40,
+                                      text_angle=90, text_horizontal=True, text_position=None, add_interlayer_short=False,
+                                      layer_name_short=None):
+
+        # Add probe pads and plugs
+        self.add_rectangle(cell_name, layer_name, center=(center[0], center[1]-probe_pad_spacing/2), width=probe_pad_width, height=probe_pad_height)
+        self.add_rectangle(cell_name, layer_name, center=(center[0], center[1]+probe_pad_spacing/2), width=probe_pad_width, height=probe_pad_height)
+        self.add_rectangle(cell_name, layer_name, center=(center[0]-plug_width/2-probe_pad_width/2, center[1]-probe_pad_spacing/2), width=plug_width, height=plug_height)
+        self.add_rectangle(cell_name, layer_name, center=(center[0]-plug_width/2-probe_pad_width/2, center[1]+probe_pad_spacing/2), width=plug_width, height=plug_height)
+
+        # The first segments of the traces are fixed
+        path_points = []
+        distance = 0
+        path_points.append((center[0]-plug_width-probe_pad_width/2, center[1]-probe_pad_spacing/2))
+        path_points.append((center[0]-plug_width-probe_pad_width/2-x_extent, center[1]-probe_pad_spacing/2))
+        distance += x_extent
+        path_points.append((center[0]-plug_width-probe_pad_width/2-x_extent, center[1]-probe_pad_spacing/2+probe_pad_height/2))
+        distance += probe_pad_height/2
+
+        margin = (probe_pad_spacing - probe_pad_height - trace_width - trace_spacing * (2 * switchbacks - 1))/2
+        assert margin > trace_spacing, f"Error: Not enough space for the switchbacks. Margin is {margin} and trace spacing is {trace_spacing}."
+
+        current_x = center[0]-plug_width-probe_pad_width/2-x_extent
+        current_y = center[1]-probe_pad_spacing/2+probe_pad_height/2+margin+trace_width/2
+
+        path_points.append((current_x, current_y))
+        distance += margin + trace_width/2
+        for i in range(switchbacks):
+            current_x += x_extent + plug_width + probe_pad_width
+            path_points.append((current_x, current_y))
+            distance += x_extent + plug_width + probe_pad_width
+            current_y += trace_spacing
+            path_points.append((current_x, current_y))
+            distance += trace_spacing
+            current_x -= x_extent + plug_width + probe_pad_width
+            path_points.append((current_x, current_y))
+            distance += x_extent + plug_width + probe_pad_width
+            current_y += trace_spacing
+            path_points.append((current_x, current_y))
+            distance += trace_spacing
+
+        path_points.append((center[0]-plug_width-probe_pad_width/2-x_extent, center[1]+probe_pad_spacing/2))
+        distance += center[1]+probe_pad_spacing/2 - current_y
+        path_points.append((center[0]-plug_width-probe_pad_width/2, center[1]+probe_pad_spacing/2))
+        distance += x_extent
+        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        text = f"RESISTANCE {distance/1000}MM"
+        if text_position is None:
+            text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-2*text_height, center[1]-len(text)*text_height*0.5)    
+        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+
+        if add_interlayer_short:
+            assert layer_name_short is not None, "Error: Layer name for the short must be specified."
+            self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]+probe_pad_height*0.75), 
+                               width=probe_pad_width, height=probe_pad_height)
+            self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]-probe_pad_height*0.75), 
+                               width=probe_pad_width, height=probe_pad_height)
+            text = "INTERLAYER SHORT"
+            self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*0.5, center[1]), text_height, 0, text_horizontal)
+
+    # def add_line_test_structure(self, cell_name, layer_name, center, line_width=800, probe_pad_height=80, num_lines=4, line_spacing=80,
+    #                             text_height=40, text_angle=0, text_horizontal=True, text_position=None):
+
+
     def add_component(self, cell, cell_name, component, netID, layer_number=None):
         # Check if component is a polygon or a CellReference
         if isinstance(component, gdspy.Polygon) or isinstance(component, gdspy.Rectangle) or isinstance(component, gdspy.Text):

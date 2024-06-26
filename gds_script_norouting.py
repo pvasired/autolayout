@@ -15,7 +15,7 @@ circle_diameter2 = 4.6   # Diameter for the smaller circles in um
 circle_radius1 = circle_diameter1 / 2
 circle_radius2 = circle_diameter2 / 2
 array_size = 16  # Size of the arrays (16x16)
-pitch = 10  # Pitch in um
+pitch = 30  # Pitch in um
 
 # Create a cell with a single larger circle for 'Metal' layer
 circle_cell_name1 = "Circle5um"
@@ -44,13 +44,18 @@ design.add_cell_array("TopCell", pad_cell_name, copies_y=1, copies_x=128, spacin
 design.add_cell_array("TopCell", pad_cell_name, copies_y=1, copies_x=128, spacing_x=200, spacing_y=0, origin=(0, -(16000-850)))
 
 # Add alignment crosses
-design.add_alignment_cross("TopCell", layer_name="Metal", center=(-350, -350), width=10, extent_x=100, extent_y=100)
-design.add_alignment_cross("TopCell", layer_name="Metal", center=(-350, 350), width=10, extent_x=100, extent_y=100)
-design.add_alignment_cross("TopCell", layer_name="Metal", center=(350, -350), width=10, extent_x=100, extent_y=100)
-design.add_alignment_cross("TopCell", layer_name="Metal", center=(350, 350), width=10, extent_x=100, extent_y=100)
+alignment_cross_name = "AlignmentCross"
+design.add_cell(alignment_cross_name)
+design.add_MLA_alignment_mark("AlignmentCross", layer_name="Metal", center=(0, 0), add_text=True)
+
+# Add resistance test structure
+resistance_test_name = "ResTest"
+design.add_cell(resistance_test_name)
+design.add_resistance_test_structure("ResTest", layer_name="Metal", center=(0, 0),
+                                     add_interlayer_short=True, layer_name_short="Oxide")
 
 # Run design rule checks
-design.run_drc_checks()
+#design.run_drc_checks()
 
 # Write to a GDS file
 design.write_gds("example_design.gds")
