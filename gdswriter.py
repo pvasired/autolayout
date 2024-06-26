@@ -4,8 +4,9 @@ from shapely.geometry import Polygon
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
+import klayout.db as kdb
 
-TEXT_SPACING_FACTOR = 0.43
+TEXT_SPACING_FACTOR = 0.3
 
 class GDSDesign:
     def __init__(self, lib_name='default_lib', filename=None, top_cell_names=['TopCell'], bounds=[-np.inf, np.inf, -np.inf, np.inf], unit=1e-6, precision=1e-9,
@@ -80,7 +81,7 @@ class GDSDesign:
 
     def add_MLA_alignment_mark(self, cell_name, layer_name, center, rect_width=500, rect_height=20, width_interior=5,
                                extent_x_interior=50, extent_y_interior=50, datatype=0, netID=0, add_text=False, text_height=20,
-                               text_angle=0, text_horizontal=True, text_position=None):
+                               text_angle=0, text_position=None):
         assert rect_width > width_interior, "Error: The width of the rectangle must be greater than the thickness of the interior cross."
         assert rect_height > width_interior, "Error: The height of the rectangle must be greater than the thickness of the interior cross."
         cell = self.check_cell_exists(cell_name)
@@ -123,12 +124,12 @@ class GDSDesign:
             text = f"{center}"
             if text_position is None:
                 text_position = (center[0] - rect_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1] + rect_width/2)
-            self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle, text_horizontal)
+            self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
 
     def add_resistance_test_structure(self, cell_name, layer_name, center, probe_pad_width=1000, probe_pad_height=1000,
                                       probe_pad_spacing=3000, plug_width=200, plug_height=200, trace_width=5,
                                       trace_spacing=50, switchbacks=18, x_extent=100, text_height=40,
-                                      text_angle=90, text_horizontal=True, text_position=None, add_interlayer_short=False,
+                                      text_angle=90, text_position=None, add_interlayer_short=False,
                                       layer_name_short=None):
 
         # Add probe pads and plugs
@@ -174,7 +175,7 @@ class GDSDesign:
         text = f"RESISTANCE {distance/1000}MM TRACE WIDTH {trace_width}UM"
         if text_position is None:
             text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-2*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
-        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
 
         if add_interlayer_short:
             assert layer_name_short is not None, "Error: Layer name for the short must be specified."
@@ -184,10 +185,10 @@ class GDSDesign:
             self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]-probe_pad_height*0.75), 
                                width=probe_pad_width, height=probe_pad_height)
             text = "INTERLAYER SHORT"
-            self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]), text_height, 0, text_horizontal)
+            self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]), text_height, 0)
 
     def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, line_height=80, num_lines=4, line_spacing=80,
-                                text_height=40, text_angle=0, text_horizontal=True, text_position=None):
+                                text_height=40, text_angle=0, text_position=None):
         rect_center = (center[0], center[1]+(num_lines-1)*line_spacing)
         for i in range(num_lines):
             self.add_rectangle(cell_name, layer_name, center=rect_center, width=line_width, height=line_height)
@@ -195,11 +196,11 @@ class GDSDesign:
         
         if text_position is None:
             text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]+(num_lines-1)*line_spacing+text_height*2)
-        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
 
     def add_p_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text, layer1_rect_spacing=150,
                                  layer1_rect_width=700, layer1_rect_height=250, layer2_rect_width=600, layer2_rect_height=550,
-                                 via_width=7, via_height=7, text_height=80, text_angle=90, text_horizontal=True, text_position=None):
+                                 via_width=7, via_height=7, text_height=80, text_angle=90, text_position=None):
         # Add rectangles for the first layer
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]+layer1_rect_spacing/2+layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]-layer1_rect_spacing/2-layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
@@ -213,12 +214,12 @@ class GDSDesign:
 
         if text_position is None:
             text_position = (center[0]-layer1_rect_width/2 - text_height, center[1] - len(text)*text_height*TEXT_SPACING_FACTOR)
-        self.add_text(cell_name, text, layer_name_1, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+        self.add_text(cell_name, text, layer_name_1, text_position, text_height, text_angle)
 
     def add_electronics_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text,
                                            layer_1_rect_width=1550, layer_1_rect_height=700, layer_2_rect_width=600,
                                            layer_2_rect_height=600, layer_2_rect_spacing=250, via_width=7, via_height=7, via_spacing=10,
-                                           text_height=80, text_angle=0, text_horizontal=True, text_position=None):
+                                           text_height=80, text_angle=0, text_position=None):
         # Add rectangle for the first layer
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]), width=layer_1_rect_width, height=layer_1_rect_height)
 
@@ -232,11 +233,11 @@ class GDSDesign:
 
         if text_position is None:
             text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1] + layer_2_rect_height/2 + text_height)
-        self.add_text(cell_name, text, via_layer, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+        self.add_text(cell_name, text, via_layer, text_position, text_height, text_angle)
 
     def add_short_test_structure(self, cell_name, layer_name, center, text, rect_width=1300,
                                  trace_width=5, num_lines=5, group_spacing=130, num_groups=6, num_lines_vert=100,
-                                 text_height=40, text_angle=90, text_horizontal=True, text_position=None):
+                                 text_height=40, text_angle=90, text_position=None):
         group_height = (4*num_lines - 1)*trace_width + group_spacing + 2*trace_width
         rect_height = group_height*num_groups+trace_width*(num_groups-1)
         rect_spacing = (4*num_lines_vert - 1)*trace_width + 2*trace_width
@@ -274,7 +275,7 @@ class GDSDesign:
 
         if text_position is None:
             text_position = (center[0]-rect_spacing/2-rect_width-text_height, center[1] - len(text)*text_height*TEXT_SPACING_FACTOR)
-        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
                 
     def add_component(self, cell, cell_name, component, netID, layer_number=None):
         # Check if component is a polygon or a CellReference
@@ -391,11 +392,42 @@ class GDSDesign:
         self.add_component(cell, cell_name, horizontal_rect, netID, layer_number)
         self.add_component(cell, cell_name, vertical_rect, netID, layer_number)
 
-    def add_text(self, cell_name, text, layer_name, position, height, angle=0, horizontal=True, datatype=0, netID=0):
+    def add_text(self, cell_name, text, layer_name, position, height, angle=0, datatype=0, netID=0):
         layer_number = self.get_layer_number(layer_name)
         cell = self.check_cell_exists(cell_name)
-        text = gdspy.Text(text, height, position, horizontal=horizontal, angle=angle, layer=layer_number, datatype=datatype)
-        self.add_component(cell, cell_name, text, netID, layer_number)
+        
+        # Create the text object using KLayout
+        layout = kdb.Layout()
+        layout.dbu = 1e-3  # 0.001 microns per layout unit
+        top_cell = layout.create_cell("TOP")
+        
+        # Set the layer
+        layer_info = kdb.LayerInfo(1, 0)  # Layer 1 with datatype 0
+        layer_index = layout.layer(layer_info)
+
+        # Create the text
+        text_shape = kdb.TextGenerator.default_generator().text(text, layout.dbu/height)
+
+        # Prepare transformation matrix
+        angle_rad = np.deg2rad(angle)
+        rotation_matrix = np.array([
+            [np.cos(angle_rad), -np.sin(angle_rad)],
+            [np.sin(angle_rad), np.cos(angle_rad)]
+        ])
+        translation_vector = np.array(position)
+        
+        top_cell.shapes(layer_index).insert(text_shape)
+
+        # Extract polygons from the text shape and convert to gdspy polygons
+        for polygon in text_shape.each():
+            points = []
+            for edge in polygon.each_edge():
+                point = np.array([edge.x1 * layout.dbu, edge.y1 * layout.dbu])
+                rotated_point = rotation_matrix.dot(point)
+                transformed_point = rotated_point + translation_vector
+                points.append(tuple(transformed_point))
+            gdspy_polygon = gdspy.Polygon(points, layer=layer_number, datatype=datatype)
+            self.add_component(cell, cell_name, gdspy_polygon, netID, layer_number)
 
     def add_polygon(self, cell_name, points, layer_name, datatype=0, netID=0):
         layer_number = self.get_layer_number(layer_name)
