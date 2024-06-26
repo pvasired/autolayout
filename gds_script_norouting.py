@@ -41,9 +41,9 @@ design.add_short_test_structure("ShortTest", layer_name="Metal", center=(0, 0), 
 
 # # Add test structures to top cell
 design.add_cell_reference("TopCell", alignment_cross_name, origin=(350, 350))
-design.add_cell_reference("TopCell", resistance_test_name, origin=(-1000, 0))
+design.add_cell_reference("TopCell", resistance_test_name, origin=(-5000, -5000))
 design.add_cell_reference("TopCell", line_test_name, origin=(3000, 0))
-design.add_cell_reference("TopCell", p_via_test_name, origin=(0, 3000))
+design.add_cell_reference("TopCell", p_via_test_name, origin=(1000, 3000))
 design.add_cell_reference("TopCell", electronics_via_test_name, origin=(0, -3000))
 design.add_cell_reference("TopCell", short_test_name, origin=(-3000, 3000))
 

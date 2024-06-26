@@ -80,7 +80,7 @@ class GDSDesign:
         return cell
 
     def add_MLA_alignment_mark(self, cell_name, layer_name, center, rect_width=500, rect_height=20, width_interior=5,
-                               extent_x_interior=50, extent_y_interior=50, datatype=0, netID=0, add_text=False, text_height=20,
+                               extent_x_interior=50, extent_y_interior=50, datatype=0, netID=0, add_text=False, text_height=250,
                                text_angle=0, text_position=None):
         assert rect_width > width_interior, "Error: The width of the rectangle must be greater than the thickness of the interior cross."
         assert rect_height > width_interior, "Error: The height of the rectangle must be greater than the thickness of the interior cross."
@@ -128,7 +128,7 @@ class GDSDesign:
 
     def add_resistance_test_structure(self, cell_name, layer_name, center, probe_pad_width=1000, probe_pad_height=1000,
                                       probe_pad_spacing=3000, plug_width=200, plug_height=200, trace_width=5,
-                                      trace_spacing=50, switchbacks=18, x_extent=100, text_height=40,
+                                      trace_spacing=50, switchbacks=18, x_extent=100, text_height=250,
                                       text_angle=90, text_position=None, add_interlayer_short=False,
                                       layer_name_short=None):
 
@@ -174,7 +174,7 @@ class GDSDesign:
         self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
         text = f"RESISTANCE {distance/1000}MM TRACE WIDTH {trace_width}UM"
         if text_position is None:
-            text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-2*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
+            text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-3.75*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
 
         if add_interlayer_short:
@@ -188,19 +188,19 @@ class GDSDesign:
             self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]), text_height, 0)
 
     def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, line_height=80, num_lines=4, line_spacing=80,
-                                text_height=40, text_angle=0, text_position=None):
+                                text_height=250, text_angle=0, text_position=None):
         rect_center = (center[0], center[1]+(num_lines-1)*line_spacing)
         for i in range(num_lines):
             self.add_rectangle(cell_name, layer_name, center=rect_center, width=line_width, height=line_height)
             rect_center = (rect_center[0], rect_center[1]-2*line_spacing)
         
         if text_position is None:
-            text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]+(num_lines-1)*line_spacing+text_height*2)
+            text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]+(num_lines-1)*line_spacing+text_height)
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle)
 
     def add_p_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text, layer1_rect_spacing=150,
                                  layer1_rect_width=700, layer1_rect_height=250, layer2_rect_width=600, layer2_rect_height=550,
-                                 via_width=7, via_height=7, text_height=80, text_angle=90, text_position=None):
+                                 via_width=7, via_height=7, text_height=250, text_angle=90, text_position=None):
         # Add rectangles for the first layer
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]+layer1_rect_spacing/2+layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]-layer1_rect_spacing/2-layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
@@ -219,7 +219,7 @@ class GDSDesign:
     def add_electronics_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text,
                                            layer_1_rect_width=1550, layer_1_rect_height=700, layer_2_rect_width=600,
                                            layer_2_rect_height=600, layer_2_rect_spacing=250, via_width=7, via_height=7, via_spacing=10,
-                                           text_height=80, text_angle=0, text_position=None):
+                                           text_height=250, text_angle=0, text_position=None):
         # Add rectangle for the first layer
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]), width=layer_1_rect_width, height=layer_1_rect_height)
 
@@ -237,7 +237,7 @@ class GDSDesign:
 
     def add_short_test_structure(self, cell_name, layer_name, center, text, rect_width=1300,
                                  trace_width=5, num_lines=5, group_spacing=130, num_groups=6, num_lines_vert=100,
-                                 text_height=40, text_angle=90, text_position=None):
+                                 text_height=250, text_angle=90, text_position=None):
         group_height = (4*num_lines - 1)*trace_width + group_spacing + 2*trace_width
         rect_height = group_height*num_groups+trace_width*(num_groups-1)
         rect_spacing = (4*num_lines_vert - 1)*trace_width + 2*trace_width
