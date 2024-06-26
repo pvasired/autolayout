@@ -52,7 +52,7 @@ design.add_MLA_alignment_mark("AlignmentCross", layer_name="Metal", center=(0, 0
 # Add resistance test structure
 resistance_test_name = "ResTest"
 design.add_cell(resistance_test_name)
-design.add_resistance_test_structure("ResTest", layer_name="Metal", center=(0, 0),
+design.add_resistance_test_structure("ResTest", layer_name="Metal", center=(0, 0), trace_width=2,
                                      add_interlayer_short=True, layer_name_short="Oxide")
 
 # Add line test structure
@@ -62,11 +62,16 @@ design.add_line_test_structure("LineTest", layer_name="Metal", center=(0, 0), te
 
 p_via_test_name = "P_Via_Test"
 design.add_cell(p_via_test_name)
-design.add_p_via_test_structure("P_Via_Test", layer_name_1="Metal", layer_name_2="Oxide", via_layer="Via", center=(0, 0), text="P VIA RESISTANCE")
+design.add_p_via_test_structure("P_Via_Test", layer_name_1="Metal", layer_name_2="Oxide", via_layer="Via", center=(0, 0), text="P VIA RESISTANCE",
+                                via_width=10, via_height=10)
 
 electronics_via_test_name = "Electronics_Via_Test"
 design.add_cell(electronics_via_test_name)
 design.add_electronics_via_test_structure("Electronics_Via_Test", layer_name_1="Metal", layer_name_2="Oxide", via_layer="Via", center=(0, 0), text="ELECTRONICS VIA RESISTANCE")
+
+short_test_name = "ShortTest"
+design.add_cell(short_test_name)
+design.add_short_test_structure("ShortTest", layer_name="Metal", center=(0, 0), text="P-MTL SHORT", trace_width=5)
 # Run design rule checks
 #design.run_drc_checks()
 

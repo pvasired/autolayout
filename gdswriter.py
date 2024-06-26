@@ -171,7 +171,7 @@ class GDSDesign:
         path_points.append((center[0]-plug_width-probe_pad_width/2, center[1]+probe_pad_spacing/2))
         distance += x_extent
         self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
-        text = f"RESISTANCE {distance/1000}MM"
+        text = f"RESISTANCE {distance/1000}MM TRACE WIDTH {trace_width}UM"
         if text_position is None:
             text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-2*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
@@ -186,11 +186,11 @@ class GDSDesign:
             text = "INTERLAYER SHORT"
             self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]), text_height, 0, text_horizontal)
 
-    def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, probe_pad_height=80, num_lines=4, line_spacing=80,
+    def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, line_height=80, num_lines=4, line_spacing=80,
                                 text_height=40, text_angle=0, text_horizontal=True, text_position=None):
         rect_center = (center[0], center[1]+(num_lines-1)*line_spacing)
         for i in range(num_lines):
-            self.add_rectangle(cell_name, layer_name, center=rect_center, width=line_width, height=probe_pad_height)
+            self.add_rectangle(cell_name, layer_name, center=rect_center, width=line_width, height=line_height)
             rect_center = (rect_center[0], rect_center[1]-2*line_spacing)
         
         if text_position is None:
@@ -227,13 +227,55 @@ class GDSDesign:
         self.add_rectangle(cell_name, layer_name_2, center=(center[0]+layer_2_rect_spacing/2+layer_2_rect_width/2, center[1]), width=layer_2_rect_width, height=layer_2_rect_height)        
 
         # Add vias
-        self.add_rectangle(cell_name, via_layer, center=(center[0]-layer_2_rect_spacing/2-via_spacing, center[1]), width=via_width, height=via_height)
-        self.add_rectangle(cell_name, via_layer, center=(center[0]+layer_2_rect_spacing/2+via_spacing, center[1]), width=via_width, height=via_height)
+        self.add_rectangle(cell_name, via_layer, center=(center[0]-layer_2_rect_spacing/2-via_spacing-via_width/2, center[1]), width=via_width, height=via_height)
+        self.add_rectangle(cell_name, via_layer, center=(center[0]+layer_2_rect_spacing/2+via_spacing+via_width/2, center[1]), width=via_width, height=via_height)
 
         if text_position is None:
             text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1] + layer_2_rect_height/2 + text_height)
         self.add_text(cell_name, text, via_layer, text_position, text_height, text_angle*np.pi/180, text_horizontal)
 
+    def add_short_test_structure(self, cell_name, layer_name, center, text, rect_width=1300,
+                                 trace_width=5, num_lines=5, group_spacing=130, num_groups=6, num_lines_vert=100,
+                                 text_height=40, text_angle=90, text_horizontal=True, text_position=None):
+        group_height = (4*num_lines - 1)*trace_width + group_spacing + 2*trace_width
+        rect_height = group_height*num_groups+trace_width*(num_groups-1)
+        rect_spacing = (4*num_lines_vert - 1)*trace_width + 2*trace_width
+
+        # Add rectangles
+        self.add_rectangle(cell_name, layer_name, center=(center[0]-rect_spacing/2-rect_width/2, center[1]), width=rect_width, height=rect_height)
+        self.add_rectangle(cell_name, layer_name, center=(center[0]+rect_spacing/2+rect_width/2, center[1]), width=rect_width, height=rect_height)
+
+        center1 = center[1]+rect_height/2-trace_width/2
+        center2 = center[1]+rect_height/2-trace_width/2-2*trace_width
+        for j in range(num_groups):
+            for i in range(num_lines):
+                self.add_rectangle(cell_name, layer_name, center=(center[0]-trace_width, center1), width=rect_spacing, height=trace_width)
+                center1 -= 4*trace_width
+
+                self.add_rectangle(cell_name, layer_name, center=(center[0]+trace_width, center2), width=rect_spacing, height=trace_width)
+                center2 -= 4*trace_width
+
+            center3 = center[0]-rect_spacing/2+trace_width+trace_width/2
+            center4 = center[0]-rect_spacing/2+trace_width+trace_width/2 + 2*trace_width
+            for k in range(num_lines_vert):
+                self.add_rectangle(cell_name, layer_name, center=(center3, center1-group_spacing/2+2*trace_width), width=trace_width, height=group_spacing+trace_width)
+                center3 += 4*trace_width
+
+                self.add_rectangle(cell_name, layer_name, center=(center4, center1-group_spacing/2), width=trace_width, height=group_spacing+trace_width)
+                center4 += 4*trace_width
+            
+            center1 -= group_spacing
+            center2 -= group_spacing
+
+            self.add_rectangle(cell_name, layer_name, center=(center[0]-trace_width, center1), width=rect_spacing, height=trace_width)
+
+            center1 -= 2*trace_width
+            center2 -= 2*trace_width
+
+        if text_position is None:
+            text_position = (center[0]-rect_spacing/2-rect_width-text_height, center[1] - len(text)*text_height*TEXT_SPACING_FACTOR)
+        self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+                
     def add_component(self, cell, cell_name, component, netID, layer_number=None):
         # Check if component is a polygon or a CellReference
         if isinstance(component, gdspy.Polygon) or isinstance(component, gdspy.Rectangle) or isinstance(component, gdspy.Text):
