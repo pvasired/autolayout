@@ -5,6 +5,8 @@ from shapely.ops import unary_union
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
 
+TEXT_SPACING_FACTOR = 0.43
+
 class GDSDesign:
     def __init__(self, lib_name='default_lib', filename=None, top_cell_names=['TopCell'], bounds=[-np.inf, np.inf, -np.inf, np.inf], unit=1e-6, precision=1e-9,
                  default_netID=0, default_feature_size=5, default_spacing=5):
@@ -120,7 +122,7 @@ class GDSDesign:
         if add_text:
             text = f"{center}"
             if text_position is None:
-                text_position = (center[0] - rect_width/2-len(text)*text_height*0.5, center[1] + rect_width/2)
+                text_position = (center[0] - rect_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1] + rect_width/2)
             self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle, text_horizontal)
 
     def add_resistance_test_structure(self, cell_name, layer_name, center, probe_pad_width=1000, probe_pad_height=1000,
@@ -171,7 +173,7 @@ class GDSDesign:
         self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
         text = f"RESISTANCE {distance/1000}MM"
         if text_position is None:
-            text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-2*text_height, center[1]-len(text)*text_height*0.5)    
+            text_position = (center[0]-probe_pad_width/2-plug_width-x_extent-2*text_height, center[1]-len(text)*text_height*TEXT_SPACING_FACTOR)    
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
 
         if add_interlayer_short:
@@ -182,7 +184,7 @@ class GDSDesign:
             self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]-probe_pad_height*0.75), 
                                width=probe_pad_width, height=probe_pad_height)
             text = "INTERLAYER SHORT"
-            self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*0.5, center[1]), text_height, 0, text_horizontal)
+            self.add_text(cell_name, text, layer_name_short, (center[0]-probe_pad_width/2-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]), text_height, 0, text_horizontal)
 
     def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, probe_pad_height=80, num_lines=4, line_spacing=80,
                                 text_height=40, text_angle=0, text_horizontal=True, text_position=None):
@@ -192,7 +194,7 @@ class GDSDesign:
             rect_center = (rect_center[0], rect_center[1]-2*line_spacing)
         
         if text_position is None:
-            text_position = (center[0]-len(text)*text_height*0.5, center[1]+(num_lines-1)*line_spacing+text_height*2)
+            text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1]+(num_lines-1)*line_spacing+text_height*2)
         self.add_text(cell_name, text, layer_name, text_position, text_height, text_angle*np.pi/180, text_horizontal)
 
     def add_p_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text, layer1_rect_spacing=150,
@@ -210,8 +212,27 @@ class GDSDesign:
         self.add_rectangle(cell_name, via_layer, center=(center[0], center[1]-layer1_rect_spacing/2-layer1_rect_height/2), width=via_width, height=via_height)
 
         if text_position is None:
-            text_position = (center[0]-layer1_rect_width/2 - text_height, center[1] - len(text)*text_height*0.5)
+            text_position = (center[0]-layer1_rect_width/2 - text_height, center[1] - len(text)*text_height*TEXT_SPACING_FACTOR)
         self.add_text(cell_name, text, layer_name_1, text_position, text_height, text_angle*np.pi/180, text_horizontal)
+
+    def add_electronics_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text,
+                                           layer_1_rect_width=1550, layer_1_rect_height=700, layer_2_rect_width=600,
+                                           layer_2_rect_height=600, layer_2_rect_spacing=250, via_width=7, via_height=7, via_spacing=10,
+                                           text_height=80, text_angle=0, text_horizontal=True, text_position=None):
+        # Add rectangle for the first layer
+        self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]), width=layer_1_rect_width, height=layer_1_rect_height)
+
+        # Add rectangles for the second layer
+        self.add_rectangle(cell_name, layer_name_2, center=(center[0]-layer_2_rect_spacing/2-layer_2_rect_width/2, center[1]), width=layer_2_rect_width, height=layer_2_rect_height)
+        self.add_rectangle(cell_name, layer_name_2, center=(center[0]+layer_2_rect_spacing/2+layer_2_rect_width/2, center[1]), width=layer_2_rect_width, height=layer_2_rect_height)        
+
+        # Add vias
+        self.add_rectangle(cell_name, via_layer, center=(center[0]-layer_2_rect_spacing/2-via_spacing, center[1]), width=via_width, height=via_height)
+        self.add_rectangle(cell_name, via_layer, center=(center[0]+layer_2_rect_spacing/2+via_spacing, center[1]), width=via_width, height=via_height)
+
+        if text_position is None:
+            text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1] + layer_2_rect_height/2 + text_height)
+        self.add_text(cell_name, text, via_layer, text_position, text_height, text_angle*np.pi/180, text_horizontal)
 
     def add_component(self, cell, cell_name, component, netID, layer_number=None):
         # Check if component is a polygon or a CellReference

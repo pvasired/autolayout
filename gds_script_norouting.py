@@ -64,6 +64,9 @@ p_via_test_name = "P_Via_Test"
 design.add_cell(p_via_test_name)
 design.add_p_via_test_structure("P_Via_Test", layer_name_1="Metal", layer_name_2="Oxide", via_layer="Via", center=(0, 0), text="P VIA RESISTANCE")
 
+electronics_via_test_name = "Electronics_Via_Test"
+design.add_cell(electronics_via_test_name)
+design.add_electronics_via_test_structure("Electronics_Via_Test", layer_name_1="Metal", layer_name_2="Oxide", via_layer="Via", center=(0, 0), text="ELECTRONICS VIA RESISTANCE")
 # Run design rule checks
 #design.run_drc_checks()
 
