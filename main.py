@@ -310,6 +310,13 @@ class MyApp(QWidget):
                         value = self.validateLayer(value)
                     elif param == "Center":
                         value = self.validateCenter(value)
+                    elif type(value) == str:
+                        if value.lower() == 'true':
+                            value = True
+                        elif value.lower() == 'false':
+                            value = False
+                        elif value.lower() == 'none':
+                            value = None
                     params[param.replace(" ", "_")] = value
         return params
 
@@ -319,11 +326,11 @@ class MyApp(QWidget):
             cell_name=top_cell_name,
             layer_name=Layer,
             center=Center,
-            rect_width=Outer_Rect_Width,
-            rect_height=Outer_Rect_Height,
-            width_interior=Interior_Width,
-            extent_x_interior=Interior_X_Extent,
-            extent_y_interior=Interior_Y_Extent
+            rect_width=float(Outer_Rect_Width),
+            rect_height=float(Outer_Rect_Height),
+            width_interior=float(Interior_Width),
+            extent_x_interior=float(Interior_X_Extent),
+            extent_y_interior=float(Interior_Y_Extent)
         )
         self.log(f"MLA Alignment Mark added to {top_cell_name} on layer {Layer} at center {Center}")
 
@@ -333,20 +340,20 @@ class MyApp(QWidget):
             cell_name=top_cell_name,
             layer_name=Layer,
             center=Center,
-            probe_pad_width=Probe_Pad_Width,
-            probe_pad_height=Probe_Pad_Height,
-            probe_pad_spacing=Probe_Pad_Spacing,
-            plug_width=Plug_Width,
-            plug_height=Plug_Height,
-            trace_width=Trace_Width,
-            trace_spacing=Trace_Spacing,
-            switchbacks=Switchbacks,
-            x_extent=X_Extent,
-            text_height=Text_Height,
+            probe_pad_width=float(Probe_Pad_Width),
+            probe_pad_height=float(Probe_Pad_Height),
+            probe_pad_spacing=float(Probe_Pad_Spacing),
+            plug_width=float(Plug_Width),
+            plug_height=float(Plug_Height),
+            trace_width=float(Trace_Width),
+            trace_spacing=float(Trace_Spacing),
+            switchbacks=int(Switchbacks),
+            x_extent=float(X_Extent),
+            text_height=float(Text_Height),
             text=Text if Text else Layer,  # Use the layer name if text is not provided
             add_interlayer_short=Add_Interlayer_Short,
             short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
-            layer_name_short=Layer_Name_Short
+            layer_name_short=self.validateLayer(Layer_Name_Short) if Layer_Name_Short else Layer_Name_Short
         )
         self.log(f"Resistance Test added to {top_cell_name} on layer {Layer} at center {Center}")
 

@@ -183,7 +183,10 @@ class GDSDesign:
 
         if add_interlayer_short:
             assert layer_name_short is not None, "Error: Layer name for the short must be specified."
-            assert short_text is not None, "Error: Text for the short must be specified."
+            if short_text is None:
+                short_text = "INTERLAYER SHORT"
+            else:
+                short_text += " INTERLAYER SHORT"
             # 0.75 is an arbitrary factor to place the short in a nice spot
             self.add_rectangle(cell_name, layer_name_short, center=(center[0]-probe_pad_width/2, center[1]+probe_pad_height*0.75), 
                                width=probe_pad_width, height=probe_pad_height)
