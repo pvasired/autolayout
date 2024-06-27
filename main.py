@@ -34,7 +34,7 @@ class MyApp(QWidget):
                 "Layer": None,
                 "Center": None,
                 "Outer Rect Width": 500,
-                "Outer Rect Height": 500,
+                "Outer Rect Height": 20,
                 "Interior Width": 5,
                 "Interior X Extent": 50,
                 "Interior Y Extent": 50
@@ -73,18 +73,18 @@ class MyApp(QWidget):
         row = 0
         for name in self.testStructureNames:
             testCheckBox = QCheckBox(name)
-            testCheckBox.stateChanged.connect(lambda state, n=name: self.log(f"{n} {'selected' if state == Qt.Checked else 'unselected'}"))
+            testCheckBox.stateChanged.connect(self.createCheckStateHandler(name))
             paramLabel = QLabel('Parameters')
             paramComboBox = QComboBox()
             paramComboBox.addItems(self.parameters[name])
-            paramComboBox.currentTextChanged.connect(lambda param, name=name: self.updateParameterValue(param, name))
+            paramComboBox.currentTextChanged.connect(self.createParamChangeHandler(name))
             paramValueEdit = QLineEdit()
             paramName = paramComboBox.currentText()
             if paramName in self.defaultParams[name]:
                 paramValueEdit.setText(str(self.defaultParams[name][paramName]))
-            paramValueEdit.editingFinished.connect(lambda cb=paramComboBox, edit=paramValueEdit, name=name: self.storeParameterValue(cb, edit, name))
+            paramValueEdit.editingFinished.connect(self.createParamStoreHandler(paramComboBox, paramValueEdit, name))
             addButton = QPushButton("Add to Design")
-            addButton.clicked.connect(lambda _, n=name: self.handleAddToDesign(n))
+            addButton.clicked.connect(self.createAddToDesignHandler(name))
 
             gridLayout.addWidget(testCheckBox, row, 0)
             gridLayout.addWidget(paramLabel, row, 1)
@@ -167,6 +167,18 @@ class MyApp(QWidget):
         if self.verbose:
             print(message)
 
+    def createCheckStateHandler(self, name):
+        return lambda state: self.log(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
+
+    def createParamChangeHandler(self, name):
+        return lambda param: self.updateParameterValue(param, name)
+
+    def createParamStoreHandler(self, comboBox, valueEdit, name):
+        return lambda: self.storeParameterValue(comboBox, valueEdit, name)
+
+    def createAddToDesignHandler(self, name):
+        return lambda: self.handleAddToDesign(name)
+
     def selectInputFile(self):
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
@@ -226,50 +238,70 @@ class MyApp(QWidget):
                     self.log(f"{name} {param} updated to {value}")
 
     def validateLayer(self, layer):
+        self.log(f"Validating Layer: {layer}")
+        if isinstance(layer, int):
+            self.log(f"Layer is a valid integer: {layer}")
+            return layer
         layer = layer.strip()
         if layer.isdigit():
             layer_number = int(layer)
             for number, name in self.layerData:
                 if int(number) == layer_number:
-                    return layer_number
+                    self.log(f"Layer number {layer_number} is valid")
+                    return name  # Return the layer name instead of number
         else:
             for number, name in self.layerData:
                 if name == layer:
+                    self.log(f"Layer name {layer} is valid")
                     return name
+        self.log("Invalid layer")
         QMessageBox.critical(self, "Layer Error", "Invalid layer. Please select a valid layer.", QMessageBox.Ok)
         return None
 
     def validateCenter(self, center):
+        self.log(f"Validating Center: {center}")
+        if isinstance(center, tuple):
+            return center
         center = center.replace("(", "").replace(")", "").replace(" ", "")
         try:
             x, y = map(float, center.split(','))
+            self.log(f"Center is valid: ({x}, {y})")
             return (x, y)
         except ValueError:
+            self.log("Invalid center")
             QMessageBox.critical(self, "Center Error", "Invalid center. Please enter a valid (x, y) coordinate.", QMessageBox.Ok)
             return None
 
     def handleAddToDesign(self, testStructureName):
+        self.log(f"Adding {testStructureName} to design")
         if testStructureName == "MLA Alignment Mark":
             params = self.getParameters(testStructureName)
+            self.log(f"Parameters: {params}")
             if params:
                 self.addMLAAlignmentMark(**params)
 
     def getParameters(self, testStructureName):
         params = {}
-        for _, comboBox, valueEdit, defaultParams in self.testStructures:
-            if comboBox.currentText() in self.parameters[testStructureName]:
-                param = comboBox.currentText()
-                value = valueEdit.text()
-                if param == "Layer":
-                    value = self.validateLayer(value)
-                elif param == "Center":
-                    value = self.validateCenter(value)
-                else:
-                    value = float(value)
-                if value is None:
-                    self.log(f"Invalid value for {param}")
-                    return None
-                params[param] = value
+        for testCheckBox, comboBox, valueEdit, defaultParams in self.testStructures:
+            if testCheckBox.text() == testStructureName:
+                for param in self.parameters[testStructureName]:
+                    value = defaultParams.get(param, valueEdit.text())
+                    self.log(f"Getting parameter {param}: {value}")
+                    if param == "Layer":
+                        value = self.validateLayer(value)
+                    elif param == "Center":
+                        value = self.validateCenter(value)
+                    else:
+                        try:
+                            value = float(value)
+                        except ValueError:
+                            self.log(f"Invalid float value for {param}")
+                            QMessageBox.critical(self, "Input Error", f"Invalid value for {param}. Please enter a valid number.", QMessageBox.Ok)
+                            return None
+                    if value is None:
+                        self.log(f"Invalid value for {param}")
+                        return None
+                    params[param.replace(" ", "_")] = value
         return params
 
     def addMLAAlignmentMark(self, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent):
