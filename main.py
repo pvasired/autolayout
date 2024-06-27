@@ -24,7 +24,7 @@ class MyApp(QWidget):
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
             "Resistance Test": ["Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text"],
-            "Trace Test": ["Par1", "Par2", "Par3"],
+            "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height"],
             "Interlayer Via Test": ["Par1", "Par2", "Par3"],
             "Electronics Via Test": ["Par1", "Par2", "Par3"],
             "Short Test": ["Par1", "Par2", "Par3"]
@@ -57,7 +57,16 @@ class MyApp(QWidget):
                 "Layer Name Short": None,
                 "Short Text": None
             },
-            "Trace Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Trace Test": {
+                "Layer": None,
+                "Center": None,
+                "Text": None,
+                "Line Width": 800,
+                "Line Height": 80,
+                "Num Lines": 4,
+                "Line Spacing": 80,
+                "Text Height": 100
+            },
             "Interlayer Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
             "Electronics Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
             "Short Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999}
@@ -298,6 +307,11 @@ class MyApp(QWidget):
             self.log(f"Parameters: {params}")
             if params:
                 self.addResistanceTest(**params)
+        elif testStructureName == "Trace Test":
+            params = self.getParameters(testStructureName)
+            self.log(f"Parameters: {params}")
+            if params:
+                self.addTraceTest(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -356,6 +370,21 @@ class MyApp(QWidget):
             layer_name_short=self.validateLayer(Layer_Name_Short) if Layer_Name_Short else Layer_Name_Short
         )
         self.log(f"Resistance Test added to {top_cell_name} on layer {Layer} at center {Center}")
+
+    def addTraceTest(self, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_line_test_structure(
+            cell_name=top_cell_name,
+            layer_name=Layer,
+            center=Center,
+            text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
+            line_width=float(Line_Width),
+            line_height=float(Line_Height),
+            num_lines=int(Num_Lines),
+            line_spacing=float(Line_Spacing),
+            text_height=float(Text_Height)
+        )
+        self.log(f"Trace Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
