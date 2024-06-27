@@ -319,19 +319,19 @@ class GDSDesign:
         - min_feature_size (float, optional): Minimum feature size for the layer (in micrometers).
         - min_spacing (float, optional): Minimum spacing between features on the layer (in micrometers).
         """
-        # Check for unique layer number
-        for existing_layer_name, props in self.layers.items():
-            if props['number'] == layer_number and layer_name != existing_layer_name:
-                raise ValueError(f"Error: Layer number {layer_number} is already assigned to layer '{existing_layer_name}'. Layer numbers must be unique.")
+        # If the layer number is already assigned to a different layer, update the layer name to the new name
+        existing_layer_numbers = [props['number'] for props in self.layers.values()]
+        if layer_number in existing_layer_numbers:
+            existing_layer_name = list(self.layers.keys())[existing_layer_numbers.index(layer_number)]
+            if layer_name != existing_layer_name:
+                print(f"Warning: Layer number {layer_number} is already assigned to layer '{existing_layer_name}'. Updating layer name to '{layer_name}'.")
+                self.layers[layer_name] = self.layers.pop(existing_layer_name)
 
         # Validate DRC parameters
         if min_feature_size is not None and min_feature_size <= 0:
             raise ValueError("Minimum feature size must be positive.")
         if min_spacing is not None and min_spacing <= 0:
             raise ValueError("Minimum spacing must be positive.")
-        
-        if layer_name in self.layers:
-            print(f"Warning: Layer name '{layer_name}' already defined. Updating properties.")
         
         # Store layer properties
         self.layers[layer_name] = {'number': layer_number, 'description': description}

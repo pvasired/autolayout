@@ -22,12 +22,28 @@ class MyApp(QWidget):
             "Interlayer Via Test", "Electronics Via Test", "Short Test"
         ]
         self.parameters = {
-            "MLA Alignment Mark": ["Par1", "Par2", "Par3"],
+            "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
             "Resistance Test": ["Par1", "Par2", "Par3"],
             "Trace Test": ["Par1", "Par2", "Par3"],
             "Interlayer Via Test": ["Par1", "Par2", "Par3"],
             "Electronics Via Test": ["Par1", "Par2", "Par3"],
             "Short Test": ["Par1", "Par2", "Par3"]
+        }
+        self.defaultParams = {
+            "MLA Alignment Mark": {
+                "Layer": None,
+                "Center": None,
+                "Outer Rect Width": 500,
+                "Outer Rect Height": 500,
+                "Interior Width": 5,
+                "Interior X Extent": 50,
+                "Interior Y Extent": 50
+            },
+            "Resistance Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Trace Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Interlayer Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Electronics Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Short Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999}
         }
         self.testStructures = []  # Initialize testStructures here
         self.gds_design = None  # To store the GDSDesign instance
@@ -61,19 +77,23 @@ class MyApp(QWidget):
             paramLabel = QLabel('Parameters')
             paramComboBox = QComboBox()
             paramComboBox.addItems(self.parameters[name])
-            paramComboBox.currentTextChanged.connect(self.updateParameterValue)
+            paramComboBox.currentTextChanged.connect(lambda param, name=name: self.updateParameterValue(param, name))
             paramValueEdit = QLineEdit()
-            paramValueEdit.setPlaceholderText('9999')
-            paramValueEdit.setText('9999')
+            paramName = paramComboBox.currentText()
+            if paramName in self.defaultParams[name]:
+                paramValueEdit.setText(str(self.defaultParams[name][paramName]))
             paramValueEdit.editingFinished.connect(lambda cb=paramComboBox, edit=paramValueEdit, name=name: self.storeParameterValue(cb, edit, name))
+            addButton = QPushButton("Add to Design")
+            addButton.clicked.connect(lambda _, n=name: self.handleAddToDesign(n))
 
             gridLayout.addWidget(testCheckBox, row, 0)
             gridLayout.addWidget(paramLabel, row, 1)
             gridLayout.addWidget(paramComboBox, row, 2)
             gridLayout.addWidget(paramValueEdit, row, 3)
+            gridLayout.addWidget(addButton, row, 4)
             row += 1
 
-            defaultParams = {param: '9999' for param in self.parameters[name]}
+            defaultParams = self.defaultParams[name]
             self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams))
 
         testLayout.addLayout(gridLayout)
@@ -185,20 +205,86 @@ class MyApp(QWidget):
             self.outFileField.setText(self.outputFileName)
             self.log("Output file validation error: Not a .gds file")
 
-    def updateParameterValue(self, param):
+    def updateParameterValue(self, param, testStructureName):
         for _, comboBox, valueEdit, defaultParams in self.testStructures:
             if comboBox.currentText() == param:
-                valueEdit.setText(defaultParams.get(param, ''))
-                self.log(f"Parameter {param} selected, default value set")
+                default_value = defaultParams.get(param, '')
+                valueEdit.setText(str(default_value))
+                self.log(f"{testStructureName} Parameter {param} selected, default value set to {default_value}")
 
     def storeParameterValue(self, comboBox, valueEdit, name):
         param = comboBox.currentText()
         value = valueEdit.text()
+        if param == "Layer":
+            value = self.validateLayer(value)
+        elif param == "Center":
+            value = self.validateCenter(value)
         for i, (checkBox, cb, edit, defaultParams) in enumerate(self.testStructures):
             if cb == comboBox:
                 if param in defaultParams:
                     self.testStructures[i][3][param] = value
                     self.log(f"{name} {param} updated to {value}")
+
+    def validateLayer(self, layer):
+        layer = layer.strip()
+        if layer.isdigit():
+            layer_number = int(layer)
+            for number, name in self.layerData:
+                if int(number) == layer_number:
+                    return layer_number
+        else:
+            for number, name in self.layerData:
+                if name == layer:
+                    return name
+        QMessageBox.critical(self, "Layer Error", "Invalid layer. Please select a valid layer.", QMessageBox.Ok)
+        return None
+
+    def validateCenter(self, center):
+        center = center.replace("(", "").replace(")", "").replace(" ", "")
+        try:
+            x, y = map(float, center.split(','))
+            return (x, y)
+        except ValueError:
+            QMessageBox.critical(self, "Center Error", "Invalid center. Please enter a valid (x, y) coordinate.", QMessageBox.Ok)
+            return None
+
+    def handleAddToDesign(self, testStructureName):
+        if testStructureName == "MLA Alignment Mark":
+            params = self.getParameters(testStructureName)
+            if params:
+                self.addMLAAlignmentMark(**params)
+
+    def getParameters(self, testStructureName):
+        params = {}
+        for _, comboBox, valueEdit, defaultParams in self.testStructures:
+            if comboBox.currentText() in self.parameters[testStructureName]:
+                param = comboBox.currentText()
+                value = valueEdit.text()
+                if param == "Layer":
+                    value = self.validateLayer(value)
+                elif param == "Center":
+                    value = self.validateCenter(value)
+                else:
+                    value = float(value)
+                if value is None:
+                    self.log(f"Invalid value for {param}")
+                    return None
+                params[param] = value
+        return params
+
+    def addMLAAlignmentMark(self, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_MLA_alignment_mark(
+            cell_name=top_cell_name,
+            layer_name=Layer,
+            center=Center,
+            rect_width=Outer_Rect_Width,
+            rect_height=Outer_Rect_Height,
+            width_interior=Interior_Width,
+            extent_x_interior=Interior_X_Extent,
+            extent_y_interior=Interior_Y_Extent
+        )
+        self.log(f"MLA Alignment Mark added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
