@@ -26,7 +26,7 @@ class MyApp(QWidget):
             "Resistance Test": ["Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text"],
             "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height"],
             "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height"],
-            "Electronics Via Test": ["Par1", "Par2", "Par3"],
+            "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height"],
             "Short Test": ["Par1", "Par2", "Par3"]
         }
         self.defaultParams = {
@@ -82,7 +82,22 @@ class MyApp(QWidget):
                 "Via Height": 7,
                 "Text Height": 100
             },
-            "Electronics Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Electronics Via Test": {
+                "Layer Number 1": None,
+                "Layer Number 2": None,
+                "Via Layer": None,
+                "Center": None,
+                "Text": None,
+                "Layer 1 Rect Width": 1550,
+                "Layer 1 Rect Height": 700,
+                "Layer 2 Rect Width": 600,
+                "Layer 2 Rect Height": 600,
+                "Layer 2 Rect Spacing": 250,
+                "Via Width": 7,
+                "Via Height": 7,
+                "Via Spacing": 10,
+                "Text Height": 100
+            },
             "Short Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999}
         }
         self.testStructures = []  # Initialize testStructures here
@@ -224,7 +239,7 @@ class MyApp(QWidget):
         options |= QFileDialog.ReadOnly
         fileName, _ = QFileDialog.getOpenFileName(self, "Select Input File", "", "GDS Files (*.gds);;All Files (*)", options=options)
         if fileName:
-            if fileName.endswith('.gds'):
+            if fileName.lower().endswith('.gds'):
                 self.inputFileName = fileName
                 self.log(f"Input File: {self.inputFileName}")
                 baseName = fileName.rsplit('.', 1)[0]
@@ -249,7 +264,7 @@ class MyApp(QWidget):
 
     def validateOutputFileName(self):
         outputFileName = self.outFileField.text()
-        if outputFileName.endswith('.gds'):
+        if outputFileName.lower().endswith('.gds'):
             self.outputFileName = outputFileName
             self.log(f"Output File set to: {self.outputFileName}")
         else:
@@ -267,7 +282,7 @@ class MyApp(QWidget):
     def storeParameterValue(self, comboBox, valueEdit, name):
         param = comboBox.currentText()
         value = valueEdit.text()
-        if param == "Layer":
+        if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer":
             value = self.validateLayer(value)
         elif param == "Center":
             value = self.validateCenter(value)
@@ -331,6 +346,11 @@ class MyApp(QWidget):
             self.log(f"Parameters: {params}")
             if params:
                 self.addInterlayerViaTest(**params)
+        elif testStructureName == "Electronics Via Test":
+            params = self.getParameters(testStructureName)
+            self.log(f"Parameters: {params}")
+            if params:
+                self.addElectronicsViaTest(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -425,6 +445,27 @@ class MyApp(QWidget):
         )
         self.log(f"Interlayer Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
 
+    def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_electronics_via_test_structure(
+            cell_name=top_cell_name,
+            layer_name_1=Layer_Number_1,
+            layer_name_2=Layer_Number_2,
+            via_layer=Via_Layer,
+            center=Center,
+            text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
+            layer_1_rect_width=float(Layer_1_Rect_Width),
+            layer_1_rect_height=float(Layer_1_Rect_Height),
+            layer_2_rect_width=float(Layer_2_Rect_Width),
+            layer_2_rect_height=float(Layer_2_Rect_Height),
+            layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
+            via_width=float(Via_Width),
+            via_height=float(Via_Height),
+            via_spacing=float(Via_Spacing),
+            text_height=float(Text_Height)
+        )
+        self.log(f"Electronics Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
+
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
             self.log("Custom Test Structure enabled")
@@ -457,7 +498,7 @@ class MyApp(QWidget):
     def writeToGDS(self):
         if self.gds_design:
             outputFileName = self.outFileField.text()
-            if outputFileName.endswith('.gds'):
+            if outputFileName.lower().endswith('.gds'):
                 self.gds_design.write_gds(outputFileName)
                 self.log(f"GDS file written to {outputFileName}")
             else:
