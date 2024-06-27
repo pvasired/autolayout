@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout
 )
 from PyQt5.QtCore import Qt
+from gdswriter import GDSDesign  # Import the GDSDesign class
 
 class MyApp(QWidget):
     def __init__(self, verbose=False):
@@ -29,6 +30,7 @@ class MyApp(QWidget):
             "Short Test": ["Par1", "Par2", "Par3"]
         }
         self.testStructures = []  # Initialize testStructures here
+        self.gds_design = None  # To store the GDSDesign instance
         self.initUI()
 
     def initUI(self):
@@ -157,10 +159,21 @@ class MyApp(QWidget):
                 self.outputFileName = f"{baseName}-output.gds"
                 self.outFileField.setText(self.outputFileName)
                 self.log(f"Output File automatically set to: {self.outputFileName}")
-                self.readLayersFromFile()
+
+                # Load the GDS file using GDSDesign
+                self.gds_design = GDSDesign(filename=self.inputFileName)
+                self.layerData = [(str(layer['number']), layer_name) for layer_name, layer in self.gds_design.layers.items()]
+                self.log(f"Layers read from file: {self.layerData}")
+                self.updateLayersComboBox()
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
+
+    def updateLayersComboBox(self):
+        self.layersComboBox.clear()
+        for number, name in self.layerData:
+            self.layersComboBox.addItem(f"{number}: {name}")
+        self.log("Layers dropdown updated")
 
     def validateOutputFileName(self):
         outputFileName = self.outFileField.text()
@@ -222,17 +235,6 @@ class MyApp(QWidget):
         fileName, _ = QFileDialog.getOpenFileName(self, "Upload File", "", "All Files ();;Text Files (.txt)", options=options)
         if fileName:
             self.log(f"Uploaded File: {fileName}")
-
-    def readLayersFromFile(self):
-        # Skeleton code to read layers from the .gds file
-        self.layerData = [("1", "Layer 1"), ("2", "Layer 2")]  # Placeholder for actual layer data
-        self.log(f"Layers read from file: {self.layerData}")
-        self.updateLayersComboBox()
-
-    def updateLayersComboBox(self):
-        self.layersComboBox.clear()
-        for number, name in self.layerData:
-            self.layersComboBox.addItem(f"{number}: {name}")
 
     def defineNewLayer(self):
         number = self.newLayerNumberEdit.text().strip()
