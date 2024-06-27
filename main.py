@@ -134,7 +134,7 @@ class MyApp(QWidget):
 
         # Write to GDS button
         writeButton = QPushButton('Write to GDS')
-        writeButton.clicked.connect(self.uploadFile)
+        writeButton.clicked.connect(self.writeToGDS)
         substrateLayout.addWidget(writeButton)
 
         mainLayout.addLayout(substrateLayout)
@@ -229,28 +229,49 @@ class MyApp(QWidget):
             QMessageBox.critical(self, "Input Error", "Please enter size in 'Width (mm) x Height (mm)' format.", QMessageBox.Ok)
             self.log("Custom Size input error: Incorrect format")
 
-    def uploadFile(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly
-        fileName, _ = QFileDialog.getOpenFileName(self, "Upload File", "", "All Files ();;Text Files (.txt)", options=options)
-        if fileName:
-            self.log(f"Uploaded File: {fileName}")
+    def writeToGDS(self):
+        if self.gds_design:
+            outputFileName = self.outFileField.text()
+            if outputFileName.endswith('.gds'):
+                self.gds_design.write_gds(outputFileName)
+                self.log(f"GDS file written to {outputFileName}")
+            else:
+                QMessageBox.critical(self, "File Error", "Output file must be a .gds file.", QMessageBox.Ok)
+                self.log("Output file write error: Not a .gds file")
+        else:
+            QMessageBox.critical(self, "Design Error", "No design loaded to write to GDS.", QMessageBox.Ok)
+            self.log("Write to GDS error: No design loaded")
 
     def defineNewLayer(self):
         number = self.newLayerNumberEdit.text().strip()
         name = self.newLayerNameEdit.text().strip()
         if number and name:
-            for i, (layer_number, layer_name) in enumerate(self.layerData):
-                if layer_number == number:
-                    old_name = self.layerData[i][1]
-                    self.layerData[i] = (number, name)
-                    self.updateLayersComboBox()
-                    self.log(f"Layer {number} name updated from {old_name} to {name}")
-                    print(f"Layer {number} name updated from {old_name} to {name}")
-                    return
-            self.layerData.append((number, name))
-            self.updateLayersComboBox()
-            self.log(f"New Layer added: {number} - {name}")
+            try:
+                # Define the new layer using GDSDesign
+                self.gds_design.define_layer(name, int(number))
+                self.log(f"Layer defined: {name} with number {number}")
+                
+                # Check if layer already exists and update name if so
+                for i, (layer_number, layer_name) in enumerate(self.layerData):
+                    if layer_number == number:
+                        old_name = self.layerData[i][1]
+                        self.layerData[i] = (number, name)
+                        self.updateLayersComboBox()
+                        self.log(f"Layer {number} name updated from {old_name} to {name}")
+                        self.log(f"Current layers: {self.gds_design.layers}")
+                        return
+                
+                # Add new layer if it doesn't exist already
+                self.layerData.append((number, name))
+                self.updateLayersComboBox()
+                self.log(f"New Layer added: {number} - {name}")
+                self.log(f"Current layers: {self.gds_design.layers}")
+            except ValueError as e:
+                QMessageBox.critical(self, "Layer Error", str(e), QMessageBox.Ok)
+                self.log(f"Layer definition error: {e}")
+        else:
+            QMessageBox.critical(self, "Input Error", "Please enter both Layer Number and Layer Name.", QMessageBox.Ok)
+            self.log("Layer definition error: Missing layer number or name")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run the PyQt5 GUI application.')
