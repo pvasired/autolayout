@@ -27,7 +27,7 @@ class MyApp(QWidget):
             "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height"],
             "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height"],
             "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height"],
-            "Short Test": ["Par1", "Par2", "Par3"]
+            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height"]
         }
         self.defaultParams = {
             "MLA Alignment Mark": {
@@ -98,7 +98,18 @@ class MyApp(QWidget):
                 "Via Spacing": 10,
                 "Text Height": 100
             },
-            "Short Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999}
+            "Short Test": {
+                "Layer": None,
+                "Center": None,
+                "Text": None,
+                "Rect Width": 1300,
+                "Trace Width": 5,
+                "Num Lines": 5,
+                "Group Spacing": 130,
+                "Num Groups": 6,
+                "Num Lines Vert": 100,
+                "Text Height": 100
+            }
         }
         self.testStructures = []  # Initialize testStructures here
         self.gds_design = None  # To store the GDSDesign instance
@@ -351,6 +362,11 @@ class MyApp(QWidget):
             self.log(f"Parameters: {params}")
             if params:
                 self.addElectronicsViaTest(**params)
+        elif testStructureName == "Short Test":
+            params = self.getParameters(testStructureName)
+            self.log(f"Parameters: {params}")
+            if params:
+                self.addShortTest(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -465,6 +481,23 @@ class MyApp(QWidget):
             text_height=float(Text_Height)
         )
         self.log(f"Electronics Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
+
+    def addShortTest(self, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_short_test_structure(
+            cell_name=top_cell_name,
+            layer_name=Layer,
+            center=Center,
+            text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
+            rect_width=float(Rect_Width),
+            trace_width=float(Trace_Width),
+            num_lines=int(Num_Lines),
+            group_spacing=float(Group_Spacing),
+            num_groups=int(Num_Groups),
+            num_lines_vert=int(Num_Lines_Vert),
+            text_height=float(Text_Height)
+        )
+        self.log(f"Short Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
