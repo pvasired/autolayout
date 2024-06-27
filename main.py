@@ -25,7 +25,7 @@ class MyApp(QWidget):
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
             "Resistance Test": ["Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text"],
             "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height"],
-            "Interlayer Via Test": ["Par1", "Par2", "Par3"],
+            "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height"],
             "Electronics Via Test": ["Par1", "Par2", "Par3"],
             "Short Test": ["Par1", "Par2", "Par3"]
         }
@@ -67,7 +67,21 @@ class MyApp(QWidget):
                 "Line Spacing": 80,
                 "Text Height": 100
             },
-            "Interlayer Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Interlayer Via Test": {
+                "Layer Number 1": None,
+                "Layer Number 2": None,
+                "Via Layer": None,
+                "Center": None,
+                "Text": None,
+                "Layer 1 Rectangle Spacing": 150,
+                "Layer 1 Rectangle Width": 700,
+                "Layer 1 Rectangle Height": 250,
+                "Layer 2 Rectangle Width": 600,
+                "Layer 2 Rectangle Height": 550,
+                "Via Width": 7,
+                "Via Height": 7,
+                "Text Height": 100
+            },
             "Electronics Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
             "Short Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999}
         }
@@ -312,6 +326,11 @@ class MyApp(QWidget):
             self.log(f"Parameters: {params}")
             if params:
                 self.addTraceTest(**params)
+        elif testStructureName == "Interlayer Via Test":
+            params = self.getParameters(testStructureName)
+            self.log(f"Parameters: {params}")
+            if params:
+                self.addInterlayerViaTest(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -320,7 +339,7 @@ class MyApp(QWidget):
                 for param in self.parameters[testStructureName]:
                     value = defaultParams.get(param, valueEdit.text())
                     self.log(f"Getting parameter {param}: {value}")
-                    if param == "Layer":
+                    if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer":
                         value = self.validateLayer(value)
                     elif param == "Center":
                         value = self.validateCenter(value)
@@ -385,6 +404,26 @@ class MyApp(QWidget):
             text_height=float(Text_Height)
         )
         self.log(f"Trace Test added to {top_cell_name} on layer {Layer} at center {Center}")
+
+    def addInterlayerViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_p_via_test_structure(
+            cell_name=top_cell_name,
+            layer_name_1=Layer_Number_1,
+            layer_name_2=Layer_Number_2,
+            via_layer=Via_Layer,
+            center=Center,
+            text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
+            layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
+            layer1_rect_width=float(Layer_1_Rectangle_Width),
+            layer1_rect_height=float(Layer_1_Rectangle_Height),
+            layer2_rect_width=float(Layer_2_Rectangle_Width),
+            layer2_rect_height=float(Layer_2_Rectangle_Height),
+            via_width=float(Via_Width),
+            via_height=float(Via_Height),
+            text_height=float(Text_Height)
+        )
+        self.log(f"Interlayer Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
 
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
