@@ -23,7 +23,7 @@ class MyApp(QWidget):
         ]
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
-            "Resistance Test": ["Par1", "Par2", "Par3"],
+            "Resistance Test": ["Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text"],
             "Trace Test": ["Par1", "Par2", "Par3"],
             "Interlayer Via Test": ["Par1", "Par2", "Par3"],
             "Electronics Via Test": ["Par1", "Par2", "Par3"],
@@ -39,7 +39,24 @@ class MyApp(QWidget):
                 "Interior X Extent": 50,
                 "Interior Y Extent": 50
             },
-            "Resistance Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
+            "Resistance Test": {
+                "Layer": None,
+                "Center": None,
+                "Probe Pad Width": 1000,
+                "Probe Pad Height": 1000,
+                "Probe Pad Spacing": 3000,
+                "Plug Width": 200,
+                "Plug Height": 200,
+                "Trace Width": 5,
+                "Trace Spacing": 50,
+                "Switchbacks": 18,
+                "X Extent": 100,
+                "Text Height": 100,
+                "Text": None,
+                "Add Interlayer Short": False,
+                "Layer Name Short": None,
+                "Short Text": None
+            },
             "Trace Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
             "Interlayer Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
             "Electronics Via Test": {"Par1": 9999, "Par2": 9999, "Par3": 9999},
@@ -239,9 +256,6 @@ class MyApp(QWidget):
 
     def validateLayer(self, layer):
         self.log(f"Validating Layer: {layer}")
-        if isinstance(layer, int):
-            self.log(f"Layer is a valid integer: {layer}")
-            return layer
         layer = layer.strip()
         if layer.isdigit():
             layer_number = int(layer)
@@ -279,6 +293,11 @@ class MyApp(QWidget):
             self.log(f"Parameters: {params}")
             if params:
                 self.addMLAAlignmentMark(**params)
+        elif testStructureName == "Resistance Test":
+            params = self.getParameters(testStructureName)
+            self.log(f"Parameters: {params}")
+            if params:
+                self.addResistanceTest(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -291,16 +310,6 @@ class MyApp(QWidget):
                         value = self.validateLayer(value)
                     elif param == "Center":
                         value = self.validateCenter(value)
-                    else:
-                        try:
-                            value = float(value)
-                        except ValueError:
-                            self.log(f"Invalid float value for {param}")
-                            QMessageBox.critical(self, "Input Error", f"Invalid value for {param}. Please enter a valid number.", QMessageBox.Ok)
-                            return None
-                    if value is None:
-                        self.log(f"Invalid value for {param}")
-                        return None
                     params[param.replace(" ", "_")] = value
         return params
 
@@ -317,6 +326,29 @@ class MyApp(QWidget):
             extent_y_interior=Interior_Y_Extent
         )
         self.log(f"MLA Alignment Mark added to {top_cell_name} on layer {Layer} at center {Center}")
+
+    def addResistanceTest(self, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_resistance_test_structure(
+            cell_name=top_cell_name,
+            layer_name=Layer,
+            center=Center,
+            probe_pad_width=Probe_Pad_Width,
+            probe_pad_height=Probe_Pad_Height,
+            probe_pad_spacing=Probe_Pad_Spacing,
+            plug_width=Plug_Width,
+            plug_height=Plug_Height,
+            trace_width=Trace_Width,
+            trace_spacing=Trace_Spacing,
+            switchbacks=Switchbacks,
+            x_extent=X_Extent,
+            text_height=Text_Height,
+            text=Text if Text else Layer,  # Use the layer name if text is not provided
+            add_interlayer_short=Add_Interlayer_Short,
+            short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
+            layer_name_short=Layer_Name_Short
+        )
+        self.log(f"Resistance Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
