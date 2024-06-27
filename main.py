@@ -502,12 +502,22 @@ class MyApp(QWidget):
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
             self.log("Custom Test Structure enabled")
+            self.checkCustomTestCell()
         else:
             self.log("Custom Test Structure disabled")
 
     def handleCustomTestCellName(self):
         self.customTestCellName = self.customTestCellNameEdit.text()
         self.log(f"Custom Test Structure Cell Name set to: {self.customTestCellName}")
+        self.checkCustomTestCell()
+
+    def checkCustomTestCell(self):
+        if self.customTestCellName:
+            try:
+                self.gds_design.check_cell_exists(self.customTestCellName)
+                self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
+            except ValueError:
+                QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
 
     def toggleCustomSize(self, state):
         if state == Qt.Checked:
