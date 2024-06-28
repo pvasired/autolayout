@@ -19,7 +19,7 @@ class MyApp(QWidget):
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
-            "Interlayer Via Test", "Electronics Via Test", "Short Test"
+            "Interlayer Via Test", "Electronics Via Test", "Short Test", "Custom Test Structure"
         ]
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
@@ -27,7 +27,8 @@ class MyApp(QWidget):
             "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height"],
             "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height"],
             "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height"],
-            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height"]
+            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height"],
+            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection"]
         }
         self.defaultParams = {
             "MLA Alignment Mark": {
@@ -109,6 +110,12 @@ class MyApp(QWidget):
                 "Num Groups": 6,
                 "Num Lines Vert": 100,
                 "Text Height": 100
+            },
+            "Custom Test Structure": {
+                "Center": None,
+                "Magnification": 1,
+                "Rotation": 0,
+                "X Reflection": False
             }
         }
         self.testStructures = []  # Initialize testStructures here
@@ -367,6 +374,11 @@ class MyApp(QWidget):
             self.log(f"Parameters: {params}")
             if params:
                 self.addShortTest(**params)
+        elif testStructureName == "Custom Test Structure":
+            params = self.getParameters(testStructureName)
+            self.log(f"Parameters: {params}")
+            if params:
+                self.addCustomTestStructure(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -498,6 +510,22 @@ class MyApp(QWidget):
             text_height=float(Text_Height)
         )
         self.log(f"Short Test added to {top_cell_name} on layer {Layer} at center {Center}")
+
+    def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        if self.customTestCellName:
+            try:
+                self.gds_design.add_cell_reference(
+                    parent_cell_name=top_cell_name,
+                    child_cell_name=self.customTestCellName,
+                    origin=Center,
+                    magnification=float(Magnification),
+                    rotation=float(Rotation),
+                    x_reflection=X_Reflection
+                )
+                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
+            except ValueError:
+                QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
 
     def handleCustomTestStructure(self, state):
         if state == Qt.Checked:
