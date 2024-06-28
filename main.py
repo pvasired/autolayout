@@ -165,7 +165,7 @@ class MyApp(QWidget):
             row += 1
 
             defaultParams = self.defaultParams[name]
-            self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams))
+            self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams, addButton))
 
         testLayout.addLayout(gridLayout)
 
@@ -221,19 +221,30 @@ class MyApp(QWidget):
 
     def createParamChangeHandler(self, param):
         sender = self.sender()
-        name = sender.parent().findChildren(QCheckBox)[0].text()
-        self.updateParameterValue(param, name)
-
+        # Update the default value to display for the specific test structure and parameter
+        for checkBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+            if comboBox == sender:
+                name = checkBox.text()
+                value = defaultParams.get(param, '')
+                valueEdit.setText(str(value))
+                # Log that this specific test structure has has this parameter selected
+                self.log(f"{name} Parameter {param} selected, display value set to {value}")
+                
     def createParamStoreHandler(self):
         sender = self.sender()
-        comboBox = sender.parent().findChildren(QComboBox)[0]
-        valueEdit = sender
-        name = sender.parent().findChildren(QCheckBox)[0].text()
+        for checkBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+            if valueEdit == sender:
+                name = checkBox.text()
+                comboBox = comboBox
+                break
         self.storeParameterValue(comboBox, valueEdit, name)
 
     def createAddToDesignHandler(self):
         sender = self.sender()
-        name = sender.parent().findChildren(QCheckBox)[0].text()
+        for checkBox, _, _, _, addButton in self.testStructures:
+            if addButton == sender:
+                name = checkBox.text()
+                break
         self.handleAddToDesign(name)
 
     def selectInputFile(self):
@@ -277,7 +288,7 @@ class MyApp(QWidget):
             self.log("Output file validation error: Not a .gds file")
 
     def updateParameterValue(self, param, testStructureName):
-        for _, comboBox, valueEdit, defaultParams in self.testStructures:
+        for _, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if comboBox.currentText() == param:
                 default_value = defaultParams.get(param, '')
                 valueEdit.setText(str(default_value))
@@ -290,7 +301,7 @@ class MyApp(QWidget):
             value = self.validateLayer(value)
         elif param == "Center":
             value = self.validateCenter(value)
-        for i, (checkBox, cb, edit, defaultParams) in enumerate(self.testStructures):
+        for i, (checkBox, cb, edit, defaultParams, addButton) in enumerate(self.testStructures):
             if cb == comboBox:
                 if param in defaultParams:
                     self.testStructures[i][3][param] = value
@@ -323,14 +334,14 @@ class MyApp(QWidget):
             x, y = map(float, center.split(','))
             self.log(f"Center is valid: ({x}, {y})")
             return (x, y)
-        except ValueError:
+        except:
             self.log("Invalid center")
             QMessageBox.critical(self, "Center Error", "Invalid center. Please enter a valid (x, y) coordinate.", QMessageBox.Ok)
             return None
 
     def handleAddToDesign(self, testStructureName):
         # Make sure the checkbox is checked for this test structure
-        for checkBox, _, _, _ in self.testStructures:
+        for checkBox, _, _, _, _ in self.testStructures:
             if checkBox.text() == testStructureName:
                 if not checkBox.isChecked():
                     QMessageBox.critical(self, "Test Structure Error", f"Please check the '{testStructureName}' checkbox to add it to the design.", QMessageBox.Ok)
@@ -375,7 +386,7 @@ class MyApp(QWidget):
 
     def getParameters(self, testStructureName):
         params = {}
-        for testCheckBox, comboBox, valueEdit, defaultParams in self.testStructures:
+        for testCheckBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if testCheckBox.text() == testStructureName:
                 for param in self.parameters[testStructureName]:
                     value = defaultParams.get(param, valueEdit.text())
