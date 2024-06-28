@@ -315,12 +315,12 @@ class MyApp(QWidget):
             for number, name in self.layerData:
                 if int(number) == layer_number:
                     self.log(f"Layer number {layer_number} is valid")
-                    return name  # Return the layer name instead of number
+                    return int(number)  # Return the layer name instead of number
         else:
             for number, name in self.layerData:
                 if name == layer:
                     self.log(f"Layer name {layer} is valid")
-                    return name
+                    return int(number)
         self.log("Invalid layer")
         QMessageBox.critical(self, "Layer Error", "Invalid layer. Please select a valid layer.", QMessageBox.Ok)
         return None
@@ -389,10 +389,14 @@ class MyApp(QWidget):
         for testCheckBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if testCheckBox.text() == testStructureName:
                 for param in self.parameters[testStructureName]:
-                    value = defaultParams.get(param, valueEdit.text())
+                    value = defaultParams.get(param, '')
                     self.log(f"Getting parameter {param}: {value}")
-                    if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer":
-                        value = self.validateLayer(value)
+                    if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer" or (param == "Layer Name Short" and value):
+                        # Lookup layer number and get name
+                        layer_number = self.validateLayer(str(value))
+                        for number, name in self.layerData:
+                            if int(number) == layer_number:
+                                value = name
                     elif param == "Center":
                         value = self.validateCenter(value)
                     elif type(value) == str:
@@ -438,7 +442,7 @@ class MyApp(QWidget):
             text=Text if Text else Layer,  # Use the layer name if text is not provided
             add_interlayer_short=Add_Interlayer_Short,
             short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
-            layer_name_short=self.validateLayer(Layer_Name_Short) if Layer_Name_Short else Layer_Name_Short
+            layer_name_short=Layer_Name_Short
         )
         self.log(f"Resistance Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
