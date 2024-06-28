@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt
 from gdswriter import GDSDesign  # Import the GDSDesign class
 from copy import deepcopy
 import math
+import numpy as np
 
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
@@ -23,7 +24,7 @@ class MyApp(QWidget):
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
             "Interlayer Via Test", "Electronics Via Test", "Short Test", 
-            "Rectangle", "Circle", "Text", "Custom Test Structure"
+            "Rectangle", "Circle", "Text", "Polygon", "Path", "Custom Test Structure"
         ]
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
@@ -35,6 +36,8 @@ class MyApp(QWidget):
             "Rectangle": ["Layer", "Center", "Width", "Height", "Lower Left", "Upper Right", "Rotation"],
             "Circle": ["Layer", "Center", "Diameter"],
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
+            "Polygon": ["Layer"],
+            "Path": ["Layer", "Width"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y"]
         }
         self.defaultParams = {
@@ -139,6 +142,13 @@ class MyApp(QWidget):
                 "Height": 100,
                 "Rotation": 0
             },
+            "Polygon": {
+                "Layer": None
+            },
+            "Path": {
+                "Layer": None,
+                "Width": None
+            },
             "Custom Test Structure": {
                 "Center": None,
                 "Magnification": 1,
@@ -153,6 +163,8 @@ class MyApp(QWidget):
         }
         self.testStructures = []  # Initialize testStructures here
         self.gds_design = None  # To store the GDSDesign instance
+        self.polygon_points = []  # To store polygon points
+        self.path_points = [] # To store path points
         self.initUI()
 
     def initUI(self):
@@ -211,6 +223,16 @@ class MyApp(QWidget):
         self.customTestCellNameEdit.editingFinished.connect(self.handleCustomTestCellName)
         customTestLayout.addWidget(self.customTestCellNameEdit)
         testLayout.addLayout(customTestLayout)
+
+        # Polygon Points and Path Points buttons layout
+        fileButtonsLayout = QHBoxLayout()
+        self.polygonButton = QPushButton('Polygon Points')
+        self.polygonButton.clicked.connect(self.selectPolygonPointsFile)
+        self.pathButton = QPushButton('Path Points')
+        self.pathButton.clicked.connect(self.selectPathPointsFile)
+        fileButtonsLayout.addWidget(self.polygonButton)
+        fileButtonsLayout.addWidget(self.pathButton)
+        testLayout.addLayout(fileButtonsLayout)
 
         mainLayout.addLayout(testLayout)
 
@@ -309,6 +331,62 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
 
+    def readPolygonPointsFile(self, fileName):
+        try:
+            if fileName.lower().endswith('.txt'):
+                points = np.loadtxt(fileName, delimiter=',')
+            elif fileName.lower().endswith('.csv'):
+                points = np.loadtxt(fileName, delimiter=',')
+            points_list = [tuple(point) for point in points]
+            if all(len(point) == 2 for point in points_list):
+                self.polygon_points = points_list
+                self.log(f"Polygon Points read: {self.polygon_points}")
+            else:
+                raise ValueError("File does not contain valid (x, y) coordinates.")
+        except Exception as e:
+            QMessageBox.critical(self, "File Error", f"Error reading file: {str(e)}", QMessageBox.Ok)
+            self.log(f"Error reading polygon points file: {str(e)}")
+
+    def readPathPointsFile(self, fileName):
+        try:
+            if fileName.lower().endswith('.txt'):
+                points = np.loadtxt(fileName, delimiter=',')
+            elif fileName.lower().endswith('.csv'):
+                points = np.loadtxt(fileName, delimiter=',')
+            points_list = [tuple(point) for point in points]
+            if all(len(point) == 2 for point in points_list):
+                self.path_points = points_list
+                self.log(f"Path Points read: {self.path_points}")
+            else:
+                raise ValueError("File does not contain valid (x, y) coordinates.")
+        except Exception as e:
+            QMessageBox.critical(self, "File Error", f"Error reading file: {str(e)}", QMessageBox.Ok)
+            self.log(f"Error reading path points file: {str(e)}")
+
+    def selectPolygonPointsFile(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select Polygon Points File", "", "Text Files (*.txt);;CSV Files (*.csv);;All Files (*)", options=options)
+        if fileName:
+            if fileName.lower().endswith('.txt') or fileName.lower().endswith('.csv'):
+                self.readPolygonPointsFile(fileName)
+                self.log(f"Polygon Points File: {fileName}")
+            else:
+                QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
+                self.log("File selection error: Not a .txt or .csv file")
+
+    def selectPathPointsFile(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select Path Points File", "", "Text Files (*.txt);;CSV Files (*.csv);;All Files (*)", options=options)
+        if fileName:
+            if fileName.lower().endswith('.txt') or fileName.lower().endswith('.csv'):
+                self.readPathPointsFile(fileName)
+                self.log(f"Path Points File: {fileName}")
+            else:
+                QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
+                self.log("File selection error: Not a .txt or .csv file")
+                
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
         # Add layers to the dropdown sorted by layer number
@@ -414,6 +492,10 @@ class MyApp(QWidget):
                 self.addCircle(**params)
             elif testStructureName == "Text":
                 self.addText(**params)
+            elif testStructureName == "Polygon":
+                self.addPolygon(**params)
+            elif testStructureName == "Path":
+                self.addPath(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -577,6 +659,39 @@ class MyApp(QWidget):
         )
         self.log(f"Text added to {top_cell_name} on layer {Layer} at center {Center}")
 
+    def addPolygon(self, Layer):
+        Points = self.polygon_points
+        if len(Points) < 3:
+            QMessageBox.critical(self, "Input Error", "Please select a valid polygon points file.", QMessageBox.Ok)
+            self.log("Polygon add error: Invalid points provided")
+            return
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_polygon(
+            cell_name=top_cell_name,
+            points=Points,
+            layer_name=Layer
+        )
+        self.log(f"Polygon added to {top_cell_name} on layer {Layer}")
+
+    def addPath(self, Layer, Width):
+        Points = self.path_points
+        if len(Points) < 2:
+            QMessageBox.critical(self, "Input Error", "Please select a valid path points file.", QMessageBox.Ok)
+            self.log("Path add error: No points provided")
+            return
+        if not Width:
+            QMessageBox.critical(self, "Input Error", "Please enter a width for the path.", QMessageBox.Ok)
+            self.log("Path add error: No width provided")
+            return
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_path_as_polygon(
+            cell_name=top_cell_name,
+            points=Points,
+            width=float(Width),
+            layer_name=Layer
+        )
+        self.log(f"Path added to {top_cell_name} on layer {Layer}")
+
     def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height):
         top_cell_name = self.gds_design.top_cell_names[0]
         self.gds_design.add_electronics_via_test_structure(
@@ -642,6 +757,7 @@ class MyApp(QWidget):
                         rotation=float(Rotation),
                         x_reflection=X_Reflection
                     )
+                    self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Spacing_X}, spacing y {Spacing_Y}")
             except ValueError:
                 QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
                 
