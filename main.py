@@ -402,6 +402,8 @@ class MyApp(QWidget):
                 self.addCustomTestStructure(**params)
             elif testStructureName == "Rectangle":
                 self.addRectangle(**params)
+            elif testStructureName == "Circle":
+                self.addCircle(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -517,6 +519,20 @@ class MyApp(QWidget):
             rotation=float(Rotation)*math.pi/180
         )
         self.log(f"Rectangle added to {top_cell_name} on layer {Layer} at center {Center}")
+
+    def addCircle(self, Layer, Center, Diameter):
+        if not Diameter:
+            QMessageBox.critical(self, "Input Error", "Please enter a diameter for the circle.", QMessageBox.Ok)
+            self.log("Circle add error: No diameter provided")
+            return
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_circle_as_polygon(
+            cell_name=top_cell_name,
+            center=Center,
+            radius=float(Diameter)/2,
+            layer_name=Layer
+        )
+        self.log(f"Circle added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height):
         top_cell_name = self.gds_design.top_cell_names[0]
