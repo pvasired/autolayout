@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from gdswriter import GDSDesign  # Import the GDSDesign class
+from copy import deepcopy
 
 class MyApp(QWidget):
     def __init__(self, verbose=False):
@@ -164,7 +165,7 @@ class MyApp(QWidget):
             gridLayout.addWidget(addButton, row, 4)
             row += 1
 
-            defaultParams = self.defaultParams[name]
+            defaultParams = deepcopy(self.defaultParams[name])
             self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams, addButton))
 
         testLayout.addLayout(gridLayout)
@@ -265,6 +266,11 @@ class MyApp(QWidget):
                 self.layerData = [(str(layer['number']), layer_name) for layer_name, layer in self.gds_design.layers.items()]
                 self.log(f"Layers read from file: {self.layerData}")
                 self.updateLayersComboBox()
+
+                # Reset parameters to default values in self.defaultParams
+                for i, (checkBox,_,_,_,_) in enumerate(self.testStructures):
+                    for param in self.parameters[checkBox.text()]:
+                        self.testStructures[i][3][param] = self.defaultParams[checkBox.text()][param]
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -327,6 +333,9 @@ class MyApp(QWidget):
 
     def validateCenter(self, center):
         self.log(f"Validating Center: {center}")
+        if center is None:
+            QMessageBox.critical(self, "Center Error", "Please enter a center (x, y) coordinate.", QMessageBox.Ok)
+            return None
         if isinstance(center, tuple):
             return center
         center = center.replace("(", "").replace(")", "").replace(" ", "")
@@ -394,11 +403,15 @@ class MyApp(QWidget):
                     if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer" or (param == "Layer Name Short" and value):
                         # Lookup layer number and get name
                         layer_number = self.validateLayer(str(value))
+                        if layer_number is None:
+                            return
                         for number, name in self.layerData:
                             if int(number) == layer_number:
                                 value = name
                     elif param == "Center":
                         value = self.validateCenter(value)
+                        if value is None:
+                            return
                     elif type(value) == str:
                         if value.lower() == 'true':
                             value = True
