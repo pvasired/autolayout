@@ -173,12 +173,9 @@ class MyApp(QWidget):
 
         # Custom test structure layout
         customTestLayout = QHBoxLayout()
-        self.customTestCheckBox = QCheckBox("Custom Test Structure")
-        self.customTestCheckBox.stateChanged.connect(self.handleCustomTestStructure)
         self.customTestCellNameEdit = QLineEdit()
         self.customTestCellNameEdit.setPlaceholderText("Custom Test Structure Cell Name")
         self.customTestCellNameEdit.editingFinished.connect(self.handleCustomTestCellName)
-        customTestLayout.addWidget(self.customTestCheckBox)
         customTestLayout.addWidget(self.customTestCellNameEdit)
         testLayout.addLayout(customTestLayout)
 
@@ -343,6 +340,13 @@ class MyApp(QWidget):
             return None
 
     def handleAddToDesign(self, testStructureName):
+        # Make sure the checkbox is checked for this test structure
+        for checkBox, _, _, _ in self.testStructures:
+            if checkBox.text() == testStructureName:
+                if not checkBox.isChecked():
+                    QMessageBox.critical(self, "Test Structure Error", f"Please check the '{testStructureName}' checkbox to add it to the design.", QMessageBox.Ok)
+                    self.log(f"Add to Design error: '{testStructureName}' checkbox not checked")
+                    return
         self.log(f"Adding {testStructureName} to design")
         if testStructureName == "MLA Alignment Mark":
             params = self.getParameters(testStructureName)
@@ -526,14 +530,7 @@ class MyApp(QWidget):
                 self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
             except ValueError:
                 QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
-
-    def handleCustomTestStructure(self, state):
-        if state == Qt.Checked:
-            self.log("Custom Test Structure enabled")
-            self.checkCustomTestCell()
-        else:
-            self.log("Custom Test Structure disabled")
-
+                
     def handleCustomTestCellName(self):
         self.customTestCellName = self.customTestCellNameEdit.text()
         self.log(f"Custom Test Structure Cell Name set to: {self.customTestCellName}")
