@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from gdswriter import GDSDesign  # Import the GDSDesign class
 from copy import deepcopy
+import math
 
 class MyApp(QWidget):
     def __init__(self, verbose=False):
@@ -18,7 +19,8 @@ class MyApp(QWidget):
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
-            "Interlayer Via Test", "Electronics Via Test", "Short Test", "Custom Test Structure"
+            "Interlayer Via Test", "Electronics Via Test", "Short Test", 
+            "Rectangle", "Circle", "Text", "Custom Test Structure"
         ]
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
@@ -27,6 +29,9 @@ class MyApp(QWidget):
             "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height"],
             "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height"],
             "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height"],
+            "Rectangle": ["Layer", "Center", "Width", "Height", "Lower Left", "Upper Right", "Rotation"],
+            "Circle": ["Layer", "Center", "Diameter"],
+            "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection"]
         }
         self.defaultParams = {
@@ -109,6 +114,27 @@ class MyApp(QWidget):
                 "Num Groups": 6,
                 "Num Lines Vert": 100,
                 "Text Height": 100
+            },
+            "Rectangle": {
+                "Layer": None,
+                "Center": None,
+                "Width": None,
+                "Height": None,
+                "Lower Left": None,
+                "Upper Right": None,
+                "Rotation": 0
+            },
+            "Circle": {
+                "Layer": None,
+                "Center": None,
+                "Diameter": None
+            },
+            "Text": {
+                "Layer": None,
+                "Center": None,
+                "Text": None,
+                "Height": 100,
+                "Rotation": 0
             },
             "Custom Test Structure": {
                 "Center": None,
@@ -305,7 +331,7 @@ class MyApp(QWidget):
         value = valueEdit.text()
         if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer":
             value = self.validateLayer(value)
-        elif param == "Center":
+        elif param == "Center" and name != "Rectangle":
             value = self.validateCenter(value)
         for i, (checkBox, cb, edit, defaultParams, addButton) in enumerate(self.testStructures):
             if cb == comboBox:
@@ -374,6 +400,8 @@ class MyApp(QWidget):
                 self.addShortTest(**params)
             elif testStructureName == "Custom Test Structure":
                 self.addCustomTestStructure(**params)
+            elif testStructureName == "Rectangle":
+                self.addRectangle(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -390,7 +418,7 @@ class MyApp(QWidget):
                         for number, name in self.layerData:
                             if int(number) == layer_number:
                                 value = name
-                    elif param == "Center":
+                    elif param == "Center" and testStructureName != "Rectangle":
                         value = self.validateCenter(value)
                         if value is None:
                             return
@@ -475,6 +503,20 @@ class MyApp(QWidget):
             text_height=float(Text_Height)
         )
         self.log(f"Interlayer Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
+    
+    def addRectangle(self, Layer, Center, Width, Height, Lower_Left, Upper_Right, Rotation):
+        top_cell_name = self.gds_design.top_cell_names[0]
+        self.gds_design.add_rectangle(
+            cell_name=top_cell_name,
+            layer_name=Layer,
+            center=self.validateCenter(Center) if Center else None,
+            width=float(Width) if Width else None,
+            height=float(Height) if Height else None,
+            lower_left=float(Lower_Left) if Lower_Left else None,
+            upper_right=float(Upper_Right) if Upper_Right else None,
+            rotation=float(Rotation)*math.pi/180
+        )
+        self.log(f"Rectangle added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height):
         top_cell_name = self.gds_design.top_cell_names[0]

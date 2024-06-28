@@ -456,7 +456,7 @@ class GDSDesign:
         return self.cells[cell_name]['cell']
 
     def add_rectangle(self, cell_name, layer_name, center=None, width=None, height=None, lower_left=None, upper_right=None, datatype=0,
-                      netID=0):
+                      rotation=0, netID=0):
         """
         Add a rectangle to a cell. The rectangle can be defined either by center point and width/height
         or by specifying lower left and upper right corners.
@@ -479,6 +479,9 @@ class GDSDesign:
 
         # Create and add the rectangle
         rectangle = gdspy.Rectangle(lower_left, upper_right, layer=layer_number, datatype=datatype)
+        if center is None and rotation != 0:
+            center = ((lower_left[0] + upper_right[0]) / 2, (lower_left[1] + upper_right[1]) / 2)
+        rectangle.rotate(rotation, center=center)
         self.add_component(cell, cell_name, rectangle, netID, layer_number)
     
     def add_alignment_cross(self, cell_name, layer_name, center, width, extent_x, extent_y, datatype=0, netID=0):
