@@ -14,8 +14,6 @@ class MyApp(QWidget):
         self.inputFileName = ""
         self.outputFileName = ""
         self.customTestCellName = ""
-        self.customSubstrateWidth = 0.0
-        self.customSubstrateHeight = 0.0
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
@@ -181,25 +179,6 @@ class MyApp(QWidget):
 
         mainLayout.addLayout(testLayout)
 
-        # Substrate layout
-        substrateLayout = QVBoxLayout()
-        substrateLabel = QLabel('Substrate')
-        self.checkbox4Inch = QCheckBox('4"')
-        self.checkbox4Inch.stateChanged.connect(lambda state: self.log(f"4\" substrate {'selected' if state == Qt.Checked else 'unselected'}"))
-        self.checkbox6Inch = QCheckBox('6"')
-        self.checkbox6Inch.stateChanged.connect(lambda state: self.log(f"6\" substrate {'selected' if state == Qt.Checked else 'unselected'}"))
-        self.customCheckbox = QCheckBox('Custom Size')
-        self.customCheckbox.stateChanged.connect(self.toggleCustomSize)
-        self.customSizeEdit = QLineEdit()
-        self.customSizeEdit.setPlaceholderText('Width (mm) x Height (mm)')
-        self.customSizeEdit.setEnabled(False)
-        self.customSizeEdit.editingFinished.connect(self.handleCustomSizeChange)
-        substrateLayout.addWidget(substrateLabel)
-        substrateLayout.addWidget(self.checkbox4Inch)
-        substrateLayout.addWidget(self.checkbox6Inch)
-        substrateLayout.addWidget(self.customCheckbox)
-        substrateLayout.addWidget(self.customSizeEdit)
-
         # Layers layout
         layersLayout = QVBoxLayout()
         layersLabel = QLabel('Layers')
@@ -220,14 +199,12 @@ class MyApp(QWidget):
         defineLayerLayout.addWidget(defineLayerButton)
         layersLayout.addLayout(defineLayerLayout)
 
-        substrateLayout.addLayout(layersLayout)
+        mainLayout.addLayout(layersLayout)
 
         # Write to GDS button
         writeButton = QPushButton('Write to GDS')
         writeButton.clicked.connect(self.writeToGDS)
-        substrateLayout.addWidget(writeButton)
-
-        mainLayout.addLayout(substrateLayout)
+        mainLayout.addWidget(writeButton)
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
@@ -543,25 +520,6 @@ class MyApp(QWidget):
                 self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
             except ValueError:
                 QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
-
-    def toggleCustomSize(self, state):
-        if state == Qt.Checked:
-            self.customSizeEdit.setEnabled(True)
-            self.log("Custom Size enabled")
-        else:
-            self.customSizeEdit.setEnabled(False)
-            self.log("Custom Size disabled")
-
-    def handleCustomSizeChange(self):
-        size_text = self.customSizeEdit.text()
-        match = re.match(r'^\s*(\d*\.?\d*)\s*[xX]\s*(\d*\.?\d*)\s*$', size_text)
-        if match:
-            self.customSubstrateWidth = float(match.group(1))
-            self.customSubstrateHeight = float(match.group(2))
-            self.log(f"Custom Size set to: {self.customSubstrateWidth} mm x {self.customSubstrateHeight} mm")
-        else:
-            QMessageBox.critical(self, "Input Error", "Please enter size in 'Width (mm) x Height (mm)' format.", QMessageBox.Ok)
-            self.log("Custom Size input error: Incorrect format")
 
     def writeToGDS(self):
         if self.gds_design:
