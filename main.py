@@ -144,18 +144,18 @@ class MyApp(QWidget):
         row = 0
         for name in self.testStructureNames:
             testCheckBox = QCheckBox(name)
-            testCheckBox.stateChanged.connect(self.createCheckStateHandler(name))
+            testCheckBox.stateChanged.connect(self.createCheckStateHandler)
             paramLabel = QLabel('Parameters')
             paramComboBox = QComboBox()
             paramComboBox.addItems(self.parameters[name])
-            paramComboBox.currentTextChanged.connect(self.createParamChangeHandler(name))
+            paramComboBox.currentTextChanged.connect(self.createParamChangeHandler)
             paramValueEdit = QLineEdit()
             paramName = paramComboBox.currentText()
             if paramName in self.defaultParams[name]:
                 paramValueEdit.setText(str(self.defaultParams[name][paramName]))
-            paramValueEdit.editingFinished.connect(self.createParamStoreHandler(paramComboBox, paramValueEdit, name))
+            paramValueEdit.editingFinished.connect(self.createParamStoreHandler)
             addButton = QPushButton("Add to Design")
-            addButton.clicked.connect(self.createAddToDesignHandler(name))
+            addButton.clicked.connect(self.createAddToDesignHandler)
 
             gridLayout.addWidget(testCheckBox, row, 0)
             gridLayout.addWidget(paramLabel, row, 1)
@@ -214,17 +214,27 @@ class MyApp(QWidget):
         if self.verbose:
             print(message)
 
-    def createCheckStateHandler(self, name):
-        return lambda state: self.log(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
+    def createCheckStateHandler(self, state):
+        sender = self.sender()
+        name = sender.text()
+        self.log(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
 
-    def createParamChangeHandler(self, name):
-        return lambda param: self.updateParameterValue(param, name)
+    def createParamChangeHandler(self, param):
+        sender = self.sender()
+        name = sender.parent().findChildren(QCheckBox)[0].text()
+        self.updateParameterValue(param, name)
 
-    def createParamStoreHandler(self, comboBox, valueEdit, name):
-        return lambda: self.storeParameterValue(comboBox, valueEdit, name)
+    def createParamStoreHandler(self):
+        sender = self.sender()
+        comboBox = sender.parent().findChildren(QComboBox)[0]
+        valueEdit = sender
+        name = sender.parent().findChildren(QCheckBox)[0].text()
+        self.storeParameterValue(comboBox, valueEdit, name)
 
-    def createAddToDesignHandler(self, name):
-        return lambda: self.handleAddToDesign(name)
+    def createAddToDesignHandler(self):
+        sender = self.sender()
+        name = sender.parent().findChildren(QCheckBox)[0].text()
+        self.handleAddToDesign(name)
 
     def selectInputFile(self):
         options = QFileDialog.Options()
@@ -250,6 +260,8 @@ class MyApp(QWidget):
 
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
+        # Add layers to the dropdown sorted by layer number
+        self.layerData.sort(key=lambda x: int(x[0]))
         for number, name in self.layerData:
             self.layersComboBox.addItem(f"{number}: {name}")
         self.log("Layers dropdown updated")
