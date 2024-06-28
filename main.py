@@ -357,40 +357,22 @@ class MyApp(QWidget):
                     self.log(f"Add to Design error: '{testStructureName}' checkbox not checked")
                     return
         self.log(f"Adding {testStructureName} to design")
-        if testStructureName == "MLA Alignment Mark":
-            params = self.getParameters(testStructureName)
-            self.log(f"Parameters: {params}")
-            if params:
+        params = self.getParameters(testStructureName)
+        self.log(f"Parameters: {params}")
+        if params:
+            if testStructureName == "MLA Alignment Mark":
                 self.addMLAAlignmentMark(**params)
-        elif testStructureName == "Resistance Test":
-            params = self.getParameters(testStructureName)
-            self.log(f"Parameters: {params}")
-            if params:
+            elif testStructureName == "Resistance Test":
                 self.addResistanceTest(**params)
-        elif testStructureName == "Trace Test":
-            params = self.getParameters(testStructureName)
-            self.log(f"Parameters: {params}")
-            if params:
+            elif testStructureName == "Trace Test":
                 self.addTraceTest(**params)
-        elif testStructureName == "Interlayer Via Test":
-            params = self.getParameters(testStructureName)
-            self.log(f"Parameters: {params}")
-            if params:
+            elif testStructureName == "Interlayer Via Test":
                 self.addInterlayerViaTest(**params)
-        elif testStructureName == "Electronics Via Test":
-            params = self.getParameters(testStructureName)
-            self.log(f"Parameters: {params}")
-            if params:
+            elif testStructureName == "Electronics Via Test":
                 self.addElectronicsViaTest(**params)
-        elif testStructureName == "Short Test":
-            params = self.getParameters(testStructureName)
-            self.log(f"Parameters: {params}")
-            if params:
+            elif testStructureName == "Short Test":
                 self.addShortTest(**params)
-        elif testStructureName == "Custom Test Structure":
-            params = self.getParameters(testStructureName)
-            self.log(f"Parameters: {params}")
-            if params:
+            elif testStructureName == "Custom Test Structure":
                 self.addCustomTestStructure(**params)
 
     def getParameters(self, testStructureName):
