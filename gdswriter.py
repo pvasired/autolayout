@@ -10,7 +10,7 @@ TEXT_SPACING_FACTOR = 0.3
 
 class GDSDesign:
     def __init__(self, lib_name='default_lib', filename=None, top_cell_names=['TopCell'], bounds=[-np.inf, np.inf, -np.inf, np.inf], unit=1e-6, precision=1e-9,
-                 default_netID=0, default_feature_size=5, default_spacing=5):
+                 default_netID=0, default_feature_size=None, default_spacing=None):
         """
         Initialize a new GDS design library with an optional top cell, design size, and units.
         
@@ -53,8 +53,8 @@ class GDSDesign:
             self.layers = {}  # Layer properties by layer name
             self.drc_rules = {}  # DRC rules for each layer
             for layer in unique_layers:
-                self.define_layer(f"Layer{layer}", layer, min_feature_size=default_feature_size, 
-                                  min_spacing=default_spacing)   # TODO update with real values
+                self.define_layer(f"{layer}", layer, min_feature_size=default_feature_size, 
+                                  min_spacing=default_spacing)
 
             max_x, min_x, max_y, min_y = -np.inf, np.inf, -np.inf, np.inf
             for cell in top_cells:
@@ -82,8 +82,26 @@ class GDSDesign:
     def add_MLA_alignment_mark(self, cell_name, layer_name, center, rect_width=500, rect_height=20, width_interior=5,
                                extent_x_interior=50, extent_y_interior=50, datatype=0, netID=0, add_text=False, text_height=250,
                                text_angle=0, text_position=None):
+        # Check that types are valid
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(rect_width, (int, float)), "Error: Rectangle width must be a number."
+        assert isinstance(rect_height, (int, float)), "Error: Rectangle height must be a number."
+        assert isinstance(width_interior, (int, float)), "Error: Interior cross width must be a number."
+        assert isinstance(extent_x_interior, (int, float)), "Error: Interior cross extent along x-axis must be a number."
+        assert isinstance(extent_y_interior, (int, float)), "Error: Interior cross extent along y-axis must be a number."
+        assert isinstance(datatype, int), "Error: Datatype must be an integer."
+        assert isinstance(netID, int), "Error: Net ID must be an integer."
+        assert isinstance(add_text, bool), "Error: Add text must be a boolean."
+        assert isinstance(text_height, (int, float)), "Error: Text height must be a number."
+        assert isinstance(text_angle, (int, float)), "Error: Text angle must be a number."
+        if text_position is not None:
+            assert isinstance(text_position, tuple), "Error: Text position must be a tuple."
+        
+        # Check that geometry is valid
         assert rect_width > width_interior, "Error: The width of the rectangle must be greater than the thickness of the interior cross."
         assert rect_height > width_interior, "Error: The height of the rectangle must be greater than the thickness of the interior cross."
+
+        # Check that cell and layer exist
         cell = self.check_cell_exists(cell_name)
         layer_number = self.get_layer_number(layer_name)
 
@@ -131,6 +149,32 @@ class GDSDesign:
                                       trace_spacing=50, switchbacks=18, x_extent=100, text_height=250, text=None,
                                       text_angle=90, text_position=None, add_interlayer_short=False,
                                       short_text=None, layer_name_short=None):
+        # Check that types are valid
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(probe_pad_width, (int, float)), "Error: Probe pad width must be a number."
+        assert isinstance(probe_pad_height, (int, float)), "Error: Probe pad height must be a number."
+        assert isinstance(probe_pad_spacing, (int, float)), "Error: Probe pad spacing must be a number."
+        assert isinstance(plug_width, (int, float)), "Error: Plug width must be a number."
+        assert isinstance(plug_height, (int, float)), "Error: Plug height must be a number."
+        assert isinstance(trace_width, (int, float)), "Error: Trace width must be a number."
+        assert isinstance(trace_spacing, (int, float)), "Error: Trace spacing must be a number."
+        assert isinstance(switchbacks, int), "Error: Number of switchbacks must be an integer."
+        assert isinstance(x_extent, (int, float)), "Error: X extent must be a number."
+        assert isinstance(text_height, (int, float)), "Error: Text height must be a number."
+        if text is not None:
+            assert isinstance(text, str), "Error: Text must be a string."
+        assert isinstance(text_angle, (int, float)), "Error: Text angle must be a number."
+        assert isinstance(add_interlayer_short, bool), "Error: Add interlayer short must be a boolean."
+        if text_position is not None:
+            assert isinstance(text_position, tuple), "Error: Text position must be a tuple."
+        if short_text is not None:
+            assert isinstance(short_text, str), "Error: Short text must be a string."
+        if layer_name_short is not None:
+            assert isinstance(layer_name_short, str), "Error: Layer name for the short must be a string."
+        
+        # Check that the geometry is valid
+        margin = (probe_pad_spacing - probe_pad_height - trace_width - trace_spacing * (2 * switchbacks - 1))/2
+        assert margin > trace_spacing, f"Error: Not enough space for the switchbacks. Margin is {margin} and trace spacing is {trace_spacing}."
 
         # Add probe pads and plugs
         self.add_rectangle(cell_name, layer_name, center=(center[0], center[1]-probe_pad_spacing/2), width=probe_pad_width, height=probe_pad_height)
@@ -146,9 +190,6 @@ class GDSDesign:
         distance += x_extent
         path_points.append((center[0]-plug_width-probe_pad_width/2-x_extent, center[1]-probe_pad_spacing/2+probe_pad_height/2))
         distance += probe_pad_height/2
-
-        margin = (probe_pad_spacing - probe_pad_height - trace_width - trace_spacing * (2 * switchbacks - 1))/2
-        assert margin > trace_spacing, f"Error: Not enough space for the switchbacks. Margin is {margin} and trace spacing is {trace_spacing}."
 
         current_x = center[0]-plug_width-probe_pad_width/2-x_extent
         current_y = center[1]-probe_pad_spacing/2+probe_pad_height/2+margin+trace_width/2
@@ -196,6 +237,18 @@ class GDSDesign:
 
     def add_line_test_structure(self, cell_name, layer_name, center, text, line_width=800, line_height=80, num_lines=4, line_spacing=80,
                                 text_height=250, text_angle=0, text_position=None):
+        # Check that types are valid
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(line_width, (int, float)), "Error: Line width must be a number."
+        assert isinstance(line_height, (int, float)), "Error: Line height must be a number."
+        assert isinstance(num_lines, int), "Error: Number of lines must be an integer."
+        assert isinstance(line_spacing, (int, float)), "Error: Line spacing must be a number."
+        assert isinstance(text_height, (int, float)), "Error: Text height must be a number."
+        assert isinstance(text_angle, (int, float)), "Error: Text angle must be a number."
+        if text_position is not None:
+            assert isinstance(text_position, tuple), "Error: Text position must be a tuple."
+        assert isinstance(text, str), "Error: Text must be a string."
+
         rect_center = (center[0], center[1]+(num_lines-1)*line_spacing)
         for i in range(num_lines):
             self.add_rectangle(cell_name, layer_name, center=rect_center, width=line_width, height=line_height)
@@ -208,6 +261,21 @@ class GDSDesign:
     def add_p_via_test_structure(self, cell_name, layer_name_1, layer_name_2, via_layer, center, text, layer1_rect_spacing=150,
                                  layer1_rect_width=700, layer1_rect_height=250, layer2_rect_width=600, layer2_rect_height=550,
                                  via_width=7, via_height=7, text_height=250, text_angle=90, text_position=None):
+        # Check that types are valid
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(layer1_rect_spacing, (int, float)), "Error: Layer 1 rectangle spacing must be a number."
+        assert isinstance(layer1_rect_width, (int, float)), "Error: Layer 1 rectangle width must be a number."
+        assert isinstance(layer1_rect_height, (int, float)), "Error: Layer 1 rectangle height must be a number."
+        assert isinstance(layer2_rect_width, (int, float)), "Error: Layer 2 rectangle width must be a number."
+        assert isinstance(layer2_rect_height, (int, float)), "Error: Layer 2 rectangle height must be a number."
+        assert isinstance(via_width, (int, float)), "Error: Via width must be a number."
+        assert isinstance(via_height, (int, float)), "Error: Via height must be a number."
+        assert isinstance(text_height, (int, float)), "Error: Text height must be a number."
+        assert isinstance(text_angle, (int, float)), "Error: Text angle must be a number."
+        if text_position is not None:
+            assert isinstance(text_position, tuple), "Error: Text position must be a tuple."
+        assert isinstance(text, str), "Error: Text must be a string."
+
         # Add rectangles for the first layer
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]+layer1_rect_spacing/2+layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]-layer1_rect_spacing/2-layer1_rect_height/2), width=layer1_rect_width, height=layer1_rect_height)
@@ -227,6 +295,22 @@ class GDSDesign:
                                            layer_1_rect_width=1550, layer_1_rect_height=700, layer_2_rect_width=600,
                                            layer_2_rect_height=600, layer_2_rect_spacing=250, via_width=7, via_height=7, via_spacing=10,
                                            text_height=250, text_angle=0, text_position=None):
+        # Check that types are valid
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(layer_1_rect_width, (int, float)), "Error: Layer 1 rectangle width must be a number."
+        assert isinstance(layer_1_rect_height, (int, float)), "Error: Layer 1 rectangle height must be a number."
+        assert isinstance(layer_2_rect_width, (int, float)), "Error: Layer 2 rectangle width must be a number."
+        assert isinstance(layer_2_rect_height, (int, float)), "Error: Layer 2 rectangle height must be a number."
+        assert isinstance(layer_2_rect_spacing, (int, float)), "Error: Layer 2 rectangle spacing must be a number."
+        assert isinstance(via_width, (int, float)), "Error: Via width must be a number."
+        assert isinstance(via_height, (int, float)), "Error: Via height must be a number."
+        assert isinstance(via_spacing, (int, float)), "Error: Via spacing must be a number."
+        assert isinstance(text_height, (int, float)), "Error: Text height must be a number."
+        assert isinstance(text_angle, (int, float)), "Error: Text angle must be a number."
+        if text_position is not None:
+            assert isinstance(text_position, tuple), "Error: Text position must be a tuple."
+        assert isinstance(text, str), "Error: Text must be a string."
+
         # Add rectangle for the first layer
         self.add_rectangle(cell_name, layer_name_1, center=(center[0], center[1]), width=layer_1_rect_width, height=layer_1_rect_height)
 
@@ -245,6 +329,20 @@ class GDSDesign:
     def add_short_test_structure(self, cell_name, layer_name, center, text, rect_width=1300,
                                  trace_width=5, num_lines=5, group_spacing=130, num_groups=6, num_lines_vert=100,
                                  text_height=250, text_angle=90, text_position=None):
+        # Check that types are valid
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(rect_width, (int, float)), "Error: Rectangle width must be a number."
+        assert isinstance(trace_width, (int, float)), "Error: Trace width must be a number."
+        assert isinstance(num_lines, int), "Error: Number of lines must be an integer."
+        assert isinstance(group_spacing, (int, float)), "Error: Group spacing must be a number."
+        assert isinstance(num_groups, int), "Error: Number of groups must be an integer."
+        assert isinstance(num_lines_vert, int), "Error: Number of vertical lines must be an integer."
+        assert isinstance(text_height, (int, float)), "Error: Text height must be a number."
+        assert isinstance(text_angle, (int, float)), "Error: Text angle must be a number."
+        if text_position is not None:
+            assert isinstance(text_position, tuple), "Error: Text position must be a tuple."
+        assert isinstance(text, str), "Error: Text must be a string."
+
         group_height = (4*num_lines - 1)*trace_width + group_spacing + 2*trace_width
         rect_height = group_height*num_groups+trace_width*(num_groups-1)
         rect_spacing = (4*num_lines_vert - 1)*trace_width + 2*trace_width
@@ -286,6 +384,11 @@ class GDSDesign:
 
     def add_MLA_alignment_cell(self, box1_layer, box2_layer, cross1_layer, cross2_layer,
                                box_width=2000, box_height=2000, cell_name="MLA_Alignment"):
+        # Check that types are valid
+        assert isinstance(box_width, (int, float)), "Error: Box width must be a number."
+        assert isinstance(box_height, (int, float)), "Error: Box height must be a number."
+        assert isinstance(cell_name, str), "Error: Cell name must be a string."
+        
         cell = self.add_cell(cell_name)
         self.add_rectangle(cell_name, box1_layer, center=(0, 0), width=box_width, height=box_height)
         self.add_rectangle(cell_name, box2_layer, center=(0, 0), width=box_width, height=box_height)
