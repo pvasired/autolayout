@@ -9,6 +9,9 @@ from gdswriter import GDSDesign  # Import the GDSDesign class
 from copy import deepcopy
 import math
 
+TEXT_SPACING_FACTOR = 0.55
+TEXT_HEIGHT_FACTOR = 0.7
+
 class MyApp(QWidget):
     def __init__(self, verbose=False):
         super().__init__()
@@ -404,6 +407,8 @@ class MyApp(QWidget):
                 self.addRectangle(**params)
             elif testStructureName == "Circle":
                 self.addCircle(**params)
+            elif testStructureName == "Text":
+                self.addText(**params)
 
     def getParameters(self, testStructureName):
         params = {}
@@ -533,6 +538,39 @@ class MyApp(QWidget):
             layer_name=Layer
         )
         self.log(f"Circle added to {top_cell_name} on layer {Layer} at center {Center}")
+    
+    def addText(self, Layer, Center, Text, Height, Rotation):
+        top_cell_name = self.gds_design.top_cell_names[0]
+
+        # Calculate the width and height of the text
+        text_width = len(Text) * float(Height) * TEXT_SPACING_FACTOR
+        text_height = float(Height) * TEXT_HEIGHT_FACTOR
+
+        # Calculate the lower-left corner position relative to the center without rotation
+        ll_x = Center[0] - (text_width / 2)
+        ll_y = Center[1] - (text_height / 2)
+
+        # Apply rotation to the lower-left position
+        angle_rad = math.radians(float(Rotation))
+        cos_angle = math.cos(angle_rad)
+        sin_angle = math.sin(angle_rad)
+
+        # Translate the lower-left corner to the origin, apply rotation, then translate back
+        delta_x = ll_x - Center[0]
+        delta_y = ll_y - Center[1]
+        rotated_x = Center[0] + (delta_x * cos_angle - delta_y * sin_angle)
+        rotated_y = Center[1] + (delta_x * sin_angle + delta_y * cos_angle)
+
+        # Add the text at the calculated position
+        self.gds_design.add_text(
+            cell_name=top_cell_name,
+            text=Text,
+            layer_name=Layer,
+            position=(rotated_x, rotated_y),
+            height=float(Height),
+            angle=float(Rotation)
+        )
+        self.log(f"Text added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height):
         top_cell_name = self.gds_design.top_cell_names[0]
