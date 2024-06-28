@@ -35,7 +35,7 @@ class MyApp(QWidget):
             "Rectangle": ["Layer", "Center", "Width", "Height", "Lower Left", "Upper Right", "Rotation"],
             "Circle": ["Layer", "Center", "Diameter"],
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
-            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection"]
+            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y"]
         }
         self.defaultParams = {
             "MLA Alignment Mark": {
@@ -143,7 +143,12 @@ class MyApp(QWidget):
                 "Center": None,
                 "Magnification": 1,
                 "Rotation": 0,
-                "X Reflection": False
+                "X Reflection": False,
+                "Array": False,
+                "Copies X": 1,
+                "Copies Y": 1,
+                "Spacing X": 0,
+                "Spacing Y": 0
             }
         }
         self.testStructures = []  # Initialize testStructures here
@@ -296,10 +301,10 @@ class MyApp(QWidget):
                 self.log(f"Layers read from file: {self.layerData}")
                 self.updateLayersComboBox()
 
-                # Reset parameters to default values in self.defaultParams
-                for i, (checkBox,_,_,_,_) in enumerate(self.testStructures):
-                    for param in self.parameters[checkBox.text()]:
-                        self.testStructures[i][3][param] = self.defaultParams[checkBox.text()][param]
+                # # Reset parameters to default values in self.defaultParams
+                # for i, (checkBox,_,_,_,_) in enumerate(self.testStructures):
+                #     for param in self.parameters[checkBox.text()]:
+                #         self.testStructures[i][3][param] = self.defaultParams[checkBox.text()][param]
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -610,19 +615,33 @@ class MyApp(QWidget):
         )
         self.log(f"Short Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
-    def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection):
+    def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y):
         top_cell_name = self.gds_design.top_cell_names[0]
         if self.customTestCellName:
             try:
-                self.gds_design.add_cell_reference(
-                    parent_cell_name=top_cell_name,
-                    child_cell_name=self.customTestCellName,
-                    origin=Center,
-                    magnification=float(Magnification),
-                    rotation=float(Rotation),
-                    x_reflection=X_Reflection
-                )
-                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
+                if not Array:
+                    self.gds_design.add_cell_reference(
+                        parent_cell_name=top_cell_name,
+                        child_cell_name=self.customTestCellName,
+                        origin=Center,
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
+                    self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
+                else:
+                    self.gds_design.add_cell_array(
+                        target_cell_name=top_cell_name,
+                        cell_name_to_array=self.customTestCellName,
+                        copies_x=int(Copies_X),
+                        copies_y=int(Copies_Y),
+                        spacing_x=float(Spacing_X),
+                        spacing_y=float(Spacing_Y),
+                        origin=Center,
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
             except ValueError:
                 QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
                 
