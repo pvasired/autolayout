@@ -210,6 +210,16 @@ class MyApp(QWidget):
             gridLayout.addWidget(paramValueEdit, row, 3)
             gridLayout.addWidget(addButton, row, 4)
 
+            if name == "Polygon":
+                self.polygonButton = QPushButton('Polygon Points')
+                self.polygonButton.clicked.connect(self.selectPolygonPointsFile)
+                gridLayout.addWidget(self.polygonButton, row, 5)
+            
+            if name == "Path":
+                self.pathButton = QPushButton('Path Points')
+                self.pathButton.clicked.connect(self.selectPathPointsFile)
+                gridLayout.addWidget(self.pathButton, row, 5)
+
             if name == "Custom Test Structure":
                 self.customTestCellNameEdit = QLineEdit()
                 self.customTestCellNameEdit.setPlaceholderText("Custom Test Structure Cell Name")
@@ -222,17 +232,6 @@ class MyApp(QWidget):
             self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams, addButton))
 
         testLayout.addLayout(gridLayout)
-
-        # Polygon Points and Path Points buttons layout
-        fileButtonsLayout = QHBoxLayout()
-        self.polygonButton = QPushButton('Polygon Points')
-        self.polygonButton.clicked.connect(self.selectPolygonPointsFile)
-        self.pathButton = QPushButton('Path Points')
-        self.pathButton.clicked.connect(self.selectPathPointsFile)
-        fileButtonsLayout.addWidget(self.polygonButton)
-        fileButtonsLayout.addWidget(self.pathButton)
-        testLayout.addLayout(fileButtonsLayout)
-
         mainLayout.addLayout(testLayout)
 
         # Layers layout
@@ -264,7 +263,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
-        self.resize(1800, 800)  # Set the initial size of the window
+        self.resize(1000, 800)  # Set the initial size of the window
         self.show()
 
     def log(self, message):
