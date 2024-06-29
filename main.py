@@ -42,8 +42,8 @@ class MyApp(QWidget):
         }
         self.defaultParams = {
             "MLA Alignment Mark": {
-                "Layer": None,
-                "Center": None,
+                "Layer": '',
+                "Center": '',
                 "Outer Rect Width": 500,
                 "Outer Rect Height": 20,
                 "Interior Width": 5,
@@ -51,8 +51,8 @@ class MyApp(QWidget):
                 "Interior Y Extent": 50
             },
             "Resistance Test": {
-                "Layer": None,
-                "Center": None,
+                "Layer": '',
+                "Center": '',
                 "Probe Pad Width": 1000,
                 "Probe Pad Height": 1000,
                 "Probe Pad Spacing": 3000,
@@ -63,15 +63,15 @@ class MyApp(QWidget):
                 "Switchbacks": 18,
                 "X Extent": 100,
                 "Text Height": 100,
-                "Text": None,
+                "Text": '',
                 "Add Interlayer Short": False,
-                "Layer Name Short": None,
-                "Short Text": None
+                "Layer Name Short": '',
+                "Short Text": ''
             },
             "Trace Test": {
-                "Layer": None,
-                "Center": None,
-                "Text": None,
+                "Layer": '',
+                "Center": '',
+                "Text": '',
                 "Line Width": 800,
                 "Line Height": 80,
                 "Num Lines": 4,
@@ -79,11 +79,11 @@ class MyApp(QWidget):
                 "Text Height": 100
             },
             "Interlayer Via Test": {
-                "Layer Number 1": None,
-                "Layer Number 2": None,
-                "Via Layer": None,
-                "Center": None,
-                "Text": None,
+                "Layer Number 1": '',
+                "Layer Number 2": '',
+                "Via Layer": '',
+                "Center": '',
+                "Text": '',
                 "Layer 1 Rectangle Spacing": 150,
                 "Layer 1 Rectangle Width": 700,
                 "Layer 1 Rectangle Height": 250,
@@ -94,11 +94,11 @@ class MyApp(QWidget):
                 "Text Height": 100
             },
             "Electronics Via Test": {
-                "Layer Number 1": None,
-                "Layer Number 2": None,
-                "Via Layer": None,
-                "Center": None,
-                "Text": None,
+                "Layer Number 1": '',
+                "Layer Number 2": '',
+                "Via Layer": '',
+                "Center": '',
+                "Text": '',
                 "Layer 1 Rect Width": 1550,
                 "Layer 1 Rect Height": 700,
                 "Layer 2 Rect Width": 600,
@@ -110,9 +110,9 @@ class MyApp(QWidget):
                 "Text Height": 100
             },
             "Short Test": {
-                "Layer": None,
-                "Center": None,
-                "Text": None,
+                "Layer": '',
+                "Center": '',
+                "Text": '',
                 "Rect Width": 1300,
                 "Trace Width": 5,
                 "Num Lines": 5,
@@ -122,35 +122,35 @@ class MyApp(QWidget):
                 "Text Height": 100
             },
             "Rectangle": {
-                "Layer": None,
-                "Center": None,
-                "Width": None,
-                "Height": None,
-                "Lower Left": None,
-                "Upper Right": None,
+                "Layer": '',
+                "Center": '',
+                "Width": '',
+                "Height": '',
+                "Lower Left": '',
+                "Upper Right": '',
                 "Rotation": 0
             },
             "Circle": {
-                "Layer": None,
-                "Center": None,
-                "Diameter": None
+                "Layer": '',
+                "Center": '',
+                "Diameter": ''
             },
             "Text": {
-                "Layer": None,
-                "Center": None,
-                "Text": None,
+                "Layer": '',
+                "Center": '',
+                "Text": '',
                 "Height": 100,
                 "Rotation": 0
             },
             "Polygon": {
-                "Layer": None
+                "Layer": ''
             },
             "Path": {
-                "Layer": None,
-                "Width": None
+                "Layer": '',
+                "Width": ''
             },
             "Custom Test Structure": {
-                "Center": None,
+                "Center": '',
                 "Magnification": 1,
                 "Rotation": 0,
                 "X Reflection": False,
@@ -444,7 +444,7 @@ class MyApp(QWidget):
 
     def validateCenter(self, center):
         self.log(f"Validating Center: {center}")
-        if center is None:
+        if not(center):
             QMessageBox.critical(self, "Center Error", "Please enter a center (x, y) coordinate.", QMessageBox.Ok)
             return None
         if isinstance(center, tuple):
@@ -495,6 +495,8 @@ class MyApp(QWidget):
                 self.addPolygon(**params)
             elif testStructureName == "Path":
                 self.addPath(**params)
+        # Write the design
+        self.writeToGDS()
 
     def getParameters(self, testStructureName):
         params = {}
@@ -520,7 +522,7 @@ class MyApp(QWidget):
                             value = True
                         elif value.lower() == 'false':
                             value = False
-                        elif value.lower() == 'none':
+                        elif value.lower() == 'none' or value.lower() == '':
                             value = None
                     params[param.replace(" ", "_")] = value
         return params
