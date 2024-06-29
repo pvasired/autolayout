@@ -209,20 +209,19 @@ class MyApp(QWidget):
             gridLayout.addWidget(paramComboBox, row, 2)
             gridLayout.addWidget(paramValueEdit, row, 3)
             gridLayout.addWidget(addButton, row, 4)
+
+            if name == "Custom Test Structure":
+                self.customTestCellNameEdit = QLineEdit()
+                self.customTestCellNameEdit.setPlaceholderText("Custom Test Structure Cell Name")
+                self.customTestCellNameEdit.editingFinished.connect(self.handleCustomTestCellName)
+                gridLayout.addWidget(self.customTestCellNameEdit, row, 5)
+
             row += 1
 
             defaultParams = deepcopy(self.defaultParams[name])
             self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams, addButton))
 
         testLayout.addLayout(gridLayout)
-
-        # Custom test structure layout
-        customTestLayout = QHBoxLayout()
-        self.customTestCellNameEdit = QLineEdit()
-        self.customTestCellNameEdit.setPlaceholderText("Custom Test Structure Cell Name")
-        self.customTestCellNameEdit.editingFinished.connect(self.handleCustomTestCellName)
-        customTestLayout.addWidget(self.customTestCellNameEdit)
-        testLayout.addLayout(customTestLayout)
 
         # Polygon Points and Path Points buttons layout
         fileButtonsLayout = QHBoxLayout()
@@ -265,6 +264,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
+        self.resize(1800, 800)  # Set the initial size of the window
         self.show()
 
     def log(self, message):
