@@ -221,10 +221,10 @@ class MyApp(QWidget):
                 gridLayout.addWidget(self.pathButton, row, 5)
 
             if name == "Custom Test Structure":
-                self.customTestCellNameEdit = QLineEdit()
-                self.customTestCellNameEdit.setPlaceholderText("Custom Test Structure Cell Name")
-                self.customTestCellNameEdit.editingFinished.connect(self.handleCustomTestCellName)
-                gridLayout.addWidget(self.customTestCellNameEdit, row, 5)
+                self.customTestCellComboBox = QComboBox()
+                self.customTestCellComboBox.setPlaceholderText("Select Custom Test Structure Cell")
+                self.customTestCellComboBox.currentTextChanged.connect(self.handleCustomTestCellName)
+                gridLayout.addWidget(self.customTestCellComboBox, row, 5)
 
             row += 1
 
@@ -322,10 +322,10 @@ class MyApp(QWidget):
                 self.log(f"Layers read from file: {self.layerData}")
                 self.updateLayersComboBox()
 
-                # # Reset parameters to default values in self.defaultParams
-                # for i, (checkBox,_,_,_,_) in enumerate(self.testStructures):
-                #     for param in self.parameters[checkBox.text()]:
-                #         self.testStructures[i][3][param] = self.defaultParams[checkBox.text()][param]
+                # Populate the custom test cell combo box with cell names
+                self.customTestCellComboBox.clear()
+                self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
+                self.log(f"Custom Test Structure cell names: {list(self.gds_design.cells.keys())}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -763,7 +763,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
                 
     def handleCustomTestCellName(self):
-        self.customTestCellName = self.customTestCellNameEdit.text()
+        self.customTestCellName = self.customTestCellComboBox.currentText()
         self.log(f"Custom Test Structure Cell Name set to: {self.customTestCellName}")
         self.checkCustomTestCell()
 
