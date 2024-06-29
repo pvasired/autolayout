@@ -211,12 +211,12 @@ class MyApp(QWidget):
             gridLayout.addWidget(addButton, row, 4)
 
             if name == "Polygon":
-                self.polygonButton = QPushButton('Polygon Points')
+                self.polygonButton = QPushButton('Select Polygon Points File')
                 self.polygonButton.clicked.connect(self.selectPolygonPointsFile)
                 gridLayout.addWidget(self.polygonButton, row, 5)
             
             if name == "Path":
-                self.pathButton = QPushButton('Path Points')
+                self.pathButton = QPushButton('Select Path Points File')
                 self.pathButton.clicked.connect(self.selectPathPointsFile)
                 gridLayout.addWidget(self.pathButton, row, 5)
 
@@ -263,7 +263,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
-        self.resize(1000, 800)  # Set the initial size of the window
+        self.resize(1600, 800)  # Set the initial size of the window
         self.show()
 
     def log(self, message):
