@@ -824,5 +824,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
-    ex = MyApp(verbose=args.verbose)
+    ex = MyApp(verbose=True)
     sys.exit(app.exec_())
