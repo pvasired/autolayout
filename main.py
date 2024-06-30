@@ -165,6 +165,8 @@ class MyApp(QWidget):
         self.gds_design = None  # To store the GDSDesign instance
         self.polygon_points = []  # To store polygon points
         self.path_points = [] # To store path points
+        self.undoStack = []  # Initialize undo stack
+        self.redoStack = []  # Initialize redo stack
         self.initUI()
 
     def initUI(self):
@@ -181,6 +183,16 @@ class MyApp(QWidget):
         fileLayout.addWidget(self.initFileButton)
         fileLayout.addWidget(self.outFileField)
         mainLayout.addLayout(fileLayout)
+
+        # Undo and Redo buttons
+        undoRedoLayout = QHBoxLayout()
+        self.undoButton = QPushButton('Undo')
+        self.undoButton.clicked.connect(self.undo)
+        self.redoButton = QPushButton('Redo')
+        self.redoButton.clicked.connect(self.redo)
+        undoRedoLayout.addWidget(self.undoButton)
+        undoRedoLayout.addWidget(self.redoButton)
+        mainLayout.addLayout(undoRedoLayout)
 
         # Test Structures layout
         testLayout = QVBoxLayout()
@@ -302,6 +314,29 @@ class MyApp(QWidget):
                 name = checkBox.text()
                 break
         self.handleAddToDesign(name)
+
+    def addSnapshot(self):
+        self.log("Adding snapshot to undo stack and clearing redo stack")
+        self.undoStack.append(deepcopy(self.gds_design))
+        self.redoStack.clear()
+
+    def undo(self):
+        if self.undoStack:
+            self.log("Adding snapshot to redo stack and reverting to previous state")
+            self.redoStack.append(deepcopy(self.gds_design))
+            self.gds_design = self.undoStack.pop()
+            self.writeToGDS()
+        else:
+            QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
+
+    def redo(self):
+        if self.redoStack:
+            self.log("Adding snapshot to undo stack and reverting to previous state")
+            self.undoStack.append(deepcopy(self.gds_design))
+            self.gds_design = self.redoStack.pop()
+            self.writeToGDS()
+        else:
+            QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
 
     def selectInputFile(self):
         options = QFileDialog.Options()
@@ -468,6 +503,7 @@ class MyApp(QWidget):
                     self.log(f"Add to Design error: '{testStructureName}' checkbox not checked")
                     return
         self.log(f"Adding {testStructureName} to design")
+        self.addSnapshot()  # Store snapshot before adding new design
         params = self.getParameters(testStructureName)
         self.log(f"Parameters: {params}")
         if params:
