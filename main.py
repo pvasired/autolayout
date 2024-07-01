@@ -9,6 +9,7 @@ from gdswriter import GDSDesign  # Import the GDSDesign class
 from copy import deepcopy
 import math
 import numpy as np
+import os
 
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
@@ -38,6 +39,7 @@ class MyApp(QWidget):
         self.inputFileName = ""
         self.outputFileName = ""
         self.customTestCellName = ""
+        self.logFileName = ""
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
@@ -511,6 +513,10 @@ class MyApp(QWidget):
                 self.outFileField.setText(self.outputFileName)
                 self.log(f"Output File automatically set to: {self.outputFileName}")
 
+                self.logFileName = f"{self.outputFileName.rsplit('.', 1)[0]}-log.txt"  # Set log file name based on output file name
+                self.log(f"Log File set to: {self.logFileName}")
+                self.initLogFile()  # Initialize the log file
+
                 # Load the GDS file using GDSDesign
                 self.gds_design = GDSDesign(filename=self.inputFileName)
                 self.layerData = [(str(layer['number']), layer_name) for layer_name, layer in self.gds_design.layers.items()]
@@ -592,12 +598,24 @@ class MyApp(QWidget):
     def validateOutputFileName(self):
         outputFileName = self.outFileField.text()
         if outputFileName.lower().endswith('.gds'):
+            oldLogFileName = self.logFileName
             self.outputFileName = outputFileName
+            self.logFileName = f"{outputFileName.rsplit('.', 1)[0]}-log.txt"  # Update log file name based on new output file name
+            
+            if os.path.exists(oldLogFileName):
+                os.rename(oldLogFileName, self.logFileName)  # Rename the existing log file to the new log file name
+            
             self.log(f"Output File set to: {self.outputFileName}")
+            self.log(f"Log File renamed to: {self.logFileName}")
         else:
             QMessageBox.critical(self, "File Error", "Output file must be a .gds file.", QMessageBox.Ok)
             self.outFileField.setText(self.outputFileName)
             self.log("Output file validation error: Not a .gds file")
+
+    def initLogFile(self):
+        with open(self.logFileName, 'w') as log_file:
+            log_file.write("Test Structure Placement Log\n")
+            log_file.write("============================\n\n")
 
     def updateParameterValue(self, param, testStructureName):
         for _, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
@@ -691,8 +709,16 @@ class MyApp(QWidget):
                 self.addPolygon(**params)
             elif testStructureName == "Path":
                 self.addPath(**params)
+            self.logTestStructure(testStructureName, params)  # Log the test structure details
         # Write the design
         self.writeToGDS()
+
+    def logTestStructure(self, name, params):
+        with open(self.logFileName, 'a') as log_file:
+            log_file.write(f"Test Structure: {name}\n")
+            for param, value in params.items():
+                log_file.write(f"{param}: {value}\n")
+            log_file.write("\n")
 
     def getParameters(self, testStructureName):
         params = {}
