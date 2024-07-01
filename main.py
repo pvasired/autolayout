@@ -2,7 +2,7 @@ import sys
 import argparse
 import re
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout
+    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip
 )
 from PyQt5.QtCore import Qt
 from gdswriter import GDSDesign  # Import the GDSDesign class
@@ -12,6 +12,28 @@ import numpy as np
 
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
+
+class TooltipComboBox(QComboBox):
+    def __init__(self, tooltips=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tooltips = tooltips or {}
+
+    def setItemTooltips(self, tooltips):
+        self.tooltips = tooltips
+
+    def showTooltip(self, index):
+        if index >= 0 and index < len(self.tooltips):
+            QToolTip.showText(self.mapToGlobal(self.rect().bottomRight()), self.tooltips[index], self)
+
+    def mouseMoveEvent(self, event):
+        index = self.view().indexAt(event.pos()).row()
+        if index >= 0:
+            self.showTooltip(index)
+        super().mouseMoveEvent(event)
+
+    def hideEvent(self, event):
+        QToolTip.hideText()
+        super().hideEvent(event)
 
 class MyApp(QWidget):
     def __init__(self, verbose=False):
@@ -39,6 +61,127 @@ class MyApp(QWidget):
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y"]
+        }
+        self.paramTooltips = {
+            "MLA Alignment Mark": {
+                "Layer": "Select the layer for the alignment mark.",
+                "Center": "Enter the center (x, y) coordinate of the alignment mark.",
+                "Outer Rect Width": "Enter the width of the outer rectangle.",
+                "Outer Rect Height": "Enter the height of the outer rectangle.",
+                "Interior Width": "Enter the width of the interior lines.",
+                "Interior X Extent": "Enter the extent of the interior lines in the x direction.",
+                "Interior Y Extent": "Enter the extent of the interior lines in the y direction."
+            },
+            "Resistance Test": {
+                "Layer": "Select the layer for the resistance test structure.",
+                "Center": "Enter the center (x, y) coordinate of the resistance test structure.",
+                "Probe Pad Width": "Enter the width of the probe pad.",
+                "Probe Pad Height": "Enter the height of the probe pad.",
+                "Probe Pad Spacing": "Enter the spacing between probe pads.",
+                "Plug Width": "Enter the width of the plug.",
+                "Plug Height": "Enter the height of the plug.",
+                "Trace Width": "Enter the width of the traces.",
+                "Trace Spacing": "Enter the spacing between traces.",
+                "Switchbacks": "Enter the number of switchbacks.",
+                "X Extent": "Enter the extent of the structure in the x direction.",
+                "Text Height": "Enter the height of the text.",
+                "Text": "Enter the text to display on the structure.",
+                "Add Interlayer Short": "Check to add an interlayer short.",
+                "Layer Name Short": "Enter the name of the short layer.",
+                "Short Text": "Enter the text to display for the short."
+            },
+            "Trace Test": {
+                "Layer": "Select the layer for the trace test structure.",
+                "Center": "Enter the center (x, y) coordinate of the trace test structure.",
+                "Text": "Enter the text to display on the structure.",
+                "Line Width": "Enter the width of the lines.",
+                "Line Height": "Enter the height of the lines.",
+                "Num Lines": "Enter the number of lines.",
+                "Line Spacing": "Enter the spacing between lines.",
+                "Text Height": "Enter the height of the text."
+            },
+            "Interlayer Via Test": {
+                "Layer Number 1": "Select the first layer for the interlayer via test structure.",
+                "Layer Number 2": "Select the second layer for the interlayer via test structure.",
+                "Via Layer": "Select the via layer for the interlayer via test structure.",
+                "Center": "Enter the center (x, y) coordinate of the interlayer via test structure.",
+                "Text": "Enter the text to display on the structure.",
+                "Layer 1 Rectangle Spacing": "Enter the spacing between rectangles on layer 1.",
+                "Layer 1 Rectangle Width": "Enter the width of the rectangles on layer 1.",
+                "Layer 1 Rectangle Height": "Enter the height of the rectangles on layer 1.",
+                "Layer 2 Rectangle Width": "Enter the width of the rectangles on layer 2.",
+                "Layer 2 Rectangle Height": "Enter the height of the rectangles on layer 2.",
+                "Via Width": "Enter the width of the vias.",
+                "Via Height": "Enter the height of the vias.",
+                "Text Height": "Enter the height of the text."
+            },
+            "Electronics Via Test": {
+                "Layer Number 1": "Select the first layer for the electronics via test structure.",
+                "Layer Number 2": "Select the second layer for the electronics via test structure.",
+                "Via Layer": "Select the via layer for the electronics via test structure.",
+                "Center": "Enter the center (x, y) coordinate of the electronics via test structure.",
+                "Text": "Enter the text to display on the structure.",
+                "Layer 1 Rect Width": "Enter the width of the rectangles on layer 1.",
+                "Layer 1 Rect Height": "Enter the height of the rectangles on layer 1.",
+                "Layer 2 Rect Width": "Enter the width of the rectangles on layer 2.",
+                "Layer 2 Rect Height": "Enter the height of the rectangles on layer 2.",
+                "Layer 2 Rect Spacing": "Enter the spacing between rectangles on layer 2.",
+                "Via Width": "Enter the width of the vias.",
+                "Via Height": "Enter the height of the vias.",
+                "Via Spacing": "Enter the spacing between vias.",
+                "Text Height": "Enter the height of the text."
+            },
+            "Short Test": {
+                "Layer": "Select the layer for the short test structure.",
+                "Center": "Enter the center (x, y) coordinate of the short test structure.",
+                "Text": "Enter the text to display on the structure.",
+                "Rect Width": "Enter the width of the rectangles.",
+                "Trace Width": "Enter the width of the traces.",
+                "Num Lines": "Enter the number of lines.",
+                "Group Spacing": "Enter the spacing between groups.",
+                "Num Groups": "Enter the number of groups.",
+                "Num Lines Vert": "Enter the number of lines in the vertical direction.",
+                "Text Height": "Enter the height of the text."
+            },
+            "Rectangle": {
+                "Layer": "Select the layer for the rectangle.",
+                "Center": "Enter the center (x, y) coordinate of the rectangle.",
+                "Width": "Enter the width of the rectangle.",
+                "Height": "Enter the height of the rectangle.",
+                "Lower Left": "Enter the lower left (x, y) coordinate of the rectangle.",
+                "Upper Right": "Enter the upper right (x, y) coordinate of the rectangle.",
+                "Rotation": "Enter the rotation angle of the rectangle."
+            },
+            "Circle": {
+                "Layer": "Select the layer for the circle.",
+                "Center": "Enter the center (x, y) coordinate of the circle.",
+                "Diameter": "Enter the diameter of the circle."
+            },
+            "Text": {
+                "Layer": "Select the layer for the text.",
+                "Center": "Enter the center (x, y) coordinate of the text.",
+                "Text": "Enter the text to display.",
+                "Height": "Enter the height of the text.",
+                "Rotation": "Enter the rotation angle of the text."
+            },
+            "Polygon": {
+                "Layer": "Select the layer for the polygon."
+            },
+            "Path": {
+                "Layer": "Select the layer for the path.",
+                "Width": "Enter the width of the path."
+            },
+            "Custom Test Structure": {
+                "Center": "Enter the center (x, y) coordinate of the custom test structure.",
+                "Magnification": "Enter the magnification factor of the custom test structure.",
+                "Rotation": "Enter the rotation angle of the custom test structure.",
+                "X Reflection": "Check to reflect the structure in the x direction.",
+                "Array": "Check to create an array of the structure.",
+                "Copies X": "Enter the number of copies in the x direction.",
+                "Copies Y": "Enter the number of copies in the y direction.",
+                "Spacing X": "Enter the spacing between copies in the x direction.",
+                "Spacing Y": "Enter the spacing between copies in the y direction."
+            }
         }
         self.defaultParams = {
             "MLA Alignment Mark": {
@@ -210,10 +353,11 @@ class MyApp(QWidget):
             testCheckBox.stateChanged.connect(self.createCheckStateHandler)
             testCheckBox.setToolTip(f'Check to include {name} in the design.')
             paramLabel = QLabel('Parameters')
-            paramComboBox = QComboBox()
+            paramComboBox = TooltipComboBox()
             paramComboBox.addItems(self.parameters[name])
+            paramComboBox.setItemTooltips([self.paramTooltips[name].get(param, '') for param in self.parameters[name]])
             paramComboBox.currentTextChanged.connect(self.createParamChangeHandler)
-            paramComboBox.setToolTip(f'Select parameters for {name}.')
+            paramComboBox.setToolTip(f'Select parameters for {name}.')      
             paramValueEdit = QLineEdit()
             paramName = paramComboBox.currentText()
             if paramName in self.defaultParams[name]:
@@ -312,7 +456,10 @@ class MyApp(QWidget):
                 name = checkBox.text()
                 value = defaultParams.get(param, '')
                 valueEdit.setText(str(value))
-                # Log that this specific test structure has has this parameter selected
+                # Set tooltip for the parameter value edit field
+                tooltip = self.paramTooltips.get(name, {}).get(param, '')
+                comboBox.setToolTip(tooltip)
+                # Log that this specific test structure has this parameter selected
                 self.log(f"{name} Parameter {param} selected, display value set to {value}")
                 
     def createParamStoreHandler(self):
