@@ -40,6 +40,7 @@ class MyApp(QWidget):
         self.outputFileName = ""
         self.customTestCellName = ""
         self.logFileName = ""
+        self.substrateLayer = None
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
@@ -400,16 +401,22 @@ class MyApp(QWidget):
         mainLayout.addLayout(testLayout)
 
         # Layers layout
-        layersLayout = QVBoxLayout()
-        layersLabel = QLabel('Layers')
+        layersHBoxLayout = QHBoxLayout()  # Change from QVBoxLayout to QHBoxLayout
+        layersLabel = QLabel('Layers:')
         layersLabel.setToolTip('Layers available in the design.')
-        layersLayout.addWidget(layersLabel)
+        layersHBoxLayout.addWidget(layersLabel)
 
         self.layersComboBox = QComboBox()
         self.layersComboBox.setToolTip('Select a layer from the list.')
-        layersLayout.addWidget(self.layersComboBox)
+        layersHBoxLayout.addWidget(self.layersComboBox)
 
-        defineLayerLayout = QHBoxLayout()
+        self.selectSubstrateLayerButton = QPushButton('Select Substrate Layer')
+        self.selectSubstrateLayerButton.clicked.connect(self.selectSubstrateLayer)
+        self.selectSubstrateLayerButton.setToolTip('Click to select the substrate layer from the dropdown menu.')
+        layersHBoxLayout.addWidget(self.selectSubstrateLayerButton)  # Add the button to the right
+
+        # Define Layer layout
+        defineLayerHBoxLayout = QHBoxLayout()
         self.newLayerNumberEdit = QLineEdit()
         self.newLayerNumberEdit.setPlaceholderText('Layer Number')
         self.newLayerNumberEdit.setToolTip('Enter the number of the new layer.')
@@ -419,12 +426,16 @@ class MyApp(QWidget):
         defineLayerButton = QPushButton('Define New Layer')
         defineLayerButton.clicked.connect(self.defineNewLayer)
         defineLayerButton.setToolTip('Click to define a new layer.')
-        defineLayerLayout.addWidget(self.newLayerNumberEdit)
-        defineLayerLayout.addWidget(self.newLayerNameEdit)
-        defineLayerLayout.addWidget(defineLayerButton)
-        layersLayout.addLayout(defineLayerLayout)
+        defineLayerHBoxLayout.addWidget(self.newLayerNumberEdit)
+        defineLayerHBoxLayout.addWidget(self.newLayerNameEdit)
+        defineLayerHBoxLayout.addWidget(defineLayerButton)
 
-        mainLayout.addLayout(layersLayout)
+        # Layers and Define Layer layout
+        layersVBoxLayout = QVBoxLayout()
+        layersVBoxLayout.addLayout(layersHBoxLayout)
+        layersVBoxLayout.addLayout(defineLayerHBoxLayout)
+
+        mainLayout.addLayout(layersVBoxLayout)
 
         # Write to GDS button
         writeButton = QPushButton('Write to GDS')
@@ -434,7 +445,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
-        self.resize(1600, 800)  # Set the initial size of the window
+        self.resize(1000, 800)  # Set the initial size of the window
         self.show()
 
     def log(self, message):
@@ -445,6 +456,16 @@ class MyApp(QWidget):
         sender = self.sender()
         name = sender.text()
         self.log(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
+    
+    def selectSubstrateLayer(self):
+        currentLayer = self.layersComboBox.currentText()
+        if currentLayer:
+            layerNumber = int(currentLayer.split(':')[0])
+            self.substrateLayer = layerNumber
+            self.log(f"Substrate layer set to: {self.substrateLayer}")
+            QMessageBox.information(self, "Substrate Layer Selected", f"Substrate layer set to: {self.substrateLayer}", QMessageBox.Ok)
+        else:
+            QMessageBox.warning(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
 
     def createParamChangeHandler(self, param):
         sender = self.sender()
