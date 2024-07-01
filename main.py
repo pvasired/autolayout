@@ -40,8 +40,6 @@ class MyApp(QWidget):
         self.outputFileName = ""
         self.customTestCellName = ""
         self.logFileName = ""
-        self.customWidth = None
-        self.customHeight = None
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
@@ -401,33 +399,6 @@ class MyApp(QWidget):
         testLayout.addLayout(gridLayout)
         mainLayout.addLayout(testLayout)
 
-        # Substrate section layout
-        substrateLayout = QVBoxLayout()
-        substrateLabel = QLabel('Substrate')
-        substrateLabel.setToolTip('Select the substrate size.')
-        substrateLayout.addWidget(substrateLabel)
-
-        substrateOptionsLayout = QHBoxLayout()
-        self.substrate4Inch = QCheckBox('4" Wafer')
-        self.substrate6Inch = QCheckBox('6" Wafer')
-        self.substrateCustom = QCheckBox('Custom')
-        self.substrate4Inch.stateChanged.connect(self.handleSubstrateCheckState)
-        self.substrate6Inch.stateChanged.connect(self.handleSubstrateCheckState)
-        self.substrateCustom.stateChanged.connect(self.handleSubstrateCheckState)
-
-        substrateOptionsLayout.addWidget(self.substrate4Inch)
-        substrateOptionsLayout.addWidget(self.substrate6Inch)
-        substrateOptionsLayout.addWidget(self.substrateCustom)
-
-        self.customSizeEdit = QLineEdit()
-        self.customSizeEdit.setPlaceholderText('Width (mm) x Height (mm)')
-        self.customSizeEdit.setEnabled(False)
-        self.customSizeEdit.editingFinished.connect(self.handleCustomSizeInput)
-        substrateOptionsLayout.addWidget(self.customSizeEdit)
-
-        substrateLayout.addLayout(substrateOptionsLayout)
-        mainLayout.addLayout(substrateLayout)
-
         # Layers layout
         layersLayout = QVBoxLayout()
         layersLabel = QLabel('Layers')
@@ -474,40 +445,6 @@ class MyApp(QWidget):
         sender = self.sender()
         name = sender.text()
         self.log(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
-
-    def handleSubstrateCheckState(self, state):
-        sender = self.sender()
-        if sender == self.substrate4Inch and state == Qt.Checked:
-            self.log("4 inch wafer selected")
-            self.substrate6Inch.setChecked(False)
-            self.substrateCustom.setChecked(False)
-            self.customSizeEdit.setEnabled(False)
-        elif sender == self.substrate6Inch and state == Qt.Checked:
-            self.log("6 inch wafer selected")
-            self.substrate4Inch.setChecked(False)
-            self.substrateCustom.setChecked(False)
-            self.customSizeEdit.setEnabled(False)
-        elif sender == self.substrateCustom and state == Qt.Checked:
-            self.log("Custom substrate selected")
-            self.substrate4Inch.setChecked(False)
-            self.substrate6Inch.setChecked(False)
-            self.customSizeEdit.setEnabled(True)
-        elif sender == self.substrateCustom and state == Qt.Unchecked:
-            self.customSizeEdit.setEnabled(False)
-
-    def handleCustomSizeInput(self):
-        input_text = self.customSizeEdit.text().strip()
-        match = re.match(r'^\s*(\d*\.?\d+)\s*x\s*(\d*\.?\d+)\s*$', input_text, re.IGNORECASE)
-        if match:
-            self.customWidth = float(match.group(1))
-            self.customHeight = float(match.group(2))
-            self.log(f"Custom substrate size set to {self.customWidth} mm x {self.customHeight} mm")
-        else:
-            QMessageBox.critical(self, "Input Error", "Invalid custom size format. Please use the format 'Width x Height' with any number of spaces.", QMessageBox.Ok)
-            self.customSizeEdit.setText('')
-            self.customWidth = None
-            self.customHeight = None
-            self.log("Invalid custom size input")
 
     def createParamChangeHandler(self, param):
         sender = self.sender()
