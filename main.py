@@ -40,6 +40,8 @@ class MyApp(QWidget):
         self.outputFileName = ""
         self.customTestCellName = ""
         self.logFileName = ""
+        self.customWidth = None
+        self.customHeight = None
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
@@ -420,6 +422,7 @@ class MyApp(QWidget):
         self.customSizeEdit = QLineEdit()
         self.customSizeEdit.setPlaceholderText('Width (mm) x Height (mm)')
         self.customSizeEdit.setEnabled(False)
+        self.customSizeEdit.editingFinished.connect(self.handleCustomSizeInput)
         substrateOptionsLayout.addWidget(self.customSizeEdit)
 
         substrateLayout.addLayout(substrateOptionsLayout)
@@ -491,6 +494,20 @@ class MyApp(QWidget):
             self.customSizeEdit.setEnabled(True)
         elif sender == self.substrateCustom and state == Qt.Unchecked:
             self.customSizeEdit.setEnabled(False)
+
+    def handleCustomSizeInput(self):
+        input_text = self.customSizeEdit.text().strip()
+        match = re.match(r'^\s*(\d*\.?\d+)\s*x\s*(\d*\.?\d+)\s*$', input_text, re.IGNORECASE)
+        if match:
+            self.customWidth = float(match.group(1))
+            self.customHeight = float(match.group(2))
+            self.log(f"Custom substrate size set to {self.customWidth} mm x {self.customHeight} mm")
+        else:
+            QMessageBox.critical(self, "Input Error", "Invalid custom size format. Please use the format 'Width x Height' with any number of spaces.", QMessageBox.Ok)
+            self.customSizeEdit.setText('')
+            self.customWidth = None
+            self.customHeight = None
+            self.log("Invalid custom size input")
 
     def createParamChangeHandler(self, param):
         sender = self.sender()
