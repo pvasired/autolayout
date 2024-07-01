@@ -17,23 +17,19 @@ class TooltipComboBox(QComboBox):
     def __init__(self, tooltips=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tooltips = tooltips or {}
+        self.view().viewport().installEventFilter(self)
 
     def setItemTooltips(self, tooltips):
         self.tooltips = tooltips
 
-    def showTooltip(self, index):
-        if index >= 0 and index < len(self.tooltips):
-            QToolTip.showText(self.mapToGlobal(self.rect().bottomRight()), self.tooltips[index], self)
-
-    def mouseMoveEvent(self, event):
-        index = self.view().indexAt(event.pos()).row()
-        if index >= 0:
-            self.showTooltip(index)
-        super().mouseMoveEvent(event)
-
-    def hideEvent(self, event):
-        QToolTip.hideText()
-        super().hideEvent(event)
+    def eventFilter(self, source, event):
+        if event.type() == event.MouseMove and source is self.view().viewport():
+            index = self.view().indexAt(event.pos()).row()
+            if index >= 0 and index < len(self.tooltips):
+                QToolTip.showText(event.globalPos(), self.tooltips[index], self.view().viewport())
+            else:
+                QToolTip.hideText()
+        return super().eventFilter(source, event)
 
 class MyApp(QWidget):
     def __init__(self, verbose=False):
@@ -357,7 +353,7 @@ class MyApp(QWidget):
             paramComboBox.addItems(self.parameters[name])
             paramComboBox.setItemTooltips([self.paramTooltips[name].get(param, '') for param in self.parameters[name]])
             paramComboBox.currentTextChanged.connect(self.createParamChangeHandler)
-            paramComboBox.setToolTip(f'Select parameters for {name}.')      
+            paramComboBox.setToolTip(f'Select parameters for {name}.') 
             paramValueEdit = QLineEdit()
             paramName = paramComboBox.currentText()
             if paramName in self.defaultParams[name]:
