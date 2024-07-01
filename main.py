@@ -479,14 +479,23 @@ class MyApp(QWidget):
 
     def addSnapshot(self):
         self.log("Adding snapshot to undo stack and clearing redo stack")
-        self.undoStack.append(deepcopy(self.gds_design))
+        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries()))
         self.redoStack.clear()
+
+    def readLogEntries(self):
+        with open(self.logFileName, 'r') as log_file:
+            return log_file.readlines()
+        
+    def writeLogEntries(self, log_entries):
+        with open(self.logFileName, 'w') as log_file:
+            log_file.writelines(log_entries)
 
     def undo(self):
         if self.undoStack:
             self.log("Adding snapshot to redo stack and reverting to previous state")
-            self.redoStack.append(deepcopy(self.gds_design))
-            self.gds_design = self.undoStack.pop()
+            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries()))
+            self.gds_design, log_entries = self.undoStack.pop()
+            self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:
             QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
@@ -494,8 +503,9 @@ class MyApp(QWidget):
     def redo(self):
         if self.redoStack:
             self.log("Adding snapshot to undo stack and reverting to previous state")
-            self.undoStack.append(deepcopy(self.gds_design))
-            self.gds_design = self.redoStack.pop()
+            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries()))
+            self.gds_design, log_entries = self.redoStack.pop()
+            self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
