@@ -177,9 +177,11 @@ class MyApp(QWidget):
         fileLayout = QHBoxLayout()
         self.initFileButton = QPushButton('Select Input File')
         self.initFileButton.clicked.connect(self.selectInputFile)
+        self.initFileButton.setToolTip('Click to select the input GDS file.')
         self.outFileField = QLineEdit()
         self.outFileField.setPlaceholderText('Output File')
         self.outFileField.editingFinished.connect(self.validateOutputFileName)
+        self.outFileField.setToolTip('Enter the name of the output GDS file.')
         fileLayout.addWidget(self.initFileButton)
         fileLayout.addWidget(self.outFileField)
         mainLayout.addLayout(fileLayout)
@@ -188,8 +190,10 @@ class MyApp(QWidget):
         undoRedoLayout = QHBoxLayout()
         self.undoButton = QPushButton('Undo')
         self.undoButton.clicked.connect(self.undo)
+        self.undoButton.setToolTip('Undo the last action.')
         self.redoButton = QPushButton('Redo')
         self.redoButton.clicked.connect(self.redo)
+        self.redoButton.setToolTip('Redo the previously undone action.')
         undoRedoLayout.addWidget(self.undoButton)
         undoRedoLayout.addWidget(self.redoButton)
         mainLayout.addLayout(undoRedoLayout)
@@ -204,17 +208,21 @@ class MyApp(QWidget):
         for name in self.testStructureNames:
             testCheckBox = QCheckBox(name)
             testCheckBox.stateChanged.connect(self.createCheckStateHandler)
+            testCheckBox.setToolTip(f'Check to include {name} in the design.')
             paramLabel = QLabel('Parameters')
             paramComboBox = QComboBox()
             paramComboBox.addItems(self.parameters[name])
             paramComboBox.currentTextChanged.connect(self.createParamChangeHandler)
+            paramComboBox.setToolTip(f'Select parameters for {name}.')
             paramValueEdit = QLineEdit()
             paramName = paramComboBox.currentText()
             if paramName in self.defaultParams[name]:
                 paramValueEdit.setText(str(self.defaultParams[name][paramName]))
             paramValueEdit.editingFinished.connect(self.createParamStoreHandler)
+            paramValueEdit.setToolTip(f'Enter value for the selected parameter of {name}.')
             addButton = QPushButton("Add to Design")
             addButton.clicked.connect(self.createAddToDesignHandler)
+            addButton.setToolTip(f'Click to add {name} to the design.')
 
             gridLayout.addWidget(testCheckBox, row, 0)
             gridLayout.addWidget(paramLabel, row, 1)
@@ -225,17 +233,20 @@ class MyApp(QWidget):
             if name == "Polygon":
                 self.polygonButton = QPushButton('Select Polygon Points File')
                 self.polygonButton.clicked.connect(self.selectPolygonPointsFile)
+                self.polygonButton.setToolTip('Click to select a file containing polygon points.')
                 gridLayout.addWidget(self.polygonButton, row, 5)
             
             if name == "Path":
                 self.pathButton = QPushButton('Select Path Points File')
                 self.pathButton.clicked.connect(self.selectPathPointsFile)
+                self.pathButton.setToolTip('Click to select a file containing path points.')
                 gridLayout.addWidget(self.pathButton, row, 5)
 
             if name == "Custom Test Structure":
                 self.customTestCellComboBox = QComboBox()
                 self.customTestCellComboBox.setPlaceholderText("Select Custom Test Structure Cell")
                 self.customTestCellComboBox.currentTextChanged.connect(self.handleCustomTestCellName)
+                self.customTestCellComboBox.setToolTip('Select a custom test structure cell.')
                 gridLayout.addWidget(self.customTestCellComboBox, row, 5)
 
             row += 1
@@ -249,18 +260,23 @@ class MyApp(QWidget):
         # Layers layout
         layersLayout = QVBoxLayout()
         layersLabel = QLabel('Layers')
+        layersLabel.setToolTip('Layers available in the design.')
         layersLayout.addWidget(layersLabel)
 
         self.layersComboBox = QComboBox()
+        self.layersComboBox.setToolTip('Select a layer from the list.')
         layersLayout.addWidget(self.layersComboBox)
 
         defineLayerLayout = QHBoxLayout()
         self.newLayerNumberEdit = QLineEdit()
         self.newLayerNumberEdit.setPlaceholderText('Layer Number')
+        self.newLayerNumberEdit.setToolTip('Enter the number of the new layer.')
         self.newLayerNameEdit = QLineEdit()
         self.newLayerNameEdit.setPlaceholderText('Layer Name')
+        self.newLayerNameEdit.setToolTip('Enter the name of the new layer.')
         defineLayerButton = QPushButton('Define New Layer')
         defineLayerButton.clicked.connect(self.defineNewLayer)
+        defineLayerButton.setToolTip('Click to define a new layer.')
         defineLayerLayout.addWidget(self.newLayerNumberEdit)
         defineLayerLayout.addWidget(self.newLayerNameEdit)
         defineLayerLayout.addWidget(defineLayerButton)
@@ -271,6 +287,7 @@ class MyApp(QWidget):
         # Write to GDS button
         writeButton = QPushButton('Write to GDS')
         writeButton.clicked.connect(self.writeToGDS)
+        writeButton.setToolTip('Click to write the current design to a GDS file.')
         mainLayout.addWidget(writeButton)
 
         self.setLayout(mainLayout)
