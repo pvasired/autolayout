@@ -1344,125 +1344,122 @@ class MyApp(QWidget):
     def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if self.customTestCellName:
-            try:
-                if not Array:
-                    if not(Automatic_Placement):
-                        self.gds_design.add_cell_reference(
-                            parent_cell_name=top_cell_name,
-                            child_cell_name=self.customTestCellName,
-                            origin=Center,
-                            magnification=float(Magnification),
-                            rotation=float(Rotation),
-                            x_reflection=X_Reflection
-                        )
-                    else:
-                        try:
-                            self.gds_design.delete_cell(TEMP_CELL_NAME)
-                        except ValueError:
-                            pass
-                            
-                        self.gds_design.add_cell(TEMP_CELL_NAME)
-                        self.gds_design.add_cell_reference(
-                            parent_cell_name=TEMP_CELL_NAME,
-                            child_cell_name=self.customTestCellName,
-                            origin=(0,0),
-                            magnification=float(Magnification),
-                            rotation=float(Rotation),
-                            x_reflection=X_Reflection
-                        )
-                        cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
-                        self.gds_design.delete_cell(TEMP_CELL_NAME)
-                        # Get substrate layer name from layer number:
-                        substrate_name = None
-                        for number, name in self.layerData:
-                            if int(number) == self.substrateLayer:
-                                substrate_name = name
-                        if not substrate_name:
-                            QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                            self.log("Custom Test Structure placement error: Substrate layer not set")
-                            return
-                        available_space = self.gds_design.determine_available_space(substrate_name)
-                        try:
-                            Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
-                        except ValueError:
-                            QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
-                            self.log("Custom Test Structure placement error: No space available")
-                            return
-                        self.gds_design.add_cell_reference(
-                            parent_cell_name=top_cell_name,
-                            child_cell_name=self.customTestCellName,
-                            origin=Center,
-                            magnification=float(Magnification),
-                            rotation=float(Rotation),
-                            x_reflection=X_Reflection
-                        )
-                    self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
+            if not Array:
+                if not(Automatic_Placement):
+                    self.gds_design.add_cell_reference(
+                        parent_cell_name=top_cell_name,
+                        child_cell_name=self.customTestCellName,
+                        origin=Center,
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
                 else:
-                    if not(Automatic_Placement):
-                        self.gds_design.add_cell_array(
-                            target_cell_name=top_cell_name,
-                            cell_name_to_array=self.customTestCellName,
-                            copies_x=int(Copies_X),
-                            copies_y=int(Copies_Y),
-                            spacing_x=float(Spacing_X),
-                            spacing_y=float(Spacing_Y),
-                            origin=Center,
-                            magnification=float(Magnification),
-                            rotation=float(Rotation),
-                            x_reflection=X_Reflection
-                        )
-                    else:
-                        try:
-                            self.gds_design.delete_cell(TEMP_CELL_NAME)
-                        except ValueError:
-                            pass
-                            
-                        self.gds_design.add_cell(TEMP_CELL_NAME)
-                        self.gds_design.add_cell_array(
-                            target_cell_name=TEMP_CELL_NAME,
-                            cell_name_to_array=self.customTestCellName,
-                            copies_x=int(Copies_X),
-                            copies_y=int(Copies_Y),
-                            spacing_x=float(Spacing_X),
-                            spacing_y=float(Spacing_Y),
-                            origin=(0,0),
-                            magnification=float(Magnification),
-                            rotation=float(Rotation),
-                            x_reflection=X_Reflection
-                        )
-                        cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+                    try:
                         self.gds_design.delete_cell(TEMP_CELL_NAME)
-                        # Get substrate layer name from layer number:
-                        substrate_name = None
-                        for number, name in self.layerData:
-                            if int(number) == self.substrateLayer:
-                                substrate_name = name
-                        if not substrate_name:
-                            QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                            self.log("Custom Test Structure placement error: Substrate layer not set")
-                            return
-                        available_space = self.gds_design.determine_available_space(substrate_name)
-                        try:
-                            Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
-                        except ValueError:
-                            QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
-                            self.log("Custom Test Structure placement error: No space available")
-                            return
-                        self.gds_design.add_cell_array(
-                            target_cell_name=top_cell_name,
-                            cell_name_to_array=self.customTestCellName,
-                            copies_x=int(Copies_X),
-                            copies_y=int(Copies_Y),
-                            spacing_x=float(Spacing_X),
-                            spacing_y=float(Spacing_Y),
-                            origin=Center,
-                            magnification=float(Magnification),
-                            rotation=float(Rotation),
-                            x_reflection=X_Reflection
-                        )
-                    self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Spacing_X}, spacing y {Spacing_Y}")
-            except ValueError:
-                QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
+                    except ValueError:
+                        pass
+                        
+                    self.gds_design.add_cell(TEMP_CELL_NAME)
+                    self.gds_design.add_cell_reference(
+                        parent_cell_name=TEMP_CELL_NAME,
+                        child_cell_name=self.customTestCellName,
+                        origin=(0,0),
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
+                    cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+                    self.gds_design.delete_cell(TEMP_CELL_NAME)
+                    # Get substrate layer name from layer number:
+                    substrate_name = None
+                    for number, name in self.layerData:
+                        if int(number) == self.substrateLayer:
+                            substrate_name = name
+                    if not substrate_name:
+                        QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                        self.log("Custom Test Structure placement error: Substrate layer not set")
+                        return
+                    available_space = self.gds_design.determine_available_space(substrate_name)
+                    try:
+                        Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+                    except ValueError:
+                        QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
+                        self.log("Custom Test Structure placement error: No space available")
+                        return
+                    self.gds_design.add_cell_reference(
+                        parent_cell_name=top_cell_name,
+                        child_cell_name=self.customTestCellName,
+                        origin=Center,
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
+                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
+            else:
+                if not(Automatic_Placement):
+                    self.gds_design.add_cell_array(
+                        target_cell_name=top_cell_name,
+                        cell_name_to_array=self.customTestCellName,
+                        copies_x=int(Copies_X),
+                        copies_y=int(Copies_Y),
+                        spacing_x=float(Spacing_X),
+                        spacing_y=float(Spacing_Y),
+                        origin=Center,
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
+                else:
+                    try:
+                        self.gds_design.delete_cell(TEMP_CELL_NAME)
+                    except ValueError:
+                        pass
+                        
+                    self.gds_design.add_cell(TEMP_CELL_NAME)
+                    self.gds_design.add_cell_array(
+                        target_cell_name=TEMP_CELL_NAME,
+                        cell_name_to_array=self.customTestCellName,
+                        copies_x=int(Copies_X),
+                        copies_y=int(Copies_Y),
+                        spacing_x=float(Spacing_X),
+                        spacing_y=float(Spacing_Y),
+                        origin=(0,0),
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
+                    cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+                    self.gds_design.delete_cell(TEMP_CELL_NAME)
+                    # Get substrate layer name from layer number:
+                    substrate_name = None
+                    for number, name in self.layerData:
+                        if int(number) == self.substrateLayer:
+                            substrate_name = name
+                    if not substrate_name:
+                        QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                        self.log("Custom Test Structure placement error: Substrate layer not set")
+                        return
+                    available_space = self.gds_design.determine_available_space(substrate_name)
+                    try:
+                        Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+                    except ValueError:
+                        QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
+                        self.log("Custom Test Structure placement error: No space available")
+                        return
+                    self.gds_design.add_cell_array(
+                        target_cell_name=top_cell_name,
+                        cell_name_to_array=self.customTestCellName,
+                        copies_x=int(Copies_X),
+                        copies_y=int(Copies_Y),
+                        spacing_x=float(Spacing_X),
+                        spacing_y=float(Spacing_Y),
+                        origin=Center,
+                        magnification=float(Magnification),
+                        rotation=float(Rotation),
+                        x_reflection=X_Reflection
+                    )
+                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Spacing_X}, spacing y {Spacing_Y}")
                 
     def handleCustomTestCellName(self):
         self.customTestCellName = self.customTestCellComboBox.currentText()

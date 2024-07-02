@@ -7,6 +7,7 @@ from shapely.ops import unary_union
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
 import klayout.db as kdb
+import geopandas as gpd
 
 TEXT_SPACING_FACTOR = 0.3
 
@@ -839,22 +840,25 @@ class GDSDesign:
             polygons_by_spec = cell.get_polygons(by_spec=True)
             for (lay, dat), polys in polygons_by_spec.items():
                 if lay == substrate_layer_number:
-                    substrate_polygons.extend(polys)
+                    substrate_polygons.extend([Polygon(poly) for poly in polys])
                 else:
-                    all_other_polygons.extend(polys)
+                    all_other_polygons.extend([Polygon(poly) for poly in polys])
         
         if not substrate_polygons:
             raise ValueError(f"No polygons found in the substrate layer '{substrate_layer_name}'.")
 
-        # Create a union of all substrate polygons
-        substrate_union = unary_union([Polygon(poly) for poly in substrate_polygons])
-        
-        # Create a union of all other polygons
-        all_other_union = unary_union([Polygon(poly) for poly in all_other_polygons])
+        # Convert lists of polygons to GeoDataFrames
+        substrate_gdf = gpd.GeoDataFrame(geometry=substrate_polygons)
+        all_other_gdf = gpd.GeoDataFrame(geometry=all_other_polygons)
+
+        # Perform dissolve (union) operation
+        substrate_union = substrate_gdf.dissolve().geometry[0]
+        all_other_union = all_other_gdf.dissolve().geometry[0]
 
         # Subtract the occupied space from the substrate
         available_space = substrate_union.difference(all_other_union)
-        return available_space
+
+        return available_space if isinstance(available_space, MultiPolygon) else MultiPolygon([available_space])
     
     def find_position_for_rectangle(self, available_space, width, height, offset, step_size=500, buffer=100):
         width = width + 2 * buffer
