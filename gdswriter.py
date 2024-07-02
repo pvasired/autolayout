@@ -900,6 +900,7 @@ class GDSDesign:
 
             for point in points:
                 x, y = point[0], point[1]
+                print(f"Checking position ({x}, {y})")
                 translated_rectangle = translate(rectangle, xoff=x + offset[0], yoff=y + offset[1])
 
                 if polygon.contains(translated_rectangle):

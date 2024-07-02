@@ -850,7 +850,6 @@ class MyApp(QWidget):
                 self.log("MLA Alignment Mark placement error: Substrate layer not set")
                 return
             available_space = self.gds_design.determine_available_space(substrate_name)
-            print(cell_width, cell_height, cell_offset)
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
@@ -872,60 +871,230 @@ class MyApp(QWidget):
 
     def addResistanceTest(self, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_resistance_test_structure(
-            cell_name=top_cell_name,
-            layer_name=Layer,
-            center=Center,
-            probe_pad_width=float(Probe_Pad_Width),
-            probe_pad_height=float(Probe_Pad_Height),
-            probe_pad_spacing=float(Probe_Pad_Spacing),
-            plug_width=float(Plug_Width),
-            plug_height=float(Plug_Height),
-            trace_width=float(Trace_Width),
-            trace_spacing=float(Trace_Spacing),
-            switchbacks=int(Switchbacks),
-            x_extent=float(X_Extent),
-            text_height=float(Text_Height),
-            text=Text if Text else Layer,  # Use the layer name if text is not provided
-            add_interlayer_short=Add_Interlayer_Short,
-            short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
-            layer_name_short=Layer_Name_Short
-        )
+        if not(Automatic_Placement):
+            self.gds_design.add_resistance_test_structure(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                probe_pad_width=float(Probe_Pad_Width),
+                probe_pad_height=float(Probe_Pad_Height),
+                probe_pad_spacing=float(Probe_Pad_Spacing),
+                plug_width=float(Plug_Width),
+                plug_height=float(Plug_Height),
+                trace_width=float(Trace_Width),
+                trace_spacing=float(Trace_Spacing),
+                switchbacks=int(Switchbacks),
+                x_extent=float(X_Extent),
+                text_height=float(Text_Height),
+                text=Text if Text else Layer,  # Use the layer name if text is not provided
+                add_interlayer_short=Add_Interlayer_Short,
+                short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
+                layer_name_short=Layer_Name_Short
+            )
+        else:
+            try:
+                self.gds_design.delete_cell(TEMP_CELL_NAME)
+            except ValueError:
+                pass
+                
+            self.gds_design.add_cell(TEMP_CELL_NAME)
+            self.gds_design.add_resistance_test_structure(
+                cell_name=TEMP_CELL_NAME,
+                layer_name=Layer,
+                center=(0,0),
+                probe_pad_width=float(Probe_Pad_Width),
+                probe_pad_height=float(Probe_Pad_Height),
+                probe_pad_spacing=float(Probe_Pad_Spacing),
+                plug_width=float(Plug_Width),
+                plug_height=float(Plug_Height),
+                trace_width=float(Trace_Width),
+                trace_spacing=float(Trace_Spacing),
+                switchbacks=int(Switchbacks),
+                x_extent=float(X_Extent),
+                text_height=float(Text_Height),
+                text=Text if Text else Layer,  # Use the layer name if text is not provided
+                add_interlayer_short=Add_Interlayer_Short,
+                short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
+                layer_name_short=Layer_Name_Short
+            )
+            cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+            self.gds_design.delete_cell(TEMP_CELL_NAME)
+            # Get substrate layer name from layer number:
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if not substrate_name:
+                QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                self.log("Resistance Test placement error: Substrate layer not set")
+                return
+            available_space = self.gds_design.determine_available_space(substrate_name)
+            try:
+                Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+            except ValueError:
+                QMessageBox.critical(self, "Placement Error", "No space available for the Resistance Test.", QMessageBox.Ok)
+                self.log("Resistance Test placement error: No space available")
+                return
+            self.gds_design.add_resistance_test_structure(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                probe_pad_width=float(Probe_Pad_Width),
+                probe_pad_height=float(Probe_Pad_Height),
+                probe_pad_spacing=float(Probe_Pad_Spacing),
+                plug_width=float(Plug_Width),
+                plug_height=float(Plug_Height),
+                trace_width=float(Trace_Width),
+                trace_spacing=float(Trace_Spacing),
+                switchbacks=int(Switchbacks),
+                x_extent=float(X_Extent),
+                text_height=float(Text_Height),
+                text=Text if Text else Layer,  # Use the layer name if text is not provided
+                add_interlayer_short=Add_Interlayer_Short,
+                short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
+                layer_name_short=Layer_Name_Short
+            )
         self.log(f"Resistance Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addTraceTest(self, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_line_test_structure(
-            cell_name=top_cell_name,
-            layer_name=Layer,
-            center=Center,
-            text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
-            line_width=float(Line_Width),
-            line_height=float(Line_Height),
-            num_lines=int(Num_Lines),
-            line_spacing=float(Line_Spacing),
-            text_height=float(Text_Height)
-        )
+        if not(Automatic_Placement):
+            self.gds_design.add_line_test_structure(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
+                line_width=float(Line_Width),
+                line_height=float(Line_Height),
+                num_lines=int(Num_Lines),
+                line_spacing=float(Line_Spacing),
+                text_height=float(Text_Height)
+            )
+        else:
+            try:
+                self.gds_design.delete_cell(TEMP_CELL_NAME)
+            except ValueError:
+                pass
+                
+            self.gds_design.add_cell(TEMP_CELL_NAME)
+            self.gds_design.add_line_test_structure(
+                cell_name=TEMP_CELL_NAME,
+                layer_name=Layer,
+                center=(0,0),
+                text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
+                line_width=float(Line_Width),
+                line_height=float(Line_Height),
+                num_lines=int(Num_Lines),
+                line_spacing=float(Line_Spacing),
+                text_height=float(Text_Height)
+            )
+            cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+            self.gds_design.delete_cell(TEMP_CELL_NAME)
+            # Get substrate layer name from layer number:
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if not substrate_name:
+                QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                self.log("Trace Test placement error: Substrate layer not set")
+                return
+            available_space = self.gds_design.determine_available_space(substrate_name)
+            try:
+                Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+            except ValueError:
+                QMessageBox.critical(self, "Placement Error", "No space available for the Trace Test.", QMessageBox.Ok)
+                self.log("Trace Test placement error: No space available")
+                return
+            self.gds_design.add_line_test_structure(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
+                line_width=float(Line_Width),
+                line_height=float(Line_Height),
+                num_lines=int(Num_Lines),
+                line_spacing=float(Line_Spacing),
+                text_height=float(Text_Height)
+            )
         self.log(f"Trace Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addInterlayerViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_p_via_test_structure(
-            cell_name=top_cell_name,
-            layer_name_1=Layer_Number_1,
-            layer_name_2=Layer_Number_2,
-            via_layer=Via_Layer,
-            center=Center,
-            text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
-            layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
-            layer1_rect_width=float(Layer_1_Rectangle_Width),
-            layer1_rect_height=float(Layer_1_Rectangle_Height),
-            layer2_rect_width=float(Layer_2_Rectangle_Width),
-            layer2_rect_height=float(Layer_2_Rectangle_Height),
-            via_width=float(Via_Width),
-            via_height=float(Via_Height),
-            text_height=float(Text_Height)
-        )
+        if not(Automatic_Placement):
+            self.gds_design.add_p_via_test_structure(
+                cell_name=top_cell_name,
+                layer_name_1=Layer_Number_1,
+                layer_name_2=Layer_Number_2,
+                via_layer=Via_Layer,
+                center=Center,
+                text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
+                layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
+                layer1_rect_width=float(Layer_1_Rectangle_Width),
+                layer1_rect_height=float(Layer_1_Rectangle_Height),
+                layer2_rect_width=float(Layer_2_Rectangle_Width),
+                layer2_rect_height=float(Layer_2_Rectangle_Height),
+                via_width=float(Via_Width),
+                via_height=float(Via_Height),
+                text_height=float(Text_Height)
+            )
+        else:
+            try:
+                self.gds_design.delete_cell(TEMP_CELL_NAME)
+            except ValueError:
+                pass
+                
+            self.gds_design.add_cell(TEMP_CELL_NAME)
+            self.gds_design.add_p_via_test_structure(
+                cell_name=TEMP_CELL_NAME,
+                layer_name_1=Layer_Number_1,
+                layer_name_2=Layer_Number_2,
+                via_layer=Via_Layer,
+                center=(0,0),
+                text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
+                layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
+                layer1_rect_width=float(Layer_1_Rectangle_Width),
+                layer1_rect_height=float(Layer_1_Rectangle_Height),
+                layer2_rect_width=float(Layer_2_Rectangle_Width),
+                layer2_rect_height=float(Layer_2_Rectangle_Height),
+                via_width=float(Via_Width),
+                via_height=float(Via_Height),
+                text_height=float(Text_Height)
+            )
+            cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+            self.gds_design.delete_cell(TEMP_CELL_NAME)
+            # Get substrate layer name from layer number:
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if not substrate_name:
+                QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                self.log("Interlayer Via Test placement error: Substrate layer not set")
+                return
+            available_space = self.gds_design.determine_available_space(substrate_name)
+            try:
+                Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+            except ValueError:
+                QMessageBox.critical(self, "Placement Error", "No space available for the Interlayer Via Test.", QMessageBox.Ok)
+                self.log("Interlayer Via Test placement error: No space available")
+                return
+            self.gds_design.add_p_via_test_structure(
+                cell_name=top_cell_name,
+                layer_name_1=Layer_Number_1,
+                layer_name_2=Layer_Number_2,
+                via_layer=Via_Layer,
+                center=Center,
+                text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
+                layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
+                layer1_rect_width=float(Layer_1_Rectangle_Width),
+                layer1_rect_height=float(Layer_1_Rectangle_Height),
+                layer2_rect_width=float(Layer_2_Rectangle_Width),
+                layer2_rect_height=float(Layer_2_Rectangle_Height),
+                via_width=float(Via_Width),
+                via_height=float(Via_Height),
+                text_height=float(Text_Height)
+            )
         self.log(f"Interlayer Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
     
     def addRectangle(self, Layer, Center, Width, Height, Lower_Left, Upper_Right, Rotation):
@@ -1024,40 +1193,152 @@ class MyApp(QWidget):
 
     def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_electronics_via_test_structure(
-            cell_name=top_cell_name,
-            layer_name_1=Layer_Number_1,
-            layer_name_2=Layer_Number_2,
-            via_layer=Via_Layer,
-            center=Center,
-            text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
-            layer_1_rect_width=float(Layer_1_Rect_Width),
-            layer_1_rect_height=float(Layer_1_Rect_Height),
-            layer_2_rect_width=float(Layer_2_Rect_Width),
-            layer_2_rect_height=float(Layer_2_Rect_Height),
-            layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
-            via_width=float(Via_Width),
-            via_height=float(Via_Height),
-            via_spacing=float(Via_Spacing),
-            text_height=float(Text_Height)
-        )
+        if not(Automatic_Placement):
+            self.gds_design.add_electronics_via_test_structure(
+                cell_name=top_cell_name,
+                layer_name_1=Layer_Number_1,
+                layer_name_2=Layer_Number_2,
+                via_layer=Via_Layer,
+                center=Center,
+                text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
+                layer_1_rect_width=float(Layer_1_Rect_Width),
+                layer_1_rect_height=float(Layer_1_Rect_Height),
+                layer_2_rect_width=float(Layer_2_Rect_Width),
+                layer_2_rect_height=float(Layer_2_Rect_Height),
+                layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
+                via_width=float(Via_Width),
+                via_height=float(Via_Height),
+                via_spacing=float(Via_Spacing),
+                text_height=float(Text_Height)
+            )
+        else:
+            try:
+                self.gds_design.delete_cell(TEMP_CELL_NAME)
+            except ValueError:
+                pass
+                
+            self.gds_design.add_cell(TEMP_CELL_NAME)
+            self.gds_design.add_electronics_via_test_structure(
+                cell_name=TEMP_CELL_NAME,
+                layer_name_1=Layer_Number_1,
+                layer_name_2=Layer_Number_2,
+                via_layer=Via_Layer,
+                center=(0,0),
+                text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
+                layer_1_rect_width=float(Layer_1_Rect_Width),
+                layer_1_rect_height=float(Layer_1_Rect_Height),
+                layer_2_rect_width=float(Layer_2_Rect_Width),
+                layer_2_rect_height=float(Layer_2_Rect_Height),
+                layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
+                via_width=float(Via_Width),
+                via_height=float(Via_Height),
+                via_spacing=float(Via_Spacing),
+                text_height=float(Text_Height)
+            )
+            cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+            self.gds_design.delete_cell(TEMP_CELL_NAME)
+            # Get substrate layer name from layer number:
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if not substrate_name:
+                QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                self.log("Electronics Via Test placement error: Substrate layer not set")
+                return
+            available_space = self.gds_design.determine_available_space(substrate_name)
+            try:
+                Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+            except ValueError:
+                QMessageBox.critical(self, "Placement Error", "No space available for the Electronics Via Test.", QMessageBox.Ok)
+                self.log("Electronics Via Test placement error: No space available")
+                return
+            self.gds_design.add_electronics_via_test_structure(
+                cell_name=top_cell_name,
+                layer_name_1=Layer_Number_1,
+                layer_name_2=Layer_Number_2,
+                via_layer=Via_Layer,
+                center=Center,
+                text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
+                layer_1_rect_width=float(Layer_1_Rect_Width),
+                layer_1_rect_height=float(Layer_1_Rect_Height),
+                layer_2_rect_width=float(Layer_2_Rect_Width),
+                layer_2_rect_height=float(Layer_2_Rect_Height),
+                layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
+                via_width=float(Via_Width),
+                via_height=float(Via_Height),
+                via_spacing=float(Via_Spacing),
+                text_height=float(Text_Height)
+            )
         self.log(f"Electronics Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
 
     def addShortTest(self, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_short_test_structure(
-            cell_name=top_cell_name,
-            layer_name=Layer,
-            center=Center,
-            text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
-            rect_width=float(Rect_Width),
-            trace_width=float(Trace_Width),
-            num_lines=int(Num_Lines),
-            group_spacing=float(Group_Spacing),
-            num_groups=int(Num_Groups),
-            num_lines_vert=int(Num_Lines_Vert),
-            text_height=float(Text_Height)
-        )
+        if not(Automatic_Placement):
+            self.gds_design.add_short_test_structure(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
+                rect_width=float(Rect_Width),
+                trace_width=float(Trace_Width),
+                num_lines=int(Num_Lines),
+                group_spacing=float(Group_Spacing),
+                num_groups=int(Num_Groups),
+                num_lines_vert=int(Num_Lines_Vert),
+                text_height=float(Text_Height)
+            )
+        else:
+            try:
+                self.gds_design.delete_cell(TEMP_CELL_NAME)
+            except ValueError:
+                pass
+                
+            self.gds_design.add_cell(TEMP_CELL_NAME)
+            self.gds_design.add_short_test_structure(
+                cell_name=TEMP_CELL_NAME,
+                layer_name=Layer,
+                center=(0,0),
+                text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
+                rect_width=float(Rect_Width),
+                trace_width=float(Trace_Width),
+                num_lines=int(Num_Lines),
+                group_spacing=float(Group_Spacing),
+                num_groups=int(Num_Groups),
+                num_lines_vert=int(Num_Lines_Vert),
+                text_height=float(Text_Height)
+            )
+            cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+            self.gds_design.delete_cell(TEMP_CELL_NAME)
+            # Get substrate layer name from layer number:
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if not substrate_name:
+                QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                self.log("Short Test placement error: Substrate layer not set")
+                return
+            available_space = self.gds_design.determine_available_space(substrate_name)
+            try:
+                Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+            except ValueError:
+                QMessageBox.critical(self, "Placement Error", "No space available for the Short Test.", QMessageBox.Ok)
+                self.log("Short Test placement error: No space available")
+                return
+            self.gds_design.add_short_test_structure(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
+                rect_width=float(Rect_Width),
+                trace_width=float(Trace_Width),
+                num_lines=int(Num_Lines),
+                group_spacing=float(Group_Spacing),
+                num_groups=int(Num_Groups),
+                num_lines_vert=int(Num_Lines_Vert),
+                text_height=float(Text_Height)
+            )
         self.log(f"Short Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Automatic_Placement):
@@ -1065,28 +1346,120 @@ class MyApp(QWidget):
         if self.customTestCellName:
             try:
                 if not Array:
-                    self.gds_design.add_cell_reference(
-                        parent_cell_name=top_cell_name,
-                        child_cell_name=self.customTestCellName,
-                        origin=Center,
-                        magnification=float(Magnification),
-                        rotation=float(Rotation),
-                        x_reflection=X_Reflection
-                    )
+                    if not(Automatic_Placement):
+                        self.gds_design.add_cell_reference(
+                            parent_cell_name=top_cell_name,
+                            child_cell_name=self.customTestCellName,
+                            origin=Center,
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                    else:
+                        try:
+                            self.gds_design.delete_cell(TEMP_CELL_NAME)
+                        except ValueError:
+                            pass
+                            
+                        self.gds_design.add_cell(TEMP_CELL_NAME)
+                        self.gds_design.add_cell_reference(
+                            parent_cell_name=TEMP_CELL_NAME,
+                            child_cell_name=self.customTestCellName,
+                            origin=(0,0),
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                        cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+                        self.gds_design.delete_cell(TEMP_CELL_NAME)
+                        # Get substrate layer name from layer number:
+                        substrate_name = None
+                        for number, name in self.layerData:
+                            if int(number) == self.substrateLayer:
+                                substrate_name = name
+                        if not substrate_name:
+                            QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                            self.log("Custom Test Structure placement error: Substrate layer not set")
+                            return
+                        available_space = self.gds_design.determine_available_space(substrate_name)
+                        try:
+                            Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+                        except ValueError:
+                            QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
+                            self.log("Custom Test Structure placement error: No space available")
+                            return
+                        self.gds_design.add_cell_reference(
+                            parent_cell_name=top_cell_name,
+                            child_cell_name=self.customTestCellName,
+                            origin=Center,
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
                     self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
                 else:
-                    self.gds_design.add_cell_array(
-                        target_cell_name=top_cell_name,
-                        cell_name_to_array=self.customTestCellName,
-                        copies_x=int(Copies_X),
-                        copies_y=int(Copies_Y),
-                        spacing_x=float(Spacing_X),
-                        spacing_y=float(Spacing_Y),
-                        origin=Center,
-                        magnification=float(Magnification),
-                        rotation=float(Rotation),
-                        x_reflection=X_Reflection
-                    )
+                    if not(Automatic_Placement):
+                        self.gds_design.add_cell_array(
+                            target_cell_name=top_cell_name,
+                            cell_name_to_array=self.customTestCellName,
+                            copies_x=int(Copies_X),
+                            copies_y=int(Copies_Y),
+                            spacing_x=float(Spacing_X),
+                            spacing_y=float(Spacing_Y),
+                            origin=Center,
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                    else:
+                        try:
+                            self.gds_design.delete_cell(TEMP_CELL_NAME)
+                        except ValueError:
+                            pass
+                            
+                        self.gds_design.add_cell(TEMP_CELL_NAME)
+                        self.gds_design.add_cell_array(
+                            target_cell_name=TEMP_CELL_NAME,
+                            cell_name_to_array=self.customTestCellName,
+                            copies_x=int(Copies_X),
+                            copies_y=int(Copies_Y),
+                            spacing_x=float(Spacing_X),
+                            spacing_y=float(Spacing_Y),
+                            origin=(0,0),
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                        cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+                        self.gds_design.delete_cell(TEMP_CELL_NAME)
+                        # Get substrate layer name from layer number:
+                        substrate_name = None
+                        for number, name in self.layerData:
+                            if int(number) == self.substrateLayer:
+                                substrate_name = name
+                        if not substrate_name:
+                            QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                            self.log("Custom Test Structure placement error: Substrate layer not set")
+                            return
+                        available_space = self.gds_design.determine_available_space(substrate_name)
+                        try:
+                            Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+                        except ValueError:
+                            QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
+                            self.log("Custom Test Structure placement error: No space available")
+                            return
+                        self.gds_design.add_cell_array(
+                            target_cell_name=top_cell_name,
+                            cell_name_to_array=self.customTestCellName,
+                            copies_x=int(Copies_X),
+                            copies_y=int(Copies_Y),
+                            spacing_x=float(Spacing_X),
+                            spacing_y=float(Spacing_Y),
+                            origin=Center,
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
                     self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Spacing_X}, spacing y {Spacing_Y}")
             except ValueError:
                 QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
