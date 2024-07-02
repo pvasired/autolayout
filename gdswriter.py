@@ -70,10 +70,10 @@ class GDSDesign:
             self.precision = self.lib.precision
 
     def add_cell(self, cell_name):
-        if cell_name in self.cells:
-            print(f"Warning: Cell '{cell_name}' already exists. Returning existing cell.")
-            return self.cells[cell_name]['cell']
-        cell = self.lib.new_cell(cell_name)
+        if cell_name in self.cells or cell_name in self.lib.cells or cell_name in gdspy.current_library.cells:
+            print(f"Warning: Cell '{cell_name}' already exists. Overwriting existing cell.")
+            self.delete_cell(cell_name)
+        cell = self.lib.new_cell(cell_name, overwrite_duplicate=True)
         self.cells[cell_name] = {}
         self.cells[cell_name]['cell'] = cell
         self.cells[cell_name]['polygons'] = []
@@ -87,18 +87,19 @@ class GDSDesign:
         Args:
         - cell_name (str): Name of the cell to delete.
         """
-        if cell_name not in self.cells and cell_name not in self.lib.cells:
+        if cell_name not in self.cells and cell_name not in self.lib.cells and cell_name not in gdspy.current_library.cells:
             raise ValueError(f"Error: Cell '{cell_name}' does not exist.")
         
         # Remove the cell from the internal dictionary
         if cell_name in self.cells:
             del self.cells[cell_name]
-        
         # Remove the cell from the GDS library
         if cell_name in self.lib.cells:
+            del self.lib.cells[cell_name]
             self.lib.remove(cell_name)
-        else:
-            raise ValueError(f"Error: Cell '{cell_name}' not found in the GDS library.")
+        if cell_name in gdspy.current_library.cells:
+            del gdspy.current_library.cells[cell_name]
+            gdspy.current_library.remove(cell_name)
         
     def calculate_cell_size(self, cell_name):
         """
@@ -883,14 +884,24 @@ class GDSDesign:
             x_positions = np.arange(minx, maxx, step_size)
             y_positions = np.arange(miny, maxy, step_size)
 
-            # Generate points within the bounding box of the polygon
-            all_points = [(x, y) for x, y in np.nditer(np.meshgrid(x_positions, y_positions))]
-            sorted_points = sorted(all_points, key=lambda p: np.hypot(p[0], p[1]))
+            # Generate meshgrid of points
+            x_grid, y_grid = np.meshgrid(x_positions, y_positions)
+            x_grid = np.round(x_grid.flatten()).astype(float)
+            y_grid = np.round(y_grid.flatten()).astype(float)
 
-            for x, y in sorted_points:
-                print(f"Trying point ({x}, {y})")
+            # Calculate distances from the origin
+            distances = np.hypot(x_grid, y_grid)
+
+            # Combine x, y, and distances for sorting
+            points = np.unique(np.vstack((x_grid, y_grid, distances)).T, axis=0)
+
+            # Sort points by distance
+            points = points[np.argsort(points[:, 2])]
+
+            for point in points:
+                x, y = point[0], point[1]
                 translated_rectangle = translate(rectangle, xoff=x + offset[0], yoff=y + offset[1])
-                
+
                 if polygon.contains(translated_rectangle):
                     print(f"Rectangle fits at ({x}, {y})")
                     return (x, y)
