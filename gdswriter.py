@@ -2,6 +2,7 @@ import gdspy
 import numpy as np
 from shapely.geometry import box, MultiPolygon, Polygon, Point
 from shapely.affinity import translate
+from shapely.prepared import prep
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
@@ -830,6 +831,7 @@ class GDSDesign:
         """
         substrate_layer_number = self.get_layer_number(substrate_layer_name)
         substrate_polygons = []
+        all_other_polygons = []
 
         # Get polygons from the substrate layer in top cells
         for top_cell_name in self.top_cell_names:
@@ -838,21 +840,14 @@ class GDSDesign:
             for (lay, dat), polys in polygons_by_spec.items():
                 if lay == substrate_layer_number:
                     substrate_polygons.extend(polys)
+                else:
+                    all_other_polygons.extend(polys)
         
         if not substrate_polygons:
             raise ValueError(f"No polygons found in the substrate layer '{substrate_layer_name}'.")
 
         # Create a union of all substrate polygons
         substrate_union = unary_union([Polygon(poly) for poly in substrate_polygons])
-
-        # Get polygons from all other layers in top cells
-        all_other_polygons = []
-        for top_cell_name in self.top_cell_names:
-            cell = self.check_cell_exists(top_cell_name)
-            polygons_by_spec = cell.get_polygons(by_spec=True)
-            for (lay, dat), polys in polygons_by_spec.items():
-                if lay != substrate_layer_number:
-                    all_other_polygons.extend(polys)
         
         # Create a union of all other polygons
         all_other_union = unary_union([Polygon(poly) for poly in all_other_polygons])
@@ -877,10 +872,11 @@ class GDSDesign:
             (-width / 2, height / 2)
         ])
 
-        polygons = [geom for geom in available_space.geoms if geom.is_valid]
+        polygons = [prep(geom) for geom in available_space.geoms if geom.is_valid]
+        polygons_orig = [geom for geom in available_space.geoms if geom.is_valid]
 
         for idx, polygon in enumerate(polygons):
-            minx, miny, maxx, maxy = polygon.bounds
+            minx, miny, maxx, maxy = polygons_orig[idx].bounds
             x_positions = np.arange(minx, maxx, step_size)
             y_positions = np.arange(miny, maxy, step_size)
 
@@ -900,6 +896,9 @@ class GDSDesign:
 
             for point in points:
                 x, y = point[0], point[1]
+                # Check if the rectangle would exceed the bounds: if so, skip this point
+                if x + offset[0] - width / 2 < minx or x + offset[0] + width / 2 > maxx or y + offset[1] - height / 2 < miny or y + offset[1] + height / 2 > maxy:
+                    continue
                 print(f"Checking position ({x}, {y})")
                 translated_rectangle = translate(rectangle, xoff=x + offset[0], yoff=y + offset[1])
 
