@@ -860,7 +860,7 @@ class GDSDesign:
         available_space = substrate_union.difference(all_other_union)
         return available_space
     
-    def find_position_for_rectangle(self, available_space, width, height, offset, step_size=100, buffer=100):
+    def find_position_for_rectangle(self, available_space, width, height, offset, step_size=500, buffer=100):
         width = width + 2 * buffer
         height = height + 2 * buffer
 
@@ -876,31 +876,22 @@ class GDSDesign:
             (-width / 2, height / 2)
         ])
 
-        # Use R-tree for fast spatial indexing
         polygons = [geom for geom in available_space.geoms if geom.is_valid]
-        spatial_index = STRtree(polygons)
 
-        # Create a bounding box for the rectangle to use in the spatial index query
-        rect_bbox = Polygon([
-            (-width / 2 + offset[0], -height / 2 + offset[1]),
-            (width / 2 + offset[0], -height / 2 + offset[1]),
-            (width / 2 + offset[0], height / 2 + offset[1]),
-            (-width / 2 + offset[0], height / 2 + offset[1])
-        ])
-
-        # Query the spatial index for polygons that intersect with the rectangle bounding box
-        candidate_polygons = spatial_index.query(rect_bbox)
-
-        for idx in candidate_polygons:
-            minx, miny, maxx, maxy = polygons[idx].bounds
+        for idx, polygon in enumerate(polygons):
+            minx, miny, maxx, maxy = polygon.bounds
             x_positions = np.arange(minx, maxx, step_size)
             y_positions = np.arange(miny, maxy, step_size)
 
-            for x, y in np.nditer(np.meshgrid(x_positions, y_positions)):
+            # Generate points within the bounding box of the polygon
+            all_points = [(x, y) for x, y in np.nditer(np.meshgrid(x_positions, y_positions))]
+            sorted_points = sorted(all_points, key=lambda p: np.hypot(p[0], p[1]))
+
+            for x, y in sorted_points:
                 print(f"Trying point ({x}, {y})")
                 translated_rectangle = translate(rectangle, xoff=x + offset[0], yoff=y + offset[1])
                 
-                if polygons[idx].contains(translated_rectangle):
+                if polygon.contains(translated_rectangle):
                     print(f"Rectangle fits at ({x}, {y})")
                     return (x, y)
                 print("Rectangle does not fit.")
