@@ -876,20 +876,35 @@ class GDSDesign:
             (-width / 2, height / 2)
         ])
 
-        for polygon in available_space.geoms:
-            
-            minx, miny, maxx, maxy = polygon.bounds
+        # Use R-tree for fast spatial indexing
+        polygons = [geom for geom in available_space.geoms if geom.is_valid]
+        spatial_index = STRtree(polygons)
 
-            for x in np.arange(minx, maxx, step_size):
-                for y in np.arange(miny, maxy, step_size):
-                    print(f"Trying point ({x}, {y})")
-                    translated_rectangle = translate(rectangle, xoff=x + offset[0], yoff=y + offset[1])
-                    
-                    if polygon.contains(translated_rectangle):
-                        print(f"Rectangle fits at ({x}, {y})")
-                        return (x, y)
-                    print("Rectangle does not fit.")
-        
+        # Create a bounding box for the rectangle to use in the spatial index query
+        rect_bbox = Polygon([
+            (-width / 2 + offset[0], -height / 2 + offset[1]),
+            (width / 2 + offset[0], -height / 2 + offset[1]),
+            (width / 2 + offset[0], height / 2 + offset[1]),
+            (-width / 2 + offset[0], height / 2 + offset[1])
+        ])
+
+        # Query the spatial index for polygons that intersect with the rectangle bounding box
+        candidate_polygons = spatial_index.query(rect_bbox)
+
+        for idx in candidate_polygons:
+            minx, miny, maxx, maxy = polygons[idx].bounds
+            x_positions = np.arange(minx, maxx, step_size)
+            y_positions = np.arange(miny, maxy, step_size)
+
+            for x, y in np.nditer(np.meshgrid(x_positions, y_positions)):
+                print(f"Trying point ({x}, {y})")
+                translated_rectangle = translate(rectangle, xoff=x + offset[0], yoff=y + offset[1])
+                
+                if polygons[idx].contains(translated_rectangle):
+                    print(f"Rectangle fits at ({x}, {y})")
+                    return (x, y)
+                print("Rectangle does not fit.")
+
         raise ValueError("No available space found.")
 
 def cluster_intersecting_polygons(polygons):

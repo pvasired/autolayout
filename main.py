@@ -857,16 +857,16 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Placement Error", "No space available for the MLA Alignment Mark.", QMessageBox.Ok)
                 self.log("MLA Alignment Mark placement error: No space available")
                 return
-            # self.gds_design.add_MLA_alignment_mark(
-            #     cell_name=top_cell_name,
-            #     layer_name=Layer,
-            #     center=Center,
-            #     rect_width=float(Outer_Rect_Width),
-            #     rect_height=float(Outer_Rect_Height),
-            #     width_interior=float(Interior_Width),
-            #     extent_x_interior=float(Interior_X_Extent),
-            #     extent_y_interior=float(Interior_Y_Extent)
-            # )
+            self.gds_design.add_MLA_alignment_mark(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                rect_width=float(Outer_Rect_Width),
+                rect_height=float(Outer_Rect_Height),
+                width_interior=float(Interior_Width),
+                extent_x_interior=float(Interior_X_Extent),
+                extent_y_interior=float(Interior_Y_Extent)
+            )
 
         self.log(f"MLA Alignment Mark added to {top_cell_name} on layer {Layer} at center {Center}")
 
