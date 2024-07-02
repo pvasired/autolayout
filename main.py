@@ -13,6 +13,7 @@ import os
 
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
+TEMP_CELL_NAME = "SIZE CHECK TEMP"
 
 class TooltipComboBox(QComboBox):
     def __init__(self, tooltips=None, *args, **kwargs):
@@ -48,18 +49,18 @@ class MyApp(QWidget):
             "Rectangle", "Circle", "Text", "Polygon", "Path", "Custom Test Structure"
         ]
         self.parameters = {
-            "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent"],
-            "Resistance Test": ["Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text"],
-            "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height"],
-            "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height"],
-            "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height"],
-            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height"],
+            "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent", "Automatic Placement"],
+            "Resistance Test": ["Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text", "Automatic Placement"],
+            "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height", "Automatic Placement"],
+            "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height", "Automatic Placement"],
+            "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height", "Automatic Placement"],
+            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height", "Automatic Placement"],
             "Rectangle": ["Layer", "Center", "Width", "Height", "Lower Left", "Upper Right", "Rotation"],
             "Circle": ["Layer", "Center", "Diameter"],
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
-            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y"]
+            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Automatic Placement"]
         }
         self.paramTooltips = {
             "MLA Alignment Mark": {
@@ -69,7 +70,8 @@ class MyApp(QWidget):
                 "Outer Rect Height": "Enter the height of the outer rectangle.",
                 "Interior Width": "Enter the width of the interior lines.",
                 "Interior X Extent": "Enter the extent of the interior lines in the x direction.",
-                "Interior Y Extent": "Enter the extent of the interior lines in the y direction."
+                "Interior Y Extent": "Enter the extent of the interior lines in the y direction.",
+                "Automatic Placement": "Check to automatically place the alignment mark."
             },
             "Resistance Test": {
                 "Layer": "Select the layer for the resistance test structure.",
@@ -87,7 +89,8 @@ class MyApp(QWidget):
                 "Text": "Enter the text to display on the structure.",
                 "Add Interlayer Short": "Check to add an interlayer short.",
                 "Layer Name Short": "Enter the name of the short layer.",
-                "Short Text": "Enter the text to display for the short."
+                "Short Text": "Enter the text to display for the short.",
+                "Automatic Placement": "Check to automatically place the resistance test structure."
             },
             "Trace Test": {
                 "Layer": "Select the layer for the trace test structure.",
@@ -97,7 +100,8 @@ class MyApp(QWidget):
                 "Line Height": "Enter the height of the lines.",
                 "Num Lines": "Enter the number of lines.",
                 "Line Spacing": "Enter the spacing between lines.",
-                "Text Height": "Enter the height of the text."
+                "Text Height": "Enter the height of the text.",
+                "Automatic Placement": "Check to automatically place the trace test structure."
             },
             "Interlayer Via Test": {
                 "Layer Number 1": "Select the first layer for the interlayer via test structure.",
@@ -112,7 +116,8 @@ class MyApp(QWidget):
                 "Layer 2 Rectangle Height": "Enter the height of the rectangles on layer 2.",
                 "Via Width": "Enter the width of the vias.",
                 "Via Height": "Enter the height of the vias.",
-                "Text Height": "Enter the height of the text."
+                "Text Height": "Enter the height of the text.",
+                "Automatic Placement": "Check to automatically place the interlayer via test structure."
             },
             "Electronics Via Test": {
                 "Layer Number 1": "Select the first layer for the electronics via test structure.",
@@ -128,7 +133,8 @@ class MyApp(QWidget):
                 "Via Width": "Enter the width of the vias.",
                 "Via Height": "Enter the height of the vias.",
                 "Via Spacing": "Enter the spacing between vias.",
-                "Text Height": "Enter the height of the text."
+                "Text Height": "Enter the height of the text.",
+                "Automatic Placement": "Check to automatically place the electronics via test structure."
             },
             "Short Test": {
                 "Layer": "Select the layer for the short test structure.",
@@ -140,7 +146,8 @@ class MyApp(QWidget):
                 "Group Spacing": "Enter the spacing between groups.",
                 "Num Groups": "Enter the number of groups.",
                 "Num Lines Vert": "Enter the number of lines in the vertical direction.",
-                "Text Height": "Enter the height of the text."
+                "Text Height": "Enter the height of the text.",
+                "Automatic Placement": "Check to automatically place the short test structure."
             },
             "Rectangle": {
                 "Layer": "Select the layer for the rectangle.",
@@ -179,7 +186,8 @@ class MyApp(QWidget):
                 "Copies X": "Enter the number of copies in the x direction.",
                 "Copies Y": "Enter the number of copies in the y direction.",
                 "Spacing X": "Enter the spacing between copies in the x direction.",
-                "Spacing Y": "Enter the spacing between copies in the y direction."
+                "Spacing Y": "Enter the spacing between copies in the y direction.",
+                "Automatic Placement": "Check to automatically place the custom test structure."
             }
         }
         self.defaultParams = {
@@ -190,7 +198,8 @@ class MyApp(QWidget):
                 "Outer Rect Height": 20,
                 "Interior Width": 5,
                 "Interior X Extent": 50,
-                "Interior Y Extent": 50
+                "Interior Y Extent": 50,
+                "Automatic Placement": False
             },
             "Resistance Test": {
                 "Layer": '',
@@ -208,7 +217,8 @@ class MyApp(QWidget):
                 "Text": '',
                 "Add Interlayer Short": False,
                 "Layer Name Short": '',
-                "Short Text": ''
+                "Short Text": '',
+                "Automatic Placement": False
             },
             "Trace Test": {
                 "Layer": '',
@@ -218,7 +228,8 @@ class MyApp(QWidget):
                 "Line Height": 80,
                 "Num Lines": 4,
                 "Line Spacing": 80,
-                "Text Height": 100
+                "Text Height": 100,
+                "Automatic Placement": False
             },
             "Interlayer Via Test": {
                 "Layer Number 1": '',
@@ -233,7 +244,8 @@ class MyApp(QWidget):
                 "Layer 2 Rectangle Height": 550,
                 "Via Width": 7,
                 "Via Height": 7,
-                "Text Height": 100
+                "Text Height": 100,
+                "Automatic Placement": False
             },
             "Electronics Via Test": {
                 "Layer Number 1": '',
@@ -249,7 +261,8 @@ class MyApp(QWidget):
                 "Via Width": 7,
                 "Via Height": 7,
                 "Via Spacing": 10,
-                "Text Height": 100
+                "Text Height": 100,
+                "Automatic Placement": False
             },
             "Short Test": {
                 "Layer": '',
@@ -261,7 +274,8 @@ class MyApp(QWidget):
                 "Group Spacing": 130,
                 "Num Groups": 6,
                 "Num Lines Vert": 100,
-                "Text Height": 100
+                "Text Height": 100,
+                "Automatic Placement": False
             },
             "Rectangle": {
                 "Layer": '',
@@ -300,7 +314,8 @@ class MyApp(QWidget):
                 "Copies X": 1,
                 "Copies Y": 1,
                 "Spacing X": 0,
-                "Spacing Y": 0
+                "Spacing Y": 0,
+                "Automatic Placement": False
             }
         }
         self.testStructures = []  # Initialize testStructures here
@@ -445,7 +460,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
-        self.resize(1000, 800)  # Set the initial size of the window
+        self.resize(1200, 800)  # Set the initial size of the window
         self.show()
 
     def log(self, message):
@@ -753,6 +768,18 @@ class MyApp(QWidget):
 
     def getParameters(self, testStructureName):
         params = {}
+        autoplace = False
+        # See if Automatic Placement is set to True
+        for testCheckBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+            if testCheckBox.text() == testStructureName:
+                if "Automatic Placement" in defaultParams:
+                    if type(defaultParams["Automatic Placement"]) == str:
+                        if defaultParams["Automatic Placement"].lower() == 'true':
+                            autoplace = True
+                    elif defaultParams["Automatic Placement"]:
+                        autoplace = True
+                break
+
         for testCheckBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if testCheckBox.text() == testStructureName:
                 for param in self.parameters[testStructureName]:
@@ -766,7 +793,7 @@ class MyApp(QWidget):
                         for number, name in self.layerData:
                             if int(number) == layer_number:
                                 value = name
-                    elif param == "Center" and testStructureName != "Rectangle":
+                    elif param == "Center" and testStructureName != "Rectangle" and not(autoplace):
                         value = self.validateCenter(value)
                         if value is None:
                             return
@@ -780,21 +807,70 @@ class MyApp(QWidget):
                     params[param.replace(" ", "_")] = value
         return params
 
-    def addMLAAlignmentMark(self, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent):
+    def addMLAAlignmentMark(self, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_MLA_alignment_mark(
-            cell_name=top_cell_name,
-            layer_name=Layer,
-            center=Center,
-            rect_width=float(Outer_Rect_Width),
-            rect_height=float(Outer_Rect_Height),
-            width_interior=float(Interior_Width),
-            extent_x_interior=float(Interior_X_Extent),
-            extent_y_interior=float(Interior_Y_Extent)
-        )
+        if not(Automatic_Placement):
+            self.gds_design.add_MLA_alignment_mark(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=Center,
+                rect_width=float(Outer_Rect_Width),
+                rect_height=float(Outer_Rect_Height),
+                width_interior=float(Interior_Width),
+                extent_x_interior=float(Interior_X_Extent),
+                extent_y_interior=float(Interior_Y_Extent)
+            )
+        # If automatic placement is set to true, place the feature on a temporary cell, determine the size, and then place it on the top cell in a position where there is no overlap
+        else:
+            try:
+                self.gds_design.delete_cell(TEMP_CELL_NAME)
+            except ValueError:
+                pass  # If the cell doesn't exist, just ignore the error
+
+            self.gds_design.add_cell(TEMP_CELL_NAME)
+            self.gds_design.add_MLA_alignment_mark(
+                cell_name=TEMP_CELL_NAME,
+                layer_name=Layer,
+                center=(0,0),
+                rect_width=float(Outer_Rect_Width),
+                rect_height=float(Outer_Rect_Height),
+                width_interior=float(Interior_Width),
+                extent_x_interior=float(Interior_X_Extent),
+                extent_y_interior=float(Interior_Y_Extent)
+            )
+            cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
+            self.gds_design.delete_cell(TEMP_CELL_NAME)
+            # Get substrate layer name from layer number:
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if not substrate_name:
+                QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
+                self.log("MLA Alignment Mark placement error: Substrate layer not set")
+                return
+            available_space = self.gds_design.determine_available_space(substrate_name)
+            print(cell_width, cell_height, cell_offset)
+            try:
+                Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
+            except ValueError:
+                QMessageBox.critical(self, "Placement Error", "No space available for the MLA Alignment Mark.", QMessageBox.Ok)
+                self.log("MLA Alignment Mark placement error: No space available")
+                return
+            # self.gds_design.add_MLA_alignment_mark(
+            #     cell_name=top_cell_name,
+            #     layer_name=Layer,
+            #     center=Center,
+            #     rect_width=float(Outer_Rect_Width),
+            #     rect_height=float(Outer_Rect_Height),
+            #     width_interior=float(Interior_Width),
+            #     extent_x_interior=float(Interior_X_Extent),
+            #     extent_y_interior=float(Interior_Y_Extent)
+            # )
+
         self.log(f"MLA Alignment Mark added to {top_cell_name} on layer {Layer} at center {Center}")
 
-    def addResistanceTest(self, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text):
+    def addResistanceTest(self, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         self.gds_design.add_resistance_test_structure(
             cell_name=top_cell_name,
@@ -817,7 +893,7 @@ class MyApp(QWidget):
         )
         self.log(f"Resistance Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
-    def addTraceTest(self, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height):
+    def addTraceTest(self, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         self.gds_design.add_line_test_structure(
             cell_name=top_cell_name,
@@ -832,7 +908,7 @@ class MyApp(QWidget):
         )
         self.log(f"Trace Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
-    def addInterlayerViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height):
+    def addInterlayerViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         self.gds_design.add_p_via_test_structure(
             cell_name=top_cell_name,
@@ -946,7 +1022,7 @@ class MyApp(QWidget):
         )
         self.log(f"Path added to {top_cell_name} on layer {Layer}")
 
-    def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height):
+    def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         self.gds_design.add_electronics_via_test_structure(
             cell_name=top_cell_name,
@@ -967,7 +1043,7 @@ class MyApp(QWidget):
         )
         self.log(f"Electronics Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
 
-    def addShortTest(self, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height):
+    def addShortTest(self, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         self.gds_design.add_short_test_structure(
             cell_name=top_cell_name,
@@ -984,7 +1060,7 @@ class MyApp(QWidget):
         )
         self.log(f"Short Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
-    def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y):
+    def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if self.customTestCellName:
             try:

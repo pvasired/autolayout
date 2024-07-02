@@ -1,6 +1,7 @@
 import gdspy
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import box, MultiPolygon, Polygon, Point
+from shapely.affinity import translate
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
@@ -78,6 +79,55 @@ class GDSDesign:
         self.cells[cell_name]['polygons'] = []
         self.cells[cell_name]['netIDs'] = []
         return cell
+    
+    def delete_cell(self, cell_name):
+        """
+        Delete a cell from the GDS library and the internal cell dictionary.
+
+        Args:
+        - cell_name (str): Name of the cell to delete.
+        """
+        if cell_name not in self.cells and cell_name not in self.lib.cells:
+            raise ValueError(f"Error: Cell '{cell_name}' does not exist.")
+        
+        # Remove the cell from the internal dictionary
+        if cell_name in self.cells:
+            del self.cells[cell_name]
+        
+        # Remove the cell from the GDS library
+        if cell_name in self.lib.cells:
+            self.lib.remove(cell_name)
+        else:
+            raise ValueError(f"Error: Cell '{cell_name}' not found in the GDS library.")
+        
+    def calculate_cell_size(self, cell_name):
+        """
+        Calculate the bounding box size of a cell based on its polygons.
+
+        Args:
+        - cell_name (str): Name of the cell to calculate the size for.
+
+        Returns:
+        - (width, height): Tuple representing the width and height of the cell.
+        """
+        cell = self.check_cell_exists(cell_name)
+        
+        # Initialize the bounding box
+        min_x, min_y = np.inf, np.inf
+        max_x, max_y = -np.inf, -np.inf
+        
+        for poly in cell.get_polygons():
+            points = np.array(poly)
+            min_x = min(min_x, np.amin(points[:, 0]))
+            max_x = max(max_x, np.amax(points[:, 0]))
+            min_y = min(min_y, np.amin(points[:, 1]))
+            max_y = max(max_y, np.amax(points[:, 1]))
+        
+        offset = ((max_x + min_x) / 2, (max_y + min_y) / 2)
+        width = max_x - min_x
+        height = max_y - min_y
+
+        return width, height, offset
 
     def add_MLA_alignment_mark(self, cell_name, layer_name, center, rect_width=500, rect_height=20, width_interior=5,
                                extent_x_interior=50, extent_y_interior=50, datatype=0, netID=0, add_text=False, text_height=250,
@@ -766,6 +816,81 @@ class GDSDesign:
     def write_gds(self, filename):
         self.lib.write_gds(filename)
         print(f'GDS file written to {filename}')
+
+    def determine_available_space(self, substrate_layer_name):
+        """
+        Determine the available space in the design based on the substrate layer.
+
+        Args:
+        - substrate_layer_name (str): The name of the substrate layer.
+
+        Returns:
+        - available_space (shapely.geometry.MultiPolygon): The available space as a MultiPolygon.
+        """
+        substrate_layer_number = self.get_layer_number(substrate_layer_name)
+        substrate_polygons = []
+
+        # Get polygons from the substrate layer in top cells
+        for top_cell_name in self.top_cell_names:
+            cell = self.check_cell_exists(top_cell_name)
+            polygons_by_spec = cell.get_polygons(by_spec=True)
+            for (lay, dat), polys in polygons_by_spec.items():
+                if lay == substrate_layer_number:
+                    substrate_polygons.extend(polys)
+        
+        if not substrate_polygons:
+            raise ValueError(f"No polygons found in the substrate layer '{substrate_layer_name}'.")
+
+        # Create a union of all substrate polygons
+        substrate_union = unary_union([Polygon(poly) for poly in substrate_polygons])
+
+        # Get polygons from all other layers in top cells
+        all_other_polygons = []
+        for top_cell_name in self.top_cell_names:
+            cell = self.check_cell_exists(top_cell_name)
+            polygons_by_spec = cell.get_polygons(by_spec=True)
+            for (lay, dat), polys in polygons_by_spec.items():
+                if lay != substrate_layer_number:
+                    all_other_polygons.extend(polys)
+        
+        # Create a union of all other polygons
+        all_other_union = unary_union([Polygon(poly) for poly in all_other_polygons])
+
+        # Subtract the occupied space from the substrate
+        available_space = substrate_union.difference(all_other_union)
+        return available_space
+    
+    def find_position_for_rectangle(self, available_space, width, height, offset, step_size=100, buffer=100):
+        width = width + 2 * buffer
+        height = height + 2 * buffer
+
+        # Check if either the width or height is larger than the bounding box of the available space
+        minx, miny, maxx, maxy = available_space.bounds
+        if width > maxx - minx or height > maxy - miny:
+            raise ValueError("Rectangle dimensions exceed the available space.")
+
+        rectangle = Polygon([
+            (-width / 2, -height / 2),
+            (width / 2, -height / 2),
+            (width / 2, height / 2),
+            (-width / 2, height / 2)
+        ])
+
+        for polygon in available_space.geoms:
+            
+            minx, miny, maxx, maxy = polygon.bounds
+
+            for x in np.arange(minx, maxx, step_size):
+                for y in np.arange(miny, maxy, step_size):
+                    print(f"Trying point ({x}, {y})")
+                    translated_rectangle = translate(rectangle, xoff=x + offset[0], yoff=y + offset[1])
+                    
+                    if polygon.contains(translated_rectangle):
+                        print(f"Rectangle fits at ({x}, {y})")
+                        return (x, y)
+                    print("Rectangle does not fit.")
+        
+        raise ValueError("No available space found.")
 
 def cluster_intersecting_polygons(polygons):
     """Groups intersecting polygons into clusters using an R-tree for efficient spatial indexing,
