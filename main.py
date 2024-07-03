@@ -755,7 +755,6 @@ class MyApp(QWidget):
                 self.addPolygon(**params)
             elif testStructureName == "Path":
                 self.addPath(**params)
-            self.logTestStructure(testStructureName, params)  # Log the test structure details
         # Write the design
         self.writeToGDS()
 
@@ -866,7 +865,16 @@ class MyApp(QWidget):
                 extent_x_interior=float(Interior_X_Extent),
                 extent_y_interior=float(Interior_Y_Extent)
             )
-
+        params = {
+            "Layer": Layer,
+            "Center": Center,
+            "Outer Rect Width": Outer_Rect_Width,
+            "Outer Rect Height": Outer_Rect_Height,
+            "Interior Width": Interior_Width,
+            "Interior X Extent": Interior_X_Extent,
+            "Interior Y Extent": Interior_Y_Extent
+        }
+        self.logTestStructure("MLA Alignment Mark", params)  # Log the test structure details
         self.log(f"MLA Alignment Mark added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addResistanceTest(self, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text, Automatic_Placement):
@@ -954,6 +962,25 @@ class MyApp(QWidget):
                 short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
                 layer_name_short=Layer_Name_Short
             )
+        params = {
+            "Layer": Layer,
+            "Center": Center,
+            "Probe Pad Width": Probe_Pad_Width,
+            "Probe Pad Height": Probe_Pad_Height,
+            "Probe Pad Spacing": Probe_Pad_Spacing,
+            "Plug Width": Plug_Width,
+            "Plug Height": Plug_Height,
+            "Trace Width": Trace_Width,
+            "Trace Spacing": Trace_Spacing,
+            "Switchbacks": Switchbacks,
+            "X Extent": X_Extent,
+            "Text Height": Text_Height,
+            "Text": Text,
+            "Add Interlayer Short": Add_Interlayer_Short,
+            "Layer Name Short": Layer_Name_Short,
+            "Short Text": Short_Text
+        }
+        self.logTestStructure("Resistance Test", params)  # Log the test structure details
         self.log(f"Resistance Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addTraceTest(self, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height, Automatic_Placement):
@@ -1017,6 +1044,17 @@ class MyApp(QWidget):
                 line_spacing=float(Line_Spacing),
                 text_height=float(Text_Height)
             )
+        params = {
+            "Layer": Layer,
+            "Center": Center,
+            "Text": Text,
+            "Line Width": Line_Width,
+            "Line Height": Line_Height,
+            "Num Lines": Num_Lines,
+            "Line Spacing": Line_Spacing,
+            "Text Height": Text_Height
+        }
+        self.logTestStructure("Trace Test", params)  # Log the test structure details
         self.log(f"Trace Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addInterlayerViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height, Automatic_Placement):
@@ -1095,6 +1133,22 @@ class MyApp(QWidget):
                 via_height=float(Via_Height),
                 text_height=float(Text_Height)
             )
+        params = {
+            "Layer Number 1": Layer_Number_1,
+            "Layer Number 2": Layer_Number_2,
+            "Via Layer": Via_Layer,
+            "Center": Center,
+            "Text": Text,
+            "Layer 1 Rectangle Spacing": Layer_1_Rectangle_Spacing,
+            "Layer 1 Rectangle Width": Layer_1_Rectangle_Width,
+            "Layer 1 Rectangle Height": Layer_1_Rectangle_Height,
+            "Layer 2 Rectangle Width": Layer_2_Rectangle_Width,
+            "Layer 2 Rectangle Height": Layer_2_Rectangle_Height,
+            "Via Width": Via_Width,
+            "Via Height": Via_Height,
+            "Text Height": Text_Height
+        }
+        self.logTestStructure("Interlayer Via Test", params)  # Log the test structure details
         self.log(f"Interlayer Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
     
     def addRectangle(self, Layer, Center, Width, Height, Lower_Left, Upper_Right, Rotation):
@@ -1109,6 +1163,16 @@ class MyApp(QWidget):
             upper_right=float(Upper_Right) if Upper_Right else None,
             rotation=float(Rotation)*math.pi/180
         )
+        params = {
+            "Layer": Layer,
+            "Center": Center,
+            "Width": Width,
+            "Height": Height,
+            "Lower Left": Lower_Left,
+            "Upper Right": Upper_Right,
+            "Rotation": Rotation
+        }
+        self.logTestStructure("Rectangle", params)  # Log the test structure details
         self.log(f"Rectangle added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addCircle(self, Layer, Center, Diameter):
@@ -1123,6 +1187,12 @@ class MyApp(QWidget):
             radius=float(Diameter)/2,
             layer_name=Layer
         )
+        params = {
+            "Layer": Layer,
+            "Center": Center,
+            "Diameter": Diameter
+        }
+        self.logTestStructure("Circle", params)  # Log the test structure details
         self.log(f"Circle added to {top_cell_name} on layer {Layer} at center {Center}")
     
     def addText(self, Layer, Center, Text, Height, Rotation):
@@ -1156,6 +1226,14 @@ class MyApp(QWidget):
             height=float(Height),
             angle=float(Rotation)
         )
+        params = {
+            "Layer": Layer,
+            "Center": Center,
+            "Text": Text,
+            "Height": Height,
+            "Rotation": Rotation
+        }
+        self.logTestStructure("Text", params)  # Log the test structure details
         self.log(f"Text added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addPolygon(self, Layer):
@@ -1170,6 +1248,11 @@ class MyApp(QWidget):
             points=Points,
             layer_name=Layer
         )
+        params = {
+            "Layer": Layer,
+            "Points": Points
+        }
+        self.logTestStructure("Polygon", params)  # Log the test structure details
         self.log(f"Polygon added to {top_cell_name} on layer {Layer}")
 
     def addPath(self, Layer, Width):
@@ -1189,6 +1272,12 @@ class MyApp(QWidget):
             width=float(Width),
             layer_name=Layer
         )
+        params = {
+            "Layer": Layer,
+            "Points": Points,
+            "Width": Width
+        }
+        self.logTestStructure("Path", params)  # Log the test structure details
         self.log(f"Path added to {top_cell_name} on layer {Layer}")
 
     def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height, Automatic_Placement):
@@ -1270,6 +1359,23 @@ class MyApp(QWidget):
                 via_spacing=float(Via_Spacing),
                 text_height=float(Text_Height)
             )
+        params = {
+            "Layer Number 1": Layer_Number_1,
+            "Layer Number 2": Layer_Number_2,
+            "Via Layer": Via_Layer,
+            "Center": Center,
+            "Text": Text,
+            "Layer 1 Rectangle Width": Layer_1_Rect_Width,
+            "Layer 1 Rectangle Height": Layer_1_Rect_Height,
+            "Layer 2 Rectangle Width": Layer_2_Rect_Width,
+            "Layer 2 Rectangle Height": Layer_2_Rect_Height,
+            "Layer 2 Rectangle Spacing": Layer_2_Rect_Spacing,
+            "Via Width": Via_Width,
+            "Via Height": Via_Height,
+            "Via Spacing": Via_Spacing,
+            "Text Height": Text_Height
+        }
+        self.logTestStructure("Electronics Via Test", params)  # Log the test structure details
         self.log(f"Electronics Via Test added to {top_cell_name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
 
     def addShortTest(self, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
@@ -1339,6 +1445,19 @@ class MyApp(QWidget):
                 num_lines_vert=int(Num_Lines_Vert),
                 text_height=float(Text_Height)
             )
+        params = {
+            "Layer": Layer,
+            "Center": Center,
+            "Text": Text,
+            "Rect Width": Rect_Width,
+            "Trace Width": Trace_Width,
+            "Num Lines": Num_Lines,
+            "Group Spacing": Group_Spacing,
+            "Num Groups": Num_Groups,
+            "Num Lines Vert": Num_Lines_Vert,
+            "Text Height": Text_Height
+        }
+        self.logTestStructure("Short Test", params)  # Log the test structure details
         self.log(f"Short Test added to {top_cell_name} on layer {Layer} at center {Center}")
 
     def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Automatic_Placement):
@@ -1395,6 +1514,13 @@ class MyApp(QWidget):
                         rotation=float(Rotation),
                         x_reflection=X_Reflection
                     )
+                params = {
+                    "Center": Center,
+                    "Magnification": Magnification,
+                    "Rotation": Rotation,
+                    "X Reflection": X_Reflection
+                }
+                self.logTestStructure("Custom Test Structure", params)  # Log the test structure details
                 self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
             else:
                 if not(Automatic_Placement):
@@ -1459,6 +1585,17 @@ class MyApp(QWidget):
                         rotation=float(Rotation),
                         x_reflection=X_Reflection
                     )
+                params = {
+                    "Center": Center,
+                    "Magnification": Magnification,
+                    "Rotation": Rotation,
+                    "X Reflection": X_Reflection,
+                    "Copies X": Copies_X,
+                    "Copies Y": Copies_Y,
+                    "Spacing X": Spacing_X,
+                    "Spacing Y": Spacing_Y
+                }
+                self.logTestStructure("Custom Test Structure Array", params)  # Log the test structure details
                 self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Spacing_X}, spacing y {Spacing_Y}")
                 
     def handleCustomTestCellName(self):
