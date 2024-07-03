@@ -858,7 +858,49 @@ class GDSDesign:
         # Subtract the occupied space from the substrate
         available_space = substrate_union.difference(all_other_union)
 
-        return available_space if isinstance(available_space, MultiPolygon) else MultiPolygon([available_space])
+        return (available_space if isinstance(available_space, MultiPolygon) else MultiPolygon([available_space]), [geom for geom in all_other_polygons])
+
+    def update_available_space(self, substrate_layer_name, old_available_space, all_other_polygons_unprepared):
+        """
+        Update the available space after adding new features to the design.
+
+        Args:
+        - old_available_space (shapely.geometry.MultiPolygon): The original available space.
+        
+        Returns:
+        - updated_available_space (shapely.geometry.MultiPolygon): The updated available space.
+        """
+        substrate_layer_number = self.get_layer_number(substrate_layer_name)
+        all_other_polygons_index = STRtree(all_other_polygons_unprepared)
+
+        new_polygons = []
+
+        # Get polygons from all layers in top cells
+        for top_cell_name in self.top_cell_names:
+            cell = self.check_cell_exists(top_cell_name)
+            polygons_by_spec = cell.get_polygons(by_spec=True)
+            for (lay, dat), polys in polygons_by_spec.items():
+                if lay != substrate_layer_number:
+                    for poly in polys:
+                        polygon = Polygon(poly)
+                        if not polygon.is_valid:
+                            polygon = polygon.buffer(0)  # Attempt to fix invalid geometry
+                        if polygon.is_valid:
+                            # Use the STRtree index to find possible containing polygons
+                            idx = all_other_polygons_index.query(polygon)
+                            if not any([all_other_polygons_unprepared[i].contains(polygon) or all_other_polygons_unprepared[i].equals(polygon) for i in idx]):
+                                new_polygons.append(polygon)
+                        else:
+                            raise ValueError(f"Invalid geometry found in cell '{top_cell_name}' on layer '{lay}'.")
+        
+        if len(new_polygons) == 0:
+            return old_available_space
+
+        new_other_gdf = gpd.GeoDataFrame(geometry=new_polygons)
+        new_other_union = new_other_gdf.dissolve().geometry[0]
+        updated_available_space = old_available_space.difference(new_other_union)
+
+        return (updated_available_space if isinstance(updated_available_space, MultiPolygon) else MultiPolygon([updated_available_space]), all_other_polygons_unprepared + [geom for geom in new_polygons])
     
     def find_position_for_rectangle(self, available_space, width, height, offset, step_size=500, buffer=100):
         width = width + 2 * buffer

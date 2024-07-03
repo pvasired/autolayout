@@ -42,6 +42,8 @@ class MyApp(QWidget):
         self.customTestCellName = ""
         self.logFileName = ""
         self.substrateLayer = None
+        self.availableSpace = None
+        self.allOtherPolygons = None
         self.layerData = []  # To store layer numbers and names
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
@@ -479,6 +481,16 @@ class MyApp(QWidget):
             self.substrateLayer = layerNumber
             self.log(f"Substrate layer set to: {self.substrateLayer}")
             QMessageBox.information(self, "Substrate Layer Selected", f"Substrate layer set to: {self.substrateLayer}", QMessageBox.Ok)
+
+            # Initialize available space
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if substrate_name:
+                self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name)
+                self.log(f"Available space calculated.")
+                self.log(f"All other polygons calculated.")
         else:
             QMessageBox.warning(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
 
@@ -515,7 +527,7 @@ class MyApp(QWidget):
 
     def addSnapshot(self):
         self.log("Adding snapshot to undo stack and clearing redo stack")
-        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries()))
+        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons)))
         self.redoStack.clear()
 
     def readLogEntries(self):
@@ -529,8 +541,8 @@ class MyApp(QWidget):
     def undo(self):
         if self.undoStack:
             self.log("Adding snapshot to redo stack and reverting to previous state")
-            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries()))
-            self.gds_design, log_entries = self.undoStack.pop()
+            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons = self.undoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:
@@ -539,8 +551,8 @@ class MyApp(QWidget):
     def redo(self):
         if self.redoStack:
             self.log("Adding snapshot to undo stack and reverting to previous state")
-            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries()))
-            self.gds_design, log_entries = self.redoStack.pop()
+            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons = self.redoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:
@@ -755,8 +767,21 @@ class MyApp(QWidget):
                 self.addPolygon(**params)
             elif testStructureName == "Path":
                 self.addPath(**params)
-        # Write the design
-        self.writeToGDS()
+            # Write the design
+            self.writeToGDS()
+            # Update the available space
+            self.updateAvailableSpace()
+
+    def updateAvailableSpace(self):
+        if self.substrateLayer:
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if substrate_name:
+                self.availableSpace, self.allOtherPolygons = self.gds_design.update_available_space(substrate_name, self.availableSpace, self.allOtherPolygons)
+                self.log(f"Available space updated.")
+                self.log(f"All other polygons updated.")
 
     def logTestStructure(self, name, params):
         with open(self.logFileName, 'a') as log_file:
@@ -848,7 +873,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                 self.log("MLA Alignment Mark placement error: Substrate layer not set")
                 return
-            available_space = self.gds_design.determine_available_space(substrate_name)
+            available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
@@ -936,7 +961,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                 self.log("Resistance Test placement error: Substrate layer not set")
                 return
-            available_space = self.gds_design.determine_available_space(substrate_name)
+            available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
@@ -1026,7 +1051,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                 self.log("Trace Test placement error: Substrate layer not set")
                 return
-            available_space = self.gds_design.determine_available_space(substrate_name)
+            available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
@@ -1110,7 +1135,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                 self.log("Interlayer Via Test placement error: Substrate layer not set")
                 return
-            available_space = self.gds_design.determine_available_space(substrate_name)
+            available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
@@ -1335,7 +1360,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                 self.log("Electronics Via Test placement error: Substrate layer not set")
                 return
-            available_space = self.gds_design.determine_available_space(substrate_name)
+            available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
@@ -1425,7 +1450,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                 self.log("Short Test placement error: Substrate layer not set")
                 return
-            available_space = self.gds_design.determine_available_space(substrate_name)
+            available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
@@ -1499,7 +1524,7 @@ class MyApp(QWidget):
                         QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                         self.log("Custom Test Structure placement error: Substrate layer not set")
                         return
-                    available_space = self.gds_design.determine_available_space(substrate_name)
+                    available_space = self.availableSpace
                     try:
                         Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
                     except ValueError:
@@ -1515,6 +1540,7 @@ class MyApp(QWidget):
                         x_reflection=X_Reflection
                     )
                 params = {
+                    "Cell Name": self.customTestCellName,
                     "Center": Center,
                     "Magnification": Magnification,
                     "Rotation": Rotation,
@@ -1566,7 +1592,7 @@ class MyApp(QWidget):
                         QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
                         self.log("Custom Test Structure placement error: Substrate layer not set")
                         return
-                    available_space = self.gds_design.determine_available_space(substrate_name)
+                    available_space = self.availableSpace
                     try:
                         Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
                     except ValueError:
@@ -1586,6 +1612,7 @@ class MyApp(QWidget):
                         x_reflection=X_Reflection
                     )
                 params = {
+                    "Cell Name": self.customTestCellName,
                     "Center": Center,
                     "Magnification": Magnification,
                     "Rotation": Rotation,
