@@ -502,9 +502,14 @@ class MyApp(QWidget):
         self.excludedLayers = valid_layers
         self.log(f"Excluded layers set to: {self.excludedLayers}")
         if type(self.substrateLayer) == int:
-            self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(self.substrateLayer, self.excludedLayers)
-            self.log(f"Available space calculated.")
-            self.log(f"All other polygons calculated.")
+            substrate_name = None
+            for number, name in self.layerData:
+                if int(number) == self.substrateLayer:
+                    substrate_name = name
+            if substrate_name:
+                self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name, self.excludedLayers)
+                self.log(f"Available space calculated.")
+                self.log(f"All other polygons calculated.")
 
     def log(self, message):
         if self.verbose:
@@ -818,7 +823,7 @@ class MyApp(QWidget):
             self.updateAvailableSpace()
 
     def updateAvailableSpace(self):
-        if self.substrateLayer:
+        if type(self.substrateLayer) == int:
             substrate_name = None
             for number, name in self.layerData:
                 if int(number) == self.substrateLayer:
