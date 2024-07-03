@@ -888,8 +888,9 @@ class GDSDesign:
                         if polygon.is_valid:
                             # Use the STRtree index to find possible containing polygons
                             idx = all_other_polygons_index.query(polygon)
-                            if not any([all_other_polygons_unprepared[i].contains(polygon) or all_other_polygons_unprepared[i].equals(polygon) for i in idx]):
-                                new_polygons.append(polygon)
+                            if any([all_other_polygons_unprepared[i].contains(polygon) or all_other_polygons_unprepared[i].equals(polygon) for i in idx]):
+                                continue    
+                            new_polygons.append(polygon)
                         else:
                             raise ValueError(f"Invalid geometry found in cell '{top_cell_name}' on layer '{lay}'.")
         
