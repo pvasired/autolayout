@@ -132,7 +132,7 @@ class MyApp(QWidget):
                 "Layer 2 Rect Spacing": "Enter the spacing between rectangles on layer 2.",
                 "Via Width": "Enter the width of the vias.",
                 "Via Height": "Enter the height of the vias.",
-                "Via Spacing": "Enter the spacing between vias.",
+                "Via Spacing": "Enter the spacing between vias and edge of rectangles in layer 2.",
                 "Text Height": "Enter the height of the text.",
                 "Automatic Placement": "Check to automatically place the electronics via test structure."
             },
@@ -460,7 +460,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
-        self.resize(1200, 800)  # Set the initial size of the window
+        self.resize(1400, 800)  # Set the initial size of the window
         self.show()
 
     def log(self, message):
