@@ -820,7 +820,7 @@ class GDSDesign:
         self.lib.write_gds(filename)
         print(f'GDS file written to {filename}')
 
-    def determine_available_space(self, substrate_layer_name):
+    def determine_available_space(self, substrate_layer_name, excluded_layers):
         """
         Determine the available space in the design based on the substrate layer.
 
@@ -841,7 +841,7 @@ class GDSDesign:
             for (lay, dat), polys in polygons_by_spec.items():
                 if lay == substrate_layer_number:
                     substrate_polygons.extend([Polygon(poly) for poly in polys])
-                else:
+                elif lay not in excluded_layers:
                     all_other_polygons.extend([Polygon(poly) for poly in polys])
         
         if not substrate_polygons:
@@ -860,7 +860,7 @@ class GDSDesign:
 
         return (available_space if isinstance(available_space, MultiPolygon) else MultiPolygon([available_space]), [geom for geom in all_other_polygons])
 
-    def update_available_space(self, substrate_layer_name, old_available_space, all_other_polygons_unprepared):
+    def update_available_space(self, substrate_layer_name, old_available_space, all_other_polygons_unprepared, excluded_layers):
         """
         Update the available space after adding new features to the design.
 
@@ -880,7 +880,7 @@ class GDSDesign:
             cell = self.check_cell_exists(top_cell_name)
             polygons_by_spec = cell.get_polygons(by_spec=True)
             for (lay, dat), polys in polygons_by_spec.items():
-                if lay != substrate_layer_number:
+                if lay != substrate_layer_number and lay not in excluded_layers:
                     for poly in polys:
                         polygon = Polygon(poly)
                         if not polygon.is_valid:

@@ -42,6 +42,7 @@ class MyApp(QWidget):
         self.customTestCellName = ""
         self.logFileName = ""
         self.substrateLayer = None
+        self.excludedLayers = []
         self.availableSpace = None
         self.allOtherPolygons = None
         self.layerData = []  # To store layer numbers and names
@@ -432,6 +433,13 @@ class MyApp(QWidget):
         self.selectSubstrateLayerButton.setToolTip('Click to select the substrate layer from the dropdown menu.')
         layersHBoxLayout.addWidget(self.selectSubstrateLayerButton)  # Add the button to the right
 
+        # New Excluded Layers input field
+        self.excludedLayersEdit = QLineEdit()
+        self.excludedLayersEdit.setPlaceholderText('Excluded Layers')
+        self.excludedLayersEdit.editingFinished.connect(self.updateExcludedLayers)
+        self.excludedLayersEdit.setToolTip('Enter comma-separated list of layer numbers or names to exclude from automatic placement search.')
+        layersHBoxLayout.addWidget(self.excludedLayersEdit)
+
         # Define Layer layout
         defineLayerHBoxLayout = QHBoxLayout()
         self.newLayerNumberEdit = QLineEdit()
@@ -464,6 +472,39 @@ class MyApp(QWidget):
         self.setWindowTitle('Test Structure Automation GUI')
         self.resize(1400, 800)  # Set the initial size of the window
         self.show()
+    
+    def updateExcludedLayers(self):
+        excluded_layers_input = self.excludedLayersEdit.text()
+        excluded_layers = excluded_layers_input.split(',')
+        valid_layers = []
+        for layer in excluded_layers:
+            layer = layer.strip()
+            if layer.isdigit():
+                layer_number = int(layer)
+                if layer_number == self.substrateLayer:
+                    QMessageBox.critical(self, "Layer Error", "Cannot exclude the substrate layer.", QMessageBox.Ok)
+                    self.log(f"Excluded Layers input error: Cannot exclude substrate layer {layer}")
+                    return
+                elif any(int(number) == layer_number for number, name in self.layerData):
+                    valid_layers.append(layer_number)
+                else:
+                    QMessageBox.critical(self, "Layer Error", f"Invalid layer number: {layer}", QMessageBox.Ok)
+                    self.log(f"Excluded Layers input error: Invalid layer number {layer}")
+                    return
+            else:
+                if any(name.lower() == layer.lower() for number, name in self.layerData):
+                    valid_layers.append(next(int(number) for number, name in self.layerData if name.lower() == layer.lower() and int(number) != self.substrateLayer))
+                else:
+                    QMessageBox.critical(self, "Layer Error", f"Invalid layer name: {layer}", QMessageBox.Ok)
+                    self.log(f"Excluded Layers input error: Invalid layer name {layer}")
+                    return
+                
+        self.excludedLayers = valid_layers
+        self.log(f"Excluded layers set to: {self.excludedLayers}")
+        if type(self.substrateLayer) == int:
+            self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(self.substrateLayer, self.excludedLayers)
+            self.log(f"Available space calculated.")
+            self.log(f"All other polygons calculated.")
 
     def log(self, message):
         if self.verbose:
@@ -478,6 +519,10 @@ class MyApp(QWidget):
         currentLayer = self.layersComboBox.currentText()
         if currentLayer:
             layerNumber = int(currentLayer.split(':')[0])
+            if layerNumber in self.excludedLayers:
+                QMessageBox.critical(self, "Layer Error", "Cannot set the substrate layer to an excluded layer.", QMessageBox.Ok)
+                self.log(f"Substrate layer selection error: Cannot set to excluded layer {layerNumber}")
+                return
             self.substrateLayer = layerNumber
             self.log(f"Substrate layer set to: {self.substrateLayer}")
             QMessageBox.information(self, "Substrate Layer Selected", f"Substrate layer set to: {self.substrateLayer}", QMessageBox.Ok)
@@ -488,7 +533,7 @@ class MyApp(QWidget):
                 if int(number) == self.substrateLayer:
                     substrate_name = name
             if substrate_name:
-                self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name)
+                self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name, self.excludedLayers)
                 self.log(f"Available space calculated.")
                 self.log(f"All other polygons calculated.")
         else:
@@ -779,7 +824,7 @@ class MyApp(QWidget):
                 if int(number) == self.substrateLayer:
                     substrate_name = name
             if substrate_name:
-                self.availableSpace, self.allOtherPolygons = self.gds_design.update_available_space(substrate_name, self.availableSpace, self.allOtherPolygons)
+                self.availableSpace, self.allOtherPolygons = self.gds_design.update_available_space(substrate_name, self.availableSpace, self.allOtherPolygons, self.excludedLayers)
                 self.log(f"Available space updated.")
                 self.log(f"All other polygons updated.")
 
