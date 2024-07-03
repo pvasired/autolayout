@@ -895,7 +895,7 @@ class GDSDesign:
                             raise ValueError(f"Invalid geometry found in cell '{top_cell_name}' on layer '{lay}'.")
         
         if len(new_polygons) == 0:
-            return old_available_space
+            return old_available_space, all_other_polygons_unprepared
 
         new_other_gdf = gpd.GeoDataFrame(geometry=new_polygons)
         new_other_union = new_other_gdf.dissolve().geometry[0]
