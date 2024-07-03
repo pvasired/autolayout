@@ -1234,6 +1234,10 @@ class MyApp(QWidget):
     
     def addRectangle(self, Layer, Center, Width, Height, Lower_Left, Upper_Right, Rotation):
         top_cell_name = self.gds_design.top_cell_names[0]
+        if (not Width or not Height or not Center) and (not Lower_Left or not Upper_Right):
+            QMessageBox.critical(self, "Input Error", "Please enter either width and height or lower left and upper right coordinates for the rectangle.", QMessageBox.Ok)
+            self.log("Rectangle add error: No dimensions provided")
+            return False
         self.gds_design.add_rectangle(
             cell_name=top_cell_name,
             layer_name=Layer,
@@ -1255,6 +1259,7 @@ class MyApp(QWidget):
         }
         self.logTestStructure("Rectangle", params)  # Log the test structure details
         self.log(f"Rectangle added to {top_cell_name} on layer {Layer} at center {Center}")
+        return True
 
     def addCircle(self, Layer, Center, Diameter):
         if not Diameter:
