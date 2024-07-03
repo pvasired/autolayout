@@ -903,7 +903,7 @@ class GDSDesign:
 
         return (updated_available_space if isinstance(updated_available_space, MultiPolygon) else MultiPolygon([updated_available_space]), all_other_polygons_unprepared + [geom for geom in new_polygons])
     
-    def find_position_for_rectangle(self, available_space, width, height, offset, step_size=500, buffer=100):
+    def find_position_for_rectangle(self, available_space, width, height, offset, step_size=500, buffer=250):
         width = width + 2 * buffer
         height = height + 2 * buffer
 

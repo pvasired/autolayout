@@ -929,7 +929,7 @@ class MyApp(QWidget):
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
-                QMessageBox.critical(self, "Placement Error", "No space available for the MLA Alignment Mark.", QMessageBox.Ok)
+                QMessageBox.critical(self, "Placement Error", "No space available for the MLA Alignment Mark. You may need to exclude a layer?", QMessageBox.Ok)
                 self.log("MLA Alignment Mark placement error: No space available")
                 return False
             self.gds_design.add_MLA_alignment_mark(
@@ -1018,7 +1018,7 @@ class MyApp(QWidget):
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
-                QMessageBox.critical(self, "Placement Error", "No space available for the Resistance Test.", QMessageBox.Ok)
+                QMessageBox.critical(self, "Placement Error", "No space available for the Resistance Test. You may need to exclude a layer?", QMessageBox.Ok)
                 self.log("Resistance Test placement error: No space available")
                 return False
             self.gds_design.add_resistance_test_structure(
@@ -1109,7 +1109,7 @@ class MyApp(QWidget):
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
-                QMessageBox.critical(self, "Placement Error", "No space available for the Trace Test.", QMessageBox.Ok)
+                QMessageBox.critical(self, "Placement Error", "No space available for the Trace Test. You may need to exclude a layer?", QMessageBox.Ok)
                 self.log("Trace Test placement error: No space available")
                 return False
             self.gds_design.add_line_test_structure(
@@ -1194,7 +1194,7 @@ class MyApp(QWidget):
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
-                QMessageBox.critical(self, "Placement Error", "No space available for the Interlayer Via Test.", QMessageBox.Ok)
+                QMessageBox.critical(self, "Placement Error", "No space available for the Interlayer Via Test. You may need to exclude a layer?", QMessageBox.Ok)
                 self.log("Interlayer Via Test placement error: No space available")
                 return False
             self.gds_design.add_p_via_test_structure(
@@ -1429,7 +1429,7 @@ class MyApp(QWidget):
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
-                QMessageBox.critical(self, "Placement Error", "No space available for the Electronics Via Test.", QMessageBox.Ok)
+                QMessageBox.critical(self, "Placement Error", "No space available for the Electronics Via Test. You may need to exclude a layer?", QMessageBox.Ok)
                 self.log("Electronics Via Test placement error: No space available")
                 return False
             self.gds_design.add_electronics_via_test_structure(
@@ -1520,7 +1520,7 @@ class MyApp(QWidget):
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
-                QMessageBox.critical(self, "Placement Error", "No space available for the Short Test.", QMessageBox.Ok)
+                QMessageBox.critical(self, "Placement Error", "No space available for the Short Test. You may need to exclude a layer?", QMessageBox.Ok)
                 self.log("Short Test placement error: No space available")
                 return False
             self.gds_design.add_short_test_structure(
@@ -1595,7 +1595,7 @@ class MyApp(QWidget):
                     try:
                         Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
                     except ValueError:
-                        QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
+                        QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure. You may need to exclude a layer?", QMessageBox.Ok)
                         self.log("Custom Test Structure placement error: No space available")
                         return False
                     self.gds_design.add_cell_reference(
@@ -1664,7 +1664,7 @@ class MyApp(QWidget):
                     try:
                         Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
                     except ValueError:
-                        QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure.", QMessageBox.Ok)
+                        QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure. You may need to exclude a layer?", QMessageBox.Ok)
                         self.log("Custom Test Structure placement error: No space available")
                         return False
                     self.gds_design.add_cell_array(
