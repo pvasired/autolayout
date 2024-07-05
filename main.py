@@ -1605,7 +1605,7 @@ class MyApp(QWidget):
         top_cell_name = self.gds_design.top_cell_names[0]
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
-            self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName], overwrite_duplicate=False, include_dependencies=False)
+            self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName], overwrite_duplicate=True, include_dependencies=True, update_references=False)
         if self.customTestCellName:
             if not Array:
                 if type(Center) == tuple:
