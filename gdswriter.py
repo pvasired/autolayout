@@ -667,15 +667,15 @@ class GDSDesign:
 
     def add_cell_reference(self, parent_cell_name, child_cell_name, origin=(0, 0), magnification=1, rotation=0,
                             x_reflection=False, netID=0):
-        parent_cell = self.check_cell_exists(parent_cell_name)
-        child_cell = self.check_cell_exists(child_cell_name)
+        parent_cell = self.lib.cells[parent_cell_name]
+        child_cell = self.lib.cells[child_cell_name]
         ref = gdspy.CellReference(child_cell, origin=origin, magnification=magnification, rotation=rotation, x_reflection=x_reflection)
         self.add_component(parent_cell, parent_cell_name, ref, netID)
 
     def add_cell_array(self, target_cell_name, cell_name_to_array, copies_x, copies_y, spacing_x, spacing_y, origin=(0, 0),
                        magnification=1, rotation=0, x_reflection=False, netIDs=None):
-        target_cell = self.check_cell_exists(target_cell_name)
-        cell_to_array = self.check_cell_exists(cell_name_to_array)
+        target_cell = self.lib.cells[target_cell_name]
+        cell_to_array = self.lib.cells[cell_name_to_array]
         
         # Calculate the start position to center the array around the specified origin
         total_length_x = spacing_x * (copies_x - 1)

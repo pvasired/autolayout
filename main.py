@@ -323,6 +323,7 @@ class MyApp(QWidget):
         }
         self.testStructures = []  # Initialize testStructures here
         self.gds_design = None  # To store the GDSDesign instance
+        self.custom_design = None  # To store the custom design instance
         self.polygon_points = []  # To store polygon points
         self.path_points = [] # To store path points
         self.undoStack = []  # Initialize undo stack
@@ -409,6 +410,12 @@ class MyApp(QWidget):
                 self.customTestCellComboBox.currentTextChanged.connect(self.handleCustomTestCellName)
                 self.customTestCellComboBox.setToolTip('Select a custom test structure cell.')
                 gridLayout.addWidget(self.customTestCellComboBox, row, 5)
+                
+                # New button to select other .gds file
+                self.selectOtherGDSButton = QPushButton('Select Other .gds File')
+                self.selectOtherGDSButton.clicked.connect(self.selectOtherGDSFile)
+                self.selectOtherGDSButton.setToolTip('Click to select another .gds file.')
+                gridLayout.addWidget(self.selectOtherGDSButton, row, 6)  # Adjust the position as needed
 
             row += 1
 
@@ -635,6 +642,24 @@ class MyApp(QWidget):
                 self.customTestCellComboBox.clear()
                 self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
                 self.log(f"Custom Test Structure cell names: {list(self.gds_design.cells.keys())}")
+            else:
+                QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
+                self.log("File selection error: Not a .gds file")
+    
+    def selectOtherGDSFile(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select Other .gds File", "", "GDS Files (*.gds);;All Files (*)", options=options)
+        if fileName:
+            if fileName.lower().endswith('.gds'):
+                self.custom_design = GDSDesign(filename=fileName)
+                self.log(f"Custom design loaded from: {fileName}")
+                QMessageBox.information(self, "File Selected", f"Custom design loaded from: {fileName}", QMessageBox.Ok)
+
+                # Populate the custom test cell combo box with cell names
+                self.customTestCellComboBox.clear()
+                self.customTestCellComboBox.addItems(self.custom_design.cells.keys())
+                self.log(f"Custom Test Structure cell names: {list(self.custom_design.cells.keys())}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -897,7 +922,7 @@ class MyApp(QWidget):
                 extent_y_interior=float(Interior_Y_Extent)
             )
         # If automatic placement is set to true, place the feature on a temporary cell, determine the size, and then place it on the top cell in a position where there is no overlap
-        else:
+        elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
             except ValueError:
@@ -942,6 +967,10 @@ class MyApp(QWidget):
                 extent_x_interior=float(Interior_X_Extent),
                 extent_y_interior=float(Interior_Y_Extent)
             )
+        else:
+            # Show error message that either Automatic Placement must be true or the Center position is specified
+            QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            return False
         params = {
             "Layer": Layer,
             "Center": Center,
@@ -977,7 +1006,7 @@ class MyApp(QWidget):
                 short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
                 layer_name_short=Layer_Name_Short
             )
-        else:
+        elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
             except ValueError:
@@ -1040,6 +1069,10 @@ class MyApp(QWidget):
                 short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
                 layer_name_short=Layer_Name_Short
             )
+        else:
+            # Show error message that either Automatic Placement must be true or the Center position is specified
+            QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            return False
         params = {
             "Layer": Layer,
             "Center": Center,
@@ -1076,7 +1109,7 @@ class MyApp(QWidget):
                 line_spacing=float(Line_Spacing),
                 text_height=float(Text_Height)
             )
-        else:
+        elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
             except ValueError:
@@ -1123,6 +1156,10 @@ class MyApp(QWidget):
                 line_spacing=float(Line_Spacing),
                 text_height=float(Text_Height)
             )
+        else:
+            # Show error message that either Automatic Placement must be true or the Center position is specified
+            QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            return False
         params = {
             "Layer": Layer,
             "Center": Center,
@@ -1156,7 +1193,7 @@ class MyApp(QWidget):
                 via_height=float(Via_Height),
                 text_height=float(Text_Height)
             )
-        else:
+        elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
             except ValueError:
@@ -1213,6 +1250,10 @@ class MyApp(QWidget):
                 via_height=float(Via_Height),
                 text_height=float(Text_Height)
             )
+        else:
+            # Show error message that either Automatic Placement must be true or the Center position is specified
+            QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            return False
         params = {
             "Layer Number 1": Layer_Number_1,
             "Layer Number 2": Layer_Number_2,
@@ -1390,7 +1431,7 @@ class MyApp(QWidget):
                 via_spacing=float(Via_Spacing),
                 text_height=float(Text_Height)
             )
-        else:
+        elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
             except ValueError:
@@ -1449,6 +1490,10 @@ class MyApp(QWidget):
                 via_spacing=float(Via_Spacing),
                 text_height=float(Text_Height)
             )
+        else:
+            # Show error message that either Automatic Placement must be true or the Center position is specified
+            QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            return False
         params = {
             "Layer Number 1": Layer_Number_1,
             "Layer Number 2": Layer_Number_2,
@@ -1485,7 +1530,7 @@ class MyApp(QWidget):
                 num_lines_vert=int(Num_Lines_Vert),
                 text_height=float(Text_Height)
             )
-        else:
+        elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
             except ValueError:
@@ -1536,6 +1581,10 @@ class MyApp(QWidget):
                 num_lines_vert=int(Num_Lines_Vert),
                 text_height=float(Text_Height)
             )
+        else:
+            # Show error message that either Automatic Placement must be true or the Center position is specified
+            QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            return False
         params = {
             "Layer": Layer,
             "Center": Center,
@@ -1554,6 +1603,9 @@ class MyApp(QWidget):
 
     def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
+        # If the custom cell is from another file, add it to the current design
+        if self.custom_design is not None:
+            self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName], overwrite_duplicate=False, include_dependencies=False)
         if self.customTestCellName:
             if not Array:
                 if type(Center) == tuple:
@@ -1565,7 +1617,7 @@ class MyApp(QWidget):
                         rotation=float(Rotation),
                         x_reflection=X_Reflection
                     )
-                else:
+                elif Automatic_Placement:
                     try:
                         self.gds_design.delete_cell(TEMP_CELL_NAME)
                     except ValueError:
@@ -1606,6 +1658,10 @@ class MyApp(QWidget):
                         rotation=float(Rotation),
                         x_reflection=X_Reflection
                     )
+                else:
+                    # Show error message that either Automatic Placement must be true or the Center position is specified
+                    QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+                    return False
                 params = {
                     "Cell Name": self.customTestCellName,
                     "Center": Center,
@@ -1630,7 +1686,7 @@ class MyApp(QWidget):
                         rotation=float(Rotation),
                         x_reflection=X_Reflection
                     )
-                else:
+                elif Automatic_Placement:
                     try:
                         self.gds_design.delete_cell(TEMP_CELL_NAME)
                     except ValueError:
@@ -1679,6 +1735,10 @@ class MyApp(QWidget):
                         rotation=float(Rotation),
                         x_reflection=X_Reflection
                     )
+                else:
+                    # Show error message that either Automatic Placement must be true or the Center position is specified
+                    QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+                    return False
                 params = {
                     "Cell Name": self.customTestCellName,
                     "Center": Center,
@@ -1702,8 +1762,12 @@ class MyApp(QWidget):
     def checkCustomTestCell(self):
         if self.customTestCellName:
             try:
-                self.gds_design.check_cell_exists(self.customTestCellName)
-                self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
+                if self.custom_design is not None:
+                    self.custom_design.check_cell_exists(self.customTestCellName)
+                    self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
+                else:
+                    self.gds_design.check_cell_exists(self.customTestCellName)
+                    self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
             except ValueError:
                 QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
 
