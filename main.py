@@ -10,6 +10,7 @@ from copy import deepcopy
 import math
 import numpy as np
 import os
+import uuid
 
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
@@ -41,7 +42,6 @@ class MyApp(QWidget):
         self.outputFileName = ""
         self.customTestCellName = ""
         self.logFileName = ""
-        self.renamedCellFiles = []
         self.customFileName = ""
         self.substrateLayer = None
         self.excludedLayers = []
@@ -658,11 +658,18 @@ class MyApp(QWidget):
                 self.custom_design = GDSDesign(filename=fileName)
                 self.log(f"Custom design loaded from: {fileName}")
                 QMessageBox.information(self, "File Selected", f"Custom design loaded from: {fileName}", QMessageBox.Ok)
+                
+                if self.customFileName != self.inputFileName:
+                    for cell in self.gds_design.lib.cells:
+                        if cell in self.custom_design.lib.cells:
+                            idstr = uuid.uuid4().hex[:8]
+                            self.custom_design.lib.rename_cell(self.custom_design.lib.cells[cell], f"{cell}_custom_{idstr}", update_references=True)
+                            self.log(f'Duplicate cell found. Renaming cell {cell} to {cell}_custom_{idstr}')
 
                 # Populate the custom test cell combo box with cell names
                 self.customTestCellComboBox.clear()
-                self.customTestCellComboBox.addItems(self.custom_design.cells.keys())
-                self.log(f"Custom Test Structure cell names: {list(self.custom_design.cells.keys())}")
+                self.customTestCellComboBox.addItems(self.custom_design.lib.cells.keys())
+                self.log(f"Custom Test Structure cell names: {list(self.custom_design.lib.cells.keys())}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -1608,20 +1615,9 @@ class MyApp(QWidget):
         top_cell_name = self.gds_design.top_cell_names[0]
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
-            if self.customFileName not in self.renamedCellFiles and self.customFileName != self.inputFileName:
-                for cell in self.gds_design.lib.cells:
-                    if cell in self.custom_design.lib.cells:
-                        self.custom_design.lib.rename_cell(self.custom_design.lib.cells[cell], f"{cell}_custom", update_references=True)
-                        if cell == self.customTestCellName:
-                            self.customTestCellName = f"{self.customTestCellName}_custom"
-                for cell in self.custom_design.lib.cells:
-                    try:
-                        self.gds_design.lib.add(self.custom_design.lib.cells[f"{cell}_custom"], overwrite_duplicate=False, include_dependencies=True, update_references=False)
-                    except:
-                        self.gds_design.lib.add(self.custom_design.lib.cells[cell], overwrite_duplicate=False, include_dependencies=True, update_references=False)
-                print(self.gds_design.lib.cells.keys())
-                print(self.custom_design.lib.cells.keys())
-                self.renamedCellFiles.append(self.customFileName)
+            if self.customTestCellName not in self.gds_design.lib.cells:
+                self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName],
+                                    overwrite_duplicate=True, include_dependencies=True, update_references=False)
 
         if self.customTestCellName:
             if not Array:
@@ -1779,15 +1775,16 @@ class MyApp(QWidget):
 
     def checkCustomTestCell(self):
         if self.customTestCellName:
-            try:
-                if self.custom_design is not None:
-                    self.custom_design.check_cell_exists(self.customTestCellName)
+            if self.custom_design is not None:
+                if self.customTestCellName in self.custom_design.lib.cells:
                     self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
                 else:
-                    self.gds_design.check_cell_exists(self.customTestCellName)
+                    QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
+            else:
+                if self.customTestCellName in self.gds_design.lib.cells:
                     self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
-            except ValueError:
-                QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
+                else:
+                    QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
 
     def writeToGDS(self):
         if self.gds_design:
