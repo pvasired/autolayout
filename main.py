@@ -1609,16 +1609,19 @@ class MyApp(QWidget):
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
             if self.customFileName not in self.renamedCellFiles and self.customFileName != self.inputFileName:
-                if self.customTestCellName in self.gds_design.lib.cells:
-                    QMessageBox.critical(self, "Cell Name Error", f"Cell name '{self.customTestCellName}' already exists in the current design. Please change the name of the cell in the file to be imported and then try again.", QMessageBox.Ok)
-                    self.log("Custom Test Structure add error: Cell name already exists")
-                    return False
                 for cell in self.gds_design.lib.cells:
-                    if (cell in self.custom_design.lib.cells or cell in self.custom_design.top_cell_names):
+                    if cell in self.custom_design.lib.cells:
                         self.custom_design.lib.rename_cell(self.custom_design.lib.cells[cell], f"{cell}_custom", update_references=True)
-
+                        if cell == self.customTestCellName:
+                            self.customTestCellName = f"{self.customTestCellName}_custom"
+                for cell in self.custom_design.lib.cells:
+                    try:
+                        self.gds_design.lib.add(self.custom_design.lib.cells[f"{cell}_custom"], overwrite_duplicate=False, include_dependencies=True, update_references=False)
+                    except:
+                        self.gds_design.lib.add(self.custom_design.lib.cells[cell], overwrite_duplicate=False, include_dependencies=True, update_references=False)
+                print(self.gds_design.lib.cells.keys())
+                print(self.custom_design.lib.cells.keys())
                 self.renamedCellFiles.append(self.customFileName)
-                self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName], overwrite_duplicate=False, include_dependencies=True, update_references=False)
 
         if self.customTestCellName:
             if not Array:
@@ -1685,6 +1688,7 @@ class MyApp(QWidget):
                 }
                 self.logTestStructure("Custom Test Structure", params)  # Log the test structure details
                 self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
+                
                 return True
             else:
                 if type(Center) == tuple:
