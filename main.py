@@ -41,6 +41,8 @@ class MyApp(QWidget):
         self.outputFileName = ""
         self.customTestCellName = ""
         self.logFileName = ""
+        self.renamedCellFiles = []
+        self.customFileName = ""
         self.substrateLayer = None
         self.excludedLayers = []
         self.availableSpace = None
@@ -652,6 +654,7 @@ class MyApp(QWidget):
         fileName, _ = QFileDialog.getOpenFileName(self, "Select Other .gds File", "", "GDS Files (*.gds);;All Files (*)", options=options)
         if fileName:
             if fileName.lower().endswith('.gds'):
+                self.customFileName = fileName
                 self.custom_design = GDSDesign(filename=fileName)
                 self.log(f"Custom design loaded from: {fileName}")
                 QMessageBox.information(self, "File Selected", f"Custom design loaded from: {fileName}", QMessageBox.Ok)
@@ -1605,7 +1608,18 @@ class MyApp(QWidget):
         top_cell_name = self.gds_design.top_cell_names[0]
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
-            self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName], overwrite_duplicate=True, include_dependencies=True, update_references=False)
+            if self.customFileName not in self.renamedCellFiles and self.customFileName != self.inputFileName:
+                if self.customTestCellName in self.gds_design.lib.cells:
+                    QMessageBox.critical(self, "Cell Name Error", f"Cell name '{self.customTestCellName}' already exists in the current design. Please change the name of the cell in the file to be imported and then try again.", QMessageBox.Ok)
+                    self.log("Custom Test Structure add error: Cell name already exists")
+                    return False
+                for cell in self.gds_design.lib.cells:
+                    if (cell in self.custom_design.lib.cells or cell in self.custom_design.top_cell_names):
+                        self.custom_design.lib.rename_cell(self.custom_design.lib.cells[cell], f"{cell}_custom", update_references=True)
+
+                self.renamedCellFiles.append(self.customFileName)
+                self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName], overwrite_duplicate=False, include_dependencies=True, update_references=False)
+
         if self.customTestCellName:
             if not Array:
                 if type(Center) == tuple:
