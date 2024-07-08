@@ -483,6 +483,7 @@ class MyApp(QWidget):
         self.show()
     
     def updateExcludedLayers(self):
+        # Output: sets self.excludedLayers and updates available space and all other polygons
         excluded_layers_input = self.excludedLayersEdit.text()
         excluded_layers = excluded_layers_input.split(',')
         valid_layers = []
@@ -501,7 +502,7 @@ class MyApp(QWidget):
                     self.log(f"Excluded Layers input error: Invalid layer number {layer}")
                     return
             else:
-                if any(name.lower() == layer.lower() for number, name in self.layerData):
+                if any(name.lower() == layer.lower() for number, name in self.layerData) and not any(int(number) == self.substrateLayer for number, name in self.layerData if name.lower() == layer.lower()):
                     valid_layers.append(next(int(number) for number, name in self.layerData if name.lower() == layer.lower() and int(number) != self.substrateLayer))
                 else:
                     QMessageBox.critical(self, "Layer Error", f"Invalid layer name: {layer}", QMessageBox.Ok)
@@ -530,6 +531,7 @@ class MyApp(QWidget):
         self.log(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
     
     def selectSubstrateLayer(self):
+        # Output: sets self.substrateLayer and sets available space and all other polygons
         currentLayer = self.layersComboBox.currentText()
         if currentLayer:
             layerNumber = int(currentLayer.split(':')[0])
@@ -537,19 +539,24 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Layer Error", "Cannot set the substrate layer to an excluded layer.", QMessageBox.Ok)
                 self.log(f"Substrate layer selection error: Cannot set to excluded layer {layerNumber}")
                 return
-            self.substrateLayer = layerNumber
-            self.log(f"Substrate layer set to: {self.substrateLayer}")
-            QMessageBox.information(self, "Substrate Layer Selected", f"Substrate layer set to: {self.substrateLayer}", QMessageBox.Ok)
-
+            
             # Initialize available space
             substrate_name = None
             for number, name in self.layerData:
-                if int(number) == self.substrateLayer:
+                if int(number) == layerNumber:
                     substrate_name = name
             if substrate_name:
-                self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name, self.excludedLayers)
-                self.log(f"Available space calculated.")
-                self.log(f"All other polygons calculated.")
+                try:
+                    self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name, self.excludedLayers)
+                    self.log(f"Available space calculated.")
+                    self.log(f"All other polygons calculated.")
+
+                    self.substrateLayer = layerNumber
+                    self.log(f"Substrate layer set to: {self.substrateLayer}")
+                    QMessageBox.information(self, "Substrate Layer Selected", f"Substrate layer set to: {self.substrateLayer}", QMessageBox.Ok)
+                except ValueError:
+                    QMessageBox.critical(self, "Layer Error", "Substrate layer does not exist in the design. First add substrate shape to the design and then re-select as substrate layer.", QMessageBox.Ok)
+                    self.log(f"Substrate layer selection error: Layer {self.substrateLayer} does not exist in the design.")
         else:
             QMessageBox.warning(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
 
@@ -618,6 +625,7 @@ class MyApp(QWidget):
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
 
     def selectInputFile(self):
+        # Output: sets self.inputFileName, self.outputFileName, self.logFileName, self.gds_design, self.layerData, and updates layersComboBox and customTestCellComboBox
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
         fileName, _ = QFileDialog.getOpenFileName(self, "Select Input File", "", "GDS Files (*.gds);;All Files (*)", options=options)
@@ -649,6 +657,7 @@ class MyApp(QWidget):
                 self.log("File selection error: Not a .gds file")
     
     def selectOtherGDSFile(self):
+        # Output: sets self.customFileName and self.custom_design, updates customTestCellComboBox
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
         fileName, _ = QFileDialog.getOpenFileName(self, "Select Other .gds File", "", "GDS Files (*.gds);;All Files (*)", options=options)
@@ -675,6 +684,7 @@ class MyApp(QWidget):
                 self.log("File selection error: Not a .gds file")
 
     def readPolygonPointsFile(self, fileName):
+        # Output: sets self.polygon_points
         try:
             if fileName.lower().endswith('.txt'):
                 points = np.loadtxt(fileName, delimiter=',')
@@ -691,6 +701,7 @@ class MyApp(QWidget):
             self.log(f"Error reading polygon points file: {str(e)}")
 
     def readPathPointsFile(self, fileName):
+        # Output: sets self.path_points
         try:
             if fileName.lower().endswith('.txt'):
                 points = np.loadtxt(fileName, delimiter=',')
@@ -739,6 +750,7 @@ class MyApp(QWidget):
         self.log("Layers dropdown updated")
 
     def validateOutputFileName(self):
+        # Output: sets self.outputFileName and renames log file if needed
         outputFileName = self.outFileField.text()
         if outputFileName.lower().endswith('.gds'):
             oldLogFileName = self.logFileName
@@ -760,14 +772,8 @@ class MyApp(QWidget):
             log_file.write("Test Structure Placement Log\n")
             log_file.write("============================\n\n")
 
-    def updateParameterValue(self, param, testStructureName):
-        for _, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
-            if comboBox.currentText() == param:
-                default_value = defaultParams.get(param, '')
-                valueEdit.setText(str(default_value))
-                self.log(f"{testStructureName} Parameter {param} selected, default value set to {default_value}")
-
     def storeParameterValue(self, comboBox, valueEdit, name):
+        # Output: updates the defaultParams dictionary for the specific test structure and parameter
         param = comboBox.currentText()
         value = valueEdit.text()
         if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer":
@@ -921,34 +927,44 @@ class MyApp(QWidget):
     def addMLAAlignmentMark(self, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if type(Center) == tuple:
-            self.gds_design.add_MLA_alignment_mark(
-                cell_name=top_cell_name,
-                layer_name=Layer,
-                center=Center,
-                rect_width=float(Outer_Rect_Width),
-                rect_height=float(Outer_Rect_Height),
-                width_interior=float(Interior_Width),
-                extent_x_interior=float(Interior_X_Extent),
-                extent_y_interior=float(Interior_Y_Extent)
-            )
+            try:
+                self.gds_design.add_MLA_alignment_mark(
+                    cell_name=top_cell_name,
+                    layer_name=Layer,
+                    center=Center,
+                    rect_width=float(Outer_Rect_Width),
+                    rect_height=float(Outer_Rect_Height),
+                    width_interior=float(Interior_Width),
+                    extent_x_interior=float(Interior_X_Extent),
+                    extent_y_interior=float(Interior_Y_Extent)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding MLA Alignment Mark: {str(e)}", QMessageBox.Ok)
+                self.log(f"MLA Alignment Mark placement error: {str(e)}")
+                return False
         # If automatic placement is set to true, place the feature on a temporary cell, determine the size, and then place it on the top cell in a position where there is no overlap
         elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
             except ValueError:
                 pass  # If the cell doesn't exist, just ignore the error
-
+            
             self.gds_design.add_cell(TEMP_CELL_NAME)
-            self.gds_design.add_MLA_alignment_mark(
-                cell_name=TEMP_CELL_NAME,
-                layer_name=Layer,
-                center=(0,0),
-                rect_width=float(Outer_Rect_Width),
-                rect_height=float(Outer_Rect_Height),
-                width_interior=float(Interior_Width),
-                extent_x_interior=float(Interior_X_Extent),
-                extent_y_interior=float(Interior_Y_Extent)
-            )
+            try:
+                self.gds_design.add_MLA_alignment_mark(
+                    cell_name=TEMP_CELL_NAME,
+                    layer_name=Layer,
+                    center=(0,0),
+                    rect_width=float(Outer_Rect_Width),
+                    rect_height=float(Outer_Rect_Height),
+                    width_interior=float(Interior_Width),
+                    extent_x_interior=float(Interior_X_Extent),
+                    extent_y_interior=float(Interior_Y_Extent)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding MLA Alignment Mark: {str(e)}", QMessageBox.Ok)
+                self.log(f"MLA Alignment Mark placement error: {str(e)}")
+                return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
             # Get substrate layer name from layer number:
@@ -997,25 +1013,30 @@ class MyApp(QWidget):
     def addResistanceTest(self, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if type(Center) == tuple:
-            self.gds_design.add_resistance_test_structure(
-                cell_name=top_cell_name,
-                layer_name=Layer,
-                center=Center,
-                probe_pad_width=float(Probe_Pad_Width),
-                probe_pad_height=float(Probe_Pad_Height),
-                probe_pad_spacing=float(Probe_Pad_Spacing),
-                plug_width=float(Plug_Width),
-                plug_height=float(Plug_Height),
-                trace_width=float(Trace_Width),
-                trace_spacing=float(Trace_Spacing),
-                switchbacks=int(Switchbacks),
-                x_extent=float(X_Extent),
-                text_height=float(Text_Height),
-                text=Text if Text else Layer,  # Use the layer name if text is not provided
-                add_interlayer_short=Add_Interlayer_Short,
-                short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
-                layer_name_short=Layer_Name_Short
-            )
+            try:
+                self.gds_design.add_resistance_test_structure(
+                    cell_name=top_cell_name,
+                    layer_name=Layer,
+                    center=Center,
+                    probe_pad_width=float(Probe_Pad_Width),
+                    probe_pad_height=float(Probe_Pad_Height),
+                    probe_pad_spacing=float(Probe_Pad_Spacing),
+                    plug_width=float(Plug_Width),
+                    plug_height=float(Plug_Height),
+                    trace_width=float(Trace_Width),
+                    trace_spacing=float(Trace_Spacing),
+                    switchbacks=int(Switchbacks),
+                    x_extent=float(X_Extent),
+                    text_height=float(Text_Height),
+                    text=Text if Text else Layer,  # Use the layer name if text is not provided
+                    add_interlayer_short=Add_Interlayer_Short,
+                    short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
+                    layer_name_short=Layer_Name_Short
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Resistance Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Resistance Test placement error: {str(e)}")
+                return False
         elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -1023,25 +1044,30 @@ class MyApp(QWidget):
                 pass
                 
             self.gds_design.add_cell(TEMP_CELL_NAME)
-            self.gds_design.add_resistance_test_structure(
-                cell_name=TEMP_CELL_NAME,
-                layer_name=Layer,
-                center=(0,0),
-                probe_pad_width=float(Probe_Pad_Width),
-                probe_pad_height=float(Probe_Pad_Height),
-                probe_pad_spacing=float(Probe_Pad_Spacing),
-                plug_width=float(Plug_Width),
-                plug_height=float(Plug_Height),
-                trace_width=float(Trace_Width),
-                trace_spacing=float(Trace_Spacing),
-                switchbacks=int(Switchbacks),
-                x_extent=float(X_Extent),
-                text_height=float(Text_Height),
-                text=Text if Text else Layer,  # Use the layer name if text is not provided
-                add_interlayer_short=Add_Interlayer_Short,
-                short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
-                layer_name_short=Layer_Name_Short
-            )
+            try:
+                self.gds_design.add_resistance_test_structure(
+                    cell_name=TEMP_CELL_NAME,
+                    layer_name=Layer,
+                    center=(0,0),
+                    probe_pad_width=float(Probe_Pad_Width),
+                    probe_pad_height=float(Probe_Pad_Height),
+                    probe_pad_spacing=float(Probe_Pad_Spacing),
+                    plug_width=float(Plug_Width),
+                    plug_height=float(Plug_Height),
+                    trace_width=float(Trace_Width),
+                    trace_spacing=float(Trace_Spacing),
+                    switchbacks=int(Switchbacks),
+                    x_extent=float(X_Extent),
+                    text_height=float(Text_Height),
+                    text=Text if Text else Layer,  # Use the layer name if text is not provided
+                    add_interlayer_short=Add_Interlayer_Short,
+                    short_text=Short_Text if Short_Text else Layer_Name_Short,  # Use the layer name for short text if not provided
+                    layer_name_short=Layer_Name_Short
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Resistance Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Resistance Test placement error: {str(e)}")
+                return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
             # Get substrate layer name from layer number:
@@ -1108,17 +1134,22 @@ class MyApp(QWidget):
     def addTraceTest(self, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if type(Center) == tuple:
-            self.gds_design.add_line_test_structure(
-                cell_name=top_cell_name,
-                layer_name=Layer,
-                center=Center,
-                text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
-                line_width=float(Line_Width),
-                line_height=float(Line_Height),
-                num_lines=int(Num_Lines),
-                line_spacing=float(Line_Spacing),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_line_test_structure(
+                    cell_name=top_cell_name,
+                    layer_name=Layer,
+                    center=Center,
+                    text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
+                    line_width=float(Line_Width),
+                    line_height=float(Line_Height),
+                    num_lines=int(Num_Lines),
+                    line_spacing=float(Line_Spacing),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Trace Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Trace Test placement error: {str(e)}")
+                return False
         elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -1126,17 +1157,22 @@ class MyApp(QWidget):
                 pass
                 
             self.gds_design.add_cell(TEMP_CELL_NAME)
-            self.gds_design.add_line_test_structure(
-                cell_name=TEMP_CELL_NAME,
-                layer_name=Layer,
-                center=(0,0),
-                text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
-                line_width=float(Line_Width),
-                line_height=float(Line_Height),
-                num_lines=int(Num_Lines),
-                line_spacing=float(Line_Spacing),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_line_test_structure(
+                    cell_name=TEMP_CELL_NAME,
+                    layer_name=Layer,
+                    center=(0,0),
+                    text=Text if Text else f"{Layer} TRACE",  # Use the layer name if text is not provided
+                    line_width=float(Line_Width),
+                    line_height=float(Line_Height),
+                    num_lines=int(Num_Lines),
+                    line_spacing=float(Line_Spacing),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Trace Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Trace Test placement error: {str(e)}")
+                return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
             # Get substrate layer name from layer number:
@@ -1187,22 +1223,27 @@ class MyApp(QWidget):
     def addInterlayerViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if type(Center) == tuple:
-            self.gds_design.add_p_via_test_structure(
-                cell_name=top_cell_name,
-                layer_name_1=Layer_Number_1,
-                layer_name_2=Layer_Number_2,
-                via_layer=Via_Layer,
-                center=Center,
-                text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
-                layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
-                layer1_rect_width=float(Layer_1_Rectangle_Width),
-                layer1_rect_height=float(Layer_1_Rectangle_Height),
-                layer2_rect_width=float(Layer_2_Rectangle_Width),
-                layer2_rect_height=float(Layer_2_Rectangle_Height),
-                via_width=float(Via_Width),
-                via_height=float(Via_Height),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_p_via_test_structure(
+                    cell_name=top_cell_name,
+                    layer_name_1=Layer_Number_1,
+                    layer_name_2=Layer_Number_2,
+                    via_layer=Via_Layer,
+                    center=Center,
+                    text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
+                    layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
+                    layer1_rect_width=float(Layer_1_Rectangle_Width),
+                    layer1_rect_height=float(Layer_1_Rectangle_Height),
+                    layer2_rect_width=float(Layer_2_Rectangle_Width),
+                    layer2_rect_height=float(Layer_2_Rectangle_Height),
+                    via_width=float(Via_Width),
+                    via_height=float(Via_Height),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Interlayer Via Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Interlayer Via Test placement error: {str(e)}")
+                return False
         elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -1210,22 +1251,27 @@ class MyApp(QWidget):
                 pass
                 
             self.gds_design.add_cell(TEMP_CELL_NAME)
-            self.gds_design.add_p_via_test_structure(
-                cell_name=TEMP_CELL_NAME,
-                layer_name_1=Layer_Number_1,
-                layer_name_2=Layer_Number_2,
-                via_layer=Via_Layer,
-                center=(0,0),
-                text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
-                layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
-                layer1_rect_width=float(Layer_1_Rectangle_Width),
-                layer1_rect_height=float(Layer_1_Rectangle_Height),
-                layer2_rect_width=float(Layer_2_Rectangle_Width),
-                layer2_rect_height=float(Layer_2_Rectangle_Height),
-                via_width=float(Via_Width),
-                via_height=float(Via_Height),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_p_via_test_structure(
+                    cell_name=TEMP_CELL_NAME,
+                    layer_name_1=Layer_Number_1,
+                    layer_name_2=Layer_Number_2,
+                    via_layer=Via_Layer,
+                    center=(0,0),
+                    text=Text if Text else "Interlayer Via",  # Use "Interlayer Via" if text is not provided
+                    layer1_rect_spacing=float(Layer_1_Rectangle_Spacing),
+                    layer1_rect_width=float(Layer_1_Rectangle_Width),
+                    layer1_rect_height=float(Layer_1_Rectangle_Height),
+                    layer2_rect_width=float(Layer_2_Rectangle_Width),
+                    layer2_rect_height=float(Layer_2_Rectangle_Height),
+                    via_width=float(Via_Width),
+                    via_height=float(Via_Height),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Interlayer Via Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Interlayer Via Test placement error: {str(e)}")
+                return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
             # Get substrate layer name from layer number:
@@ -1289,16 +1335,21 @@ class MyApp(QWidget):
             QMessageBox.critical(self, "Input Error", "Please enter either width and height or lower left and upper right coordinates for the rectangle.", QMessageBox.Ok)
             self.log("Rectangle add error: No dimensions provided")
             return False
-        self.gds_design.add_rectangle(
-            cell_name=top_cell_name,
-            layer_name=Layer,
-            center=self.validateCenter(Center) if Center else None,
-            width=float(Width) if Width else None,
-            height=float(Height) if Height else None,
-            lower_left=float(Lower_Left) if Lower_Left else None,
-            upper_right=float(Upper_Right) if Upper_Right else None,
-            rotation=float(Rotation)*math.pi/180
-        )
+        try:
+            self.gds_design.add_rectangle(
+                cell_name=top_cell_name,
+                layer_name=Layer,
+                center=self.validateCenter(Center) if Center else None,
+                width=float(Width) if Width else None,
+                height=float(Height) if Height else None,
+                lower_left=float(Lower_Left) if Lower_Left else None,
+                upper_right=float(Upper_Right) if Upper_Right else None,
+                rotation=float(Rotation)*math.pi/180
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Placement Error", f"Error adding Rectangle: {str(e)}", QMessageBox.Ok)
+            self.log(f"Rectangle placement error: {str(e)}")
+            return False
         params = {
             "Layer": Layer,
             "Center": Center,
@@ -1318,12 +1369,17 @@ class MyApp(QWidget):
             self.log("Circle add error: No diameter provided")
             return False
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_circle_as_polygon(
-            cell_name=top_cell_name,
-            center=Center,
-            radius=float(Diameter)/2,
-            layer_name=Layer
-        )
+        try:
+            self.gds_design.add_circle_as_polygon(
+                cell_name=top_cell_name,
+                center=Center,
+                radius=float(Diameter)/2,
+                layer_name=Layer
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Placement Error", f"Error adding Circle: {str(e)}", QMessageBox.Ok)
+            self.log(f"Circle placement error: {str(e)}")
+            return False
         params = {
             "Layer": Layer,
             "Center": Center,
@@ -1356,14 +1412,19 @@ class MyApp(QWidget):
         rotated_y = Center[1] + (delta_x * sin_angle + delta_y * cos_angle)
 
         # Add the text at the calculated position
-        self.gds_design.add_text(
-            cell_name=top_cell_name,
-            text=Text,
-            layer_name=Layer,
-            position=(rotated_x, rotated_y),
-            height=float(Height),
-            angle=float(Rotation)
-        )
+        try:
+            self.gds_design.add_text(
+                cell_name=top_cell_name,
+                text=Text,
+                layer_name=Layer,
+                position=(rotated_x, rotated_y),
+                height=float(Height),
+                angle=float(Rotation)
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Placement Error", f"Error adding Text: {str(e)}", QMessageBox.Ok)
+            self.log(f"Text placement error: {str(e)}")
+            return False
         params = {
             "Layer": Layer,
             "Center": Center,
@@ -1382,11 +1443,16 @@ class MyApp(QWidget):
             self.log("Polygon add error: Invalid points provided")
             return False
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_polygon(
-            cell_name=top_cell_name,
-            points=Points,
-            layer_name=Layer
-        )
+        try:
+            self.gds_design.add_polygon(
+                cell_name=top_cell_name,
+                points=Points,
+                layer_name=Layer
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Placement Error", f"Error adding Polygon: {str(e)}", QMessageBox.Ok)
+            self.log(f"Polygon placement error: {str(e)}")
+            return False
         params = {
             "Layer": Layer,
             "Points": Points
@@ -1406,12 +1472,17 @@ class MyApp(QWidget):
             self.log("Path add error: No width provided")
             return False
         top_cell_name = self.gds_design.top_cell_names[0]
-        self.gds_design.add_path_as_polygon(
-            cell_name=top_cell_name,
-            points=Points,
-            width=float(Width),
-            layer_name=Layer
-        )
+        try:
+            self.gds_design.add_path_as_polygon(
+                cell_name=top_cell_name,
+                points=Points,
+                width=float(Width),
+                layer_name=Layer
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Placement Error", f"Error adding Path: {str(e)}", QMessageBox.Ok)
+            self.log(f"Path placement error: {str(e)}")
+            return False
         params = {
             "Layer": Layer,
             "Points": Points,
@@ -1424,23 +1495,28 @@ class MyApp(QWidget):
     def addElectronicsViaTest(self, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if type(Center) == tuple:
-            self.gds_design.add_electronics_via_test_structure(
-                cell_name=top_cell_name,
-                layer_name_1=Layer_Number_1,
-                layer_name_2=Layer_Number_2,
-                via_layer=Via_Layer,
-                center=Center,
-                text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
-                layer_1_rect_width=float(Layer_1_Rect_Width),
-                layer_1_rect_height=float(Layer_1_Rect_Height),
-                layer_2_rect_width=float(Layer_2_Rect_Width),
-                layer_2_rect_height=float(Layer_2_Rect_Height),
-                layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
-                via_width=float(Via_Width),
-                via_height=float(Via_Height),
-                via_spacing=float(Via_Spacing),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_electronics_via_test_structure(
+                    cell_name=top_cell_name,
+                    layer_name_1=Layer_Number_1,
+                    layer_name_2=Layer_Number_2,
+                    via_layer=Via_Layer,
+                    center=Center,
+                    text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
+                    layer_1_rect_width=float(Layer_1_Rect_Width),
+                    layer_1_rect_height=float(Layer_1_Rect_Height),
+                    layer_2_rect_width=float(Layer_2_Rect_Width),
+                    layer_2_rect_height=float(Layer_2_Rect_Height),
+                    layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
+                    via_width=float(Via_Width),
+                    via_height=float(Via_Height),
+                    via_spacing=float(Via_Spacing),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Electronics Via Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Electronics Via Test placement error: {str(e)}")
+                return False
         elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -1448,23 +1524,28 @@ class MyApp(QWidget):
                 pass
                 
             self.gds_design.add_cell(TEMP_CELL_NAME)
-            self.gds_design.add_electronics_via_test_structure(
-                cell_name=TEMP_CELL_NAME,
-                layer_name_1=Layer_Number_1,
-                layer_name_2=Layer_Number_2,
-                via_layer=Via_Layer,
-                center=(0,0),
-                text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
-                layer_1_rect_width=float(Layer_1_Rect_Width),
-                layer_1_rect_height=float(Layer_1_Rect_Height),
-                layer_2_rect_width=float(Layer_2_Rect_Width),
-                layer_2_rect_height=float(Layer_2_Rect_Height),
-                layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
-                via_width=float(Via_Width),
-                via_height=float(Via_Height),
-                via_spacing=float(Via_Spacing),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_electronics_via_test_structure(
+                    cell_name=TEMP_CELL_NAME,
+                    layer_name_1=Layer_Number_1,
+                    layer_name_2=Layer_Number_2,
+                    via_layer=Via_Layer,
+                    center=(0,0),
+                    text=Text if Text else "ELECTRONICS VIA TEST",  # Use "ELECTRONICS VIA TEST" if text is not provided
+                    layer_1_rect_width=float(Layer_1_Rect_Width),
+                    layer_1_rect_height=float(Layer_1_Rect_Height),
+                    layer_2_rect_width=float(Layer_2_Rect_Width),
+                    layer_2_rect_height=float(Layer_2_Rect_Height),
+                    layer_2_rect_spacing=float(Layer_2_Rect_Spacing),
+                    via_width=float(Via_Width),
+                    via_height=float(Via_Height),
+                    via_spacing=float(Via_Spacing),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Electronics Via Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Electronics Via Test placement error: {str(e)}")
+                return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
             # Get substrate layer name from layer number:
@@ -1527,19 +1608,24 @@ class MyApp(QWidget):
     def addShortTest(self, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         if type(Center) == tuple:
-            self.gds_design.add_short_test_structure(
-                cell_name=top_cell_name,
-                layer_name=Layer,
-                center=Center,
-                text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
-                rect_width=float(Rect_Width),
-                trace_width=float(Trace_Width),
-                num_lines=int(Num_Lines),
-                group_spacing=float(Group_Spacing),
-                num_groups=int(Num_Groups),
-                num_lines_vert=int(Num_Lines_Vert),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_short_test_structure(
+                    cell_name=top_cell_name,
+                    layer_name=Layer,
+                    center=Center,
+                    text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
+                    rect_width=float(Rect_Width),
+                    trace_width=float(Trace_Width),
+                    num_lines=int(Num_Lines),
+                    group_spacing=float(Group_Spacing),
+                    num_groups=int(Num_Groups),
+                    num_lines_vert=int(Num_Lines_Vert),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Short Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Short Test placement error: {str(e)}")
+                return False
         elif Automatic_Placement:
             try:
                 self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -1547,19 +1633,24 @@ class MyApp(QWidget):
                 pass
                 
             self.gds_design.add_cell(TEMP_CELL_NAME)
-            self.gds_design.add_short_test_structure(
-                cell_name=TEMP_CELL_NAME,
-                layer_name=Layer,
-                center=(0,0),
-                text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
-                rect_width=float(Rect_Width),
-                trace_width=float(Trace_Width),
-                num_lines=int(Num_Lines),
-                group_spacing=float(Group_Spacing),
-                num_groups=int(Num_Groups),
-                num_lines_vert=int(Num_Lines_Vert),
-                text_height=float(Text_Height)
-            )
+            try:
+                self.gds_design.add_short_test_structure(
+                    cell_name=TEMP_CELL_NAME,
+                    layer_name=Layer,
+                    center=(0,0),
+                    text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
+                    rect_width=float(Rect_Width),
+                    trace_width=float(Trace_Width),
+                    num_lines=int(Num_Lines),
+                    group_spacing=float(Group_Spacing),
+                    num_groups=int(Num_Groups),
+                    num_lines_vert=int(Num_Lines_Vert),
+                    text_height=float(Text_Height)
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding Short Test: {str(e)}", QMessageBox.Ok)
+                self.log(f"Short Test placement error: {str(e)}")
+                return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
             # Get substrate layer name from layer number:
@@ -1622,14 +1713,19 @@ class MyApp(QWidget):
         if self.customTestCellName:
             if not Array:
                 if type(Center) == tuple:
-                    self.gds_design.add_cell_reference(
-                        parent_cell_name=top_cell_name,
-                        child_cell_name=self.customTestCellName,
-                        origin=Center,
-                        magnification=float(Magnification),
-                        rotation=float(Rotation),
-                        x_reflection=X_Reflection
-                    )
+                    try:
+                        self.gds_design.add_cell_reference(
+                            parent_cell_name=top_cell_name,
+                            child_cell_name=self.customTestCellName,
+                            origin=Center,
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                    except Exception as e:
+                        QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure: {str(e)}", QMessageBox.Ok)
+                        self.log(f"Custom Test Structure placement error: {str(e)}")
+                        return False
                 elif Automatic_Placement:
                     try:
                         self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -1637,14 +1733,19 @@ class MyApp(QWidget):
                         pass
                         
                     self.gds_design.add_cell(TEMP_CELL_NAME)
-                    self.gds_design.add_cell_reference(
-                        parent_cell_name=TEMP_CELL_NAME,
-                        child_cell_name=self.customTestCellName,
-                        origin=(0,0),
-                        magnification=float(Magnification),
-                        rotation=float(Rotation),
-                        x_reflection=X_Reflection
-                    )
+                    try:
+                        self.gds_design.add_cell_reference(
+                            parent_cell_name=TEMP_CELL_NAME,
+                            child_cell_name=self.customTestCellName,
+                            origin=(0,0),
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                    except Exception as e:
+                        QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure: {str(e)}", QMessageBox.Ok)
+                        self.log(f"Custom Test Structure placement error: {str(e)}")
+                        return False
                     cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
                     self.gds_design.delete_cell(TEMP_CELL_NAME)
                     # Get substrate layer name from layer number:
@@ -1688,18 +1789,23 @@ class MyApp(QWidget):
                 return True
             else:
                 if type(Center) == tuple:
-                    self.gds_design.add_cell_array(
-                        target_cell_name=top_cell_name,
-                        cell_name_to_array=self.customTestCellName,
-                        copies_x=int(Copies_X),
-                        copies_y=int(Copies_Y),
-                        spacing_x=float(Spacing_X),
-                        spacing_y=float(Spacing_Y),
-                        origin=Center,
-                        magnification=float(Magnification),
-                        rotation=float(Rotation),
-                        x_reflection=X_Reflection
-                    )
+                    try:
+                        self.gds_design.add_cell_array(
+                            target_cell_name=top_cell_name,
+                            cell_name_to_array=self.customTestCellName,
+                            copies_x=int(Copies_X),
+                            copies_y=int(Copies_Y),
+                            spacing_x=float(Spacing_X),
+                            spacing_y=float(Spacing_Y),
+                            origin=Center,
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                    except Exception as e:
+                        QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure Array: {str(e)}", QMessageBox.Ok)
+                        self.log(f"Custom Test Structure Array placement error: {str(e)}")
+                        return False
                 elif Automatic_Placement:
                     try:
                         self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -1707,18 +1813,23 @@ class MyApp(QWidget):
                         pass
                         
                     self.gds_design.add_cell(TEMP_CELL_NAME)
-                    self.gds_design.add_cell_array(
-                        target_cell_name=TEMP_CELL_NAME,
-                        cell_name_to_array=self.customTestCellName,
-                        copies_x=int(Copies_X),
-                        copies_y=int(Copies_Y),
-                        spacing_x=float(Spacing_X),
-                        spacing_y=float(Spacing_Y),
-                        origin=(0,0),
-                        magnification=float(Magnification),
-                        rotation=float(Rotation),
-                        x_reflection=X_Reflection
-                    )
+                    try:
+                        self.gds_design.add_cell_array(
+                            target_cell_name=TEMP_CELL_NAME,
+                            cell_name_to_array=self.customTestCellName,
+                            copies_x=int(Copies_X),
+                            copies_y=int(Copies_Y),
+                            spacing_x=float(Spacing_X),
+                            spacing_y=float(Spacing_Y),
+                            origin=(0,0),
+                            magnification=float(Magnification),
+                            rotation=float(Rotation),
+                            x_reflection=X_Reflection
+                        )
+                    except Exception as e:
+                        QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure Array: {str(e)}", QMessageBox.Ok)
+                        self.log(f"Custom Test Structure Array placement error: {str(e)}")
+                        return False
                     cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
                     self.gds_design.delete_cell(TEMP_CELL_NAME)
                     # Get substrate layer name from layer number:
@@ -1802,30 +1913,30 @@ class MyApp(QWidget):
     def defineNewLayer(self):
         number = self.newLayerNumberEdit.text().strip()
         name = self.newLayerNameEdit.text().strip()
+        if self.gds_design is None:
+            QMessageBox.critical(self, "Design Error", "No design loaded to define a new layer.", QMessageBox.Ok)
+            self.log("Layer definition error: No design loaded")
+            return
         if number and name:
-            try:
-                # Define the new layer using GDSDesign
-                self.gds_design.define_layer(name, int(number))
-                self.log(f"Layer defined: {name} with number {number}")
-                
-                # Check if layer already exists and update name if so
-                for i, (layer_number, layer_name) in enumerate(self.layerData):
-                    if layer_number == number:
-                        old_name = self.layerData[i][1]
-                        self.layerData[i] = (number, name)
-                        self.updateLayersComboBox()
-                        self.log(f"Layer {number} name updated from {old_name} to {name}")
-                        self.log(f"Current layers: {self.gds_design.layers}")
-                        return
-                
-                # Add new layer if it doesn't exist already
-                self.layerData.append((number, name))
-                self.updateLayersComboBox()
-                self.log(f"New Layer added: {number} - {name}")
-                self.log(f"Current layers: {self.gds_design.layers}")
-            except ValueError as e:
-                QMessageBox.critical(self, "Layer Error", str(e), QMessageBox.Ok)
-                self.log(f"Layer definition error: {e}")
+            # Define the new layer using GDSDesign
+            self.gds_design.define_layer(name, int(number))
+            self.log(f"Layer defined: {name} with number {number}")
+            
+            # Check if layer already exists and update name if so
+            for i, (layer_number, layer_name) in enumerate(self.layerData):
+                if layer_number == number:
+                    old_name = self.layerData[i][1]
+                    self.layerData[i] = (number, name)
+                    self.updateLayersComboBox()
+                    self.log(f"Layer {number} name updated from {old_name} to {name}")
+                    self.log(f"Current layers: {self.gds_design.layers}")
+                    return
+            
+            # Add new layer if it doesn't exist already
+            self.layerData.append((number, name))
+            self.updateLayersComboBox()
+            self.log(f"New Layer added: {number} - {name}")
+            self.log(f"Current layers: {self.gds_design.layers}")
         else:
             QMessageBox.critical(self, "Input Error", "Please enter both Layer Number and Layer Name.", QMessageBox.Ok)
             self.log("Layer definition error: Missing layer number or name")
