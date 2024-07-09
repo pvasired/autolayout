@@ -986,12 +986,13 @@ def cluster_intersecting_polygons(polygons):
     
     return clusters
 
-def create_hinged_path(start_point, angle, level_y, final_x):
-    x0, y0 = start_point
+def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotation=0, post_reflection=False):
+    x0, y0 = (0, 0)
     angle_radians = angle * np.pi / 180
+    post_rotation = post_rotation * np.pi / 180
     
     # If the angle is directly horizontal or the start y is already at level_y, adjust behavior
-    if angle > 90 or y0 == level_y:
+    if angle > 90 or extension_y == 0:
         # Directly horizontal or already at level_y
         raise ValueError('Improper Usage')
     
@@ -1001,14 +1002,27 @@ def create_hinged_path(start_point, angle, level_y, final_x):
     if angle == 90:
         hinge_x = x0  # Vertical line case
     else:
-        hinge_x = x0 + (level_y - y0) / np.tan(angle_radians)
+        hinge_x = extension_y / np.tan(angle_radians)
     
-    hinge_point = (hinge_x, level_y)
+    hinge_point = (hinge_x, extension_y)
     
     # Points from start to hinge
-    path_points = [start_point, hinge_point]
-    
+    path_points = [(x0, y0), hinge_point]
+
     # Continue horizontally from hinge point
-    path_points.append((final_x, level_y))  # Extend horizontally for some length
+    path_points.append((hinge_x + extension_x, extension_y))  # Extend horizontally for some length
+    path_points = np.array(path_points)
+
+    if post_reflection:
+        path_points[:, 0] = -path_points[:, 0]
+
+    rotation_matrix = np.array([
+        [np.cos(post_rotation), -np.sin(post_rotation)],
+        [np.sin(post_rotation), np.cos(post_rotation)]
+    ])
+    path_points = rotation_matrix.dot(path_points.T).T
+
+    path_points[:, 0] += start_point[0]
+    path_points[:, 1] += start_point[1]
     
     return path_points
