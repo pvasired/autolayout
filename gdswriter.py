@@ -1003,6 +1003,8 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
         hinge_x = x0  # Vertical line case
     else:
         hinge_x = extension_y / np.tan(angle_radians)
+
+    assert extension_x >= hinge_x, "Improper Usage: extension_x must be greater than hinge_x"
     
     hinge_point = (hinge_x, extension_y)
     
@@ -1010,7 +1012,7 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     path_points = [(x0, y0), hinge_point]
 
     # Continue horizontally from hinge point
-    path_points.append((hinge_x + extension_x, extension_y))  # Extend horizontally for some length
+    path_points.append((extension_x, extension_y))  # Extend horizontally for some length
     path_points = np.array(path_points)
 
     if post_reflection:
