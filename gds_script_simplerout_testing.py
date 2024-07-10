@@ -10,6 +10,7 @@ trace_width = 1.9
 layer_number = 1
 pad_diameter = 5
 effective_pitch = pitch - pad_diameter
+center = (500, -500)
 
 # Initialize the GDS design
 design = gdswriter.GDSDesign()
@@ -20,13 +21,13 @@ design.define_layer("Metal", layer_number)
 # Create a cell with a single larger circle for 'Metal' layer
 circle_cell_name1 = "Circle"
 design.add_cell(circle_cell_name1)
-
-trace_cell_name = "Trace"
-design.add_cell(trace_cell_name)
 design.add_circle_as_polygon(circle_cell_name1, center=(0, 0), radius=pad_diameter/2, layer_name="Metal", num_points=100)
 
 # Create an array of the larger circle cell on 'Metal' layer
-design.add_cell_array("TopCell", circle_cell_name1, copies_x=array_size, copies_y=array_size, spacing_x=pitch, spacing_y=pitch, origin=(0, 0))
+design.add_cell_array("TopCell", circle_cell_name1, copies_x=array_size, copies_y=array_size, spacing_x=pitch, spacing_y=pitch, origin=center)
+
+trace_cell_name = "Trace"
+design.add_cell(trace_cell_name)
 
 for layer_name in design.layers:
     if design.layers[layer_name]['number'] == layer_number:
@@ -219,16 +220,16 @@ else:
             cnt += 1
         
         center_electrode_path = []
-        center_electrode_path.append((0, 0))
-        center_electrode_path.append((pitch/2, -pitch))
-        center_electrode_path.append((pitch*(array_size-1)/2-pitch/2, -pitch*(array_size-1)/2))
-        center_electrode_path.append((pitch*(array_size-1)/2-pitch/2, -pitch*(array_size-1)/2-escape_extent))
+        center_electrode_path.append(center)
+        center_electrode_path.append((center[0]+pitch/2, center[1]-pitch))
+        center_electrode_path.append((center[0]+pitch*(array_size-1)/2-pitch/2, center[1]-pitch*(array_size-1)/2))
+        center_electrode_path.append((center[0]+pitch*(array_size-1)/2-pitch/2, center[1]-pitch*(array_size-1)/2-escape_extent))
         design.add_path_as_polygon("TopCell", center_electrode_path, trace_width, layer_name)
 
-design.add_cell_reference("TopCell", trace_cell_name, origin=(0, 0))
-design.add_cell_reference("TopCell", trace_cell_name, origin=(0, 0), rotation=90)
-design.add_cell_reference("TopCell", trace_cell_name, origin=(0, 0), rotation=180)
-design.add_cell_reference("TopCell", trace_cell_name, origin=(0, 0), rotation=270)
+design.add_cell_reference("TopCell", trace_cell_name, origin=center)
+design.add_cell_reference("TopCell", trace_cell_name, origin=center, rotation=90)
+design.add_cell_reference("TopCell", trace_cell_name, origin=center, rotation=180)
+design.add_cell_reference("TopCell", trace_cell_name, origin=center, rotation=270)
 
 # Write to a GDS file
 design.write_gds("autorouting_test-output.gds")
