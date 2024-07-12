@@ -694,6 +694,9 @@ class GDSDesign:
                 self.add_component(target_cell, target_cell_name, ref, netIDs[i][j] if netIDs is not None else cnt)
                 cnt += 1
     
+    # The traces escape from the array on the positive and negative x directions
+    # The longer dimension of the array should be the y dimension
+    # If the traces should escape on the y directions, the output can be rotated
     def add_regular_array_escape_two_sided(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
         effective_pitch_y = pitch_y - pad_diameter
         self.add_cell(trace_cell_name)
@@ -756,6 +759,9 @@ class GDSDesign:
         
         return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
     
+    # The traces escape from the array on the negative x direction
+    # The longer dimension of the array should be the y dimension
+    # If the traces should escape on the y direction, the output can be rotated
     def add_regular_array_escape_one_sided(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
         effective_pitch_y = pitch_y - pad_diameter
         self.add_cell(trace_cell_name)
@@ -775,12 +781,16 @@ class GDSDesign:
             spacing = available_length / (num_traces - 1)
             cnt = 0
             for i in range(array_size_x):
-                hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[i][j][0]-grid[0][j][0]+escape_extent, post_rotation=180, post_reflection=False)
+                hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[i][j][0]-grid[0][j][0]+escape_extent, post_rotation=0, post_reflection=True)
                 self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                 ports[i][j] = np.array(hinged_path[-1])
                 cnt += 1
         
         return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
+
+    def add_regular_array_escape_four_sided(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
+        pass
+
 
     # NOT SUPPORTED YET
     # def add_regular_array_escape(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size, trace_width, pad_diameter, escape_extent=50, routing_angle=45, odd_extra_trace=False):
