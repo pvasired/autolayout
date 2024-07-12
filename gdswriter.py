@@ -789,8 +789,171 @@ class GDSDesign:
         return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
 
     def add_regular_array_escape_four_sided(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
-        pass
+        effective_pitch_x = pitch_x - pad_diameter
+        effective_pitch_y = pitch_y - pad_diameter
+        # Assuming the array is centered at the origin, find the diagonal lines that connect the corners of the array 
+        # and divide the array into four triangluar quadrants
+        self.add_cell(trace_cell_name)
+        # Create the 2D grid using NumPy
+        x = np.linspace(-pitch_x*(array_size_x-1)/2, pitch_x*(array_size_x-1)/2, array_size_x)
+        y = np.linspace(-pitch_y*(array_size_y-1)/2, pitch_y*(array_size_y-1)/2, array_size_y)
+        xx, yy = np.meshgrid(x, y, indexing='ij')
 
+        # Stack the coordinates into a single 3D array
+        grid = np.stack((xx, yy), axis=-1)
+        ports = np.full_like(grid, np.nan)
+        m_pos = grid[0][0][1]/grid[0][0][0]
+        m_neg = grid[-1][0][1]/grid[-1][0][0]
+
+        # Initialize lists to hold indices of each triangular section
+        bottom_triangle = []
+        right_triangle = []
+        top_triangle = []
+        left_triangle = []
+
+        # Iterate through the grid to determine the section for each point
+        for i in range(array_size_x):
+            for j in range(array_size_y):
+                x_coord, y_coord = grid[i, j]
+                if y_coord <= m_pos * x_coord and y_coord < m_neg * x_coord:
+                    bottom_triangle.append((i, j))
+                    self.add_circle_as_polygon(trace_cell_name, (x_coord, y_coord), pad_diameter/2, layer_name)
+                elif y_coord >= m_neg * x_coord and y_coord < m_pos * x_coord:
+                    right_triangle.append((i, j))
+                elif y_coord >= m_pos * x_coord and y_coord > m_neg * x_coord:
+                    top_triangle.append((i, j))
+                elif y_coord <= m_neg * x_coord and y_coord > m_pos * x_coord:
+                    left_triangle.append((i, j))
+
+        # Convert lists to arrays for easier manipulation if needed
+        bottom_triangle = np.array(bottom_triangle)
+        right_triangle = np.array(right_triangle)
+        top_triangle = np.array(top_triangle)
+        left_triangle = np.array(left_triangle)
+
+        bottom_split = [bottom_triangle[bottom_triangle[:, 0] == value] for value in np.unique(bottom_triangle[:, 0])]
+        available_length = effective_pitch_x - 3 * trace_width
+        if array_size_x % 2 == 0:
+            special_column = int(array_size_x/2)-1
+        else:
+            special_column = int(array_size_x/2)
+        for split in bottom_split:
+            cnt = 0
+            for i in range(len(split)):
+                # Bottom row vertical traces
+                if split[i][1] == 0:
+                    a, b = split[i]
+                    path_points = [tuple(grid[a][b]), (grid[a][b][0], grid[a][b][1]-escape_extent)]
+                    self.add_path_as_polygon(trace_cell_name, path_points, trace_width, layer_name)
+                # Special case for only one trace in a column to route out
+                elif split[i][1] == 1 and len(split) == 2:
+                    assert 3*trace_width <= effective_pitch_x, "Not enough space for traces."
+                    a, b = split[i]
+                    if a < int(array_size_x/2):
+                        hinged_path = create_hinged_path(grid[a,b], routing_angle, effective_pitch_x/2 + pad_diameter/2, grid[a][b][1]-grid[a][0][1]+escape_extent, post_rotation=90, post_reflection=True)
+                    else:
+                        hinged_path = create_hinged_path(grid[a,b], routing_angle, effective_pitch_x/2 + pad_diameter/2, grid[a][b][1]-grid[a][0][1]+escape_extent, post_rotation=-90, post_reflection=False)
+                    self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                # General case for multiple traces in a column to route out
+                else:
+                    a, b = split[i]
+                    if a < special_column:
+                        num_traces = len(split)-1
+                        assert (2*num_traces+1)*trace_width <= effective_pitch_x, "Not enough space for traces."
+                        spacing = available_length / (num_traces - 1)
+                        hinged_path = create_hinged_path(grid[a, b], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[a][b][1]-grid[a][0][1]+escape_extent, post_rotation=90, post_reflection=True)
+                    elif a > int(array_size_x/2):
+                        num_traces = len(split)-1
+                        assert (2*num_traces+1)*trace_width <= effective_pitch_x, "Not enough space for traces."
+                        spacing = available_length / (num_traces - 1)
+                        hinged_path = create_hinged_path(grid[a, b], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[a][b][1]-grid[a][0][1]+escape_extent, post_rotation=-90, post_reflection=False)
+                    self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                    cnt += 1
+        
+        # Handle the special columns for even x array sizes
+        if array_size_x % 2 == 0:
+            # Get the split where the first element is the special column
+            special_split = bottom_triangle[bottom_triangle[:, 0] == special_column]
+            left_route = np.arange(1, special_split[:, 1].max(), 2)
+            if special_split[:, 1].max() not in left_route:
+                left_route = np.append(left_route, special_split[:, 1].max())
+                left_route = np.append(left_route, 2)
+            left_route = np.sort(left_route)
+
+            remaining_inds_L = np.setdiff1d(np.arange(1, special_split[:, 1].max()+1), left_route)
+            num_traces = len(left_route)
+            assert (2*num_traces+1)*trace_width <= effective_pitch_x, "Not enough space for traces."
+            spacing = available_length / (num_traces - 1)
+            cnt = 0
+            for i in left_route:
+                hinged_path = create_hinged_path(grid[special_column, i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[special_column][i][1]-grid[special_column][0][1]+escape_extent, 
+                                                 post_rotation=90, post_reflection=True)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                cnt += 1
+
+            special_split = bottom_triangle[bottom_triangle[:, 0] == special_column+1]
+            right_route = np.arange(1, special_split[:, 1].max(), 2)
+            if special_split[:, 1].max() not in right_route:
+                right_route = np.append(right_route, special_split[:, 1].max())
+                right_route = np.append(right_route, 2)
+            right_route = np.sort(right_route)
+
+            remaining_inds_R = np.setdiff1d(np.arange(1, special_split[:, 1].max()+1), right_route)
+            num_traces = len(right_route)
+            assert (2*num_traces+1)*trace_width <= effective_pitch_x, "Not enough space for traces."
+            spacing = available_length / (num_traces - 1)
+            cnt = 0
+            for i in right_route:
+                hinged_path = create_hinged_path(grid[special_column+1, i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[special_column+1][i][1]-grid[special_column+1][0][1]+escape_extent, 
+                                                 post_rotation=-90, post_reflection=False)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                cnt += 1
+            
+            num_traces = len(remaining_inds_L) + len(remaining_inds_R)
+            assert (2*num_traces+1)*trace_width <= effective_pitch_x, "Not enough space for traces."
+            spacing = available_length / (num_traces - 1)
+            cnt = 0
+            for i in remaining_inds_L:
+                hinged_path = create_hinged_path(grid[special_column, i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[special_column][i][1]-grid[special_column][0][1]+escape_extent, 
+                                                 post_rotation=-90, post_reflection=False)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                cnt += 1
+            
+            cnt = 0
+            for i in remaining_inds_R:
+                hinged_path = create_hinged_path(grid[special_column+1, i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[special_column+1][i][1]-grid[special_column+1][0][1]+escape_extent, 
+                                                 post_rotation=90, post_reflection=True)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                cnt += 1
+        # Handle the special columns for odd x array sizes
+        else:
+            special_split = bottom_triangle[bottom_triangle[:, 0] == special_column]
+            
+            # import pdb; pdb.set_trace()
+
+        right_split = [right_triangle[right_triangle[:, 1] == value] for value in np.unique(right_triangle[:, 1])]
+        for split in right_split:
+            for i in range(len(split)):
+                if split[i][0] == array_size_x-1:
+                    a, b = split[i]
+                    path_points = [tuple(grid[a][b]), (grid[a][b][0]+escape_extent, grid[a][b][1])]
+                    self.add_path_as_polygon(trace_cell_name, path_points, trace_width, layer_name)
+        
+        top_split = [top_triangle[top_triangle[:, 0] == value] for value in np.unique(top_triangle[:, 0])]
+        for split in top_split:
+            for i in range(len(split)):
+                if split[i][1] == array_size_y-1:
+                    a, b = split[i]
+                    path_points = [tuple(grid[a][b]), (grid[a][b][0], grid[a][b][1]+escape_extent)]
+                    self.add_path_as_polygon(trace_cell_name, path_points, trace_width, layer_name)
+        
+        left_split = [left_triangle[left_triangle[:, 1] == value] for value in np.unique(left_triangle[:, 1])]
+        for split in left_split:
+            for i in range(len(split)):
+                if split[i][0] == 0:
+                    a, b = split[i]
+                    path_points = [tuple(grid[a][b]), (grid[a][b][0]-escape_extent, grid[a][b][1])]
+                    self.add_path_as_polygon(trace_cell_name, path_points, trace_width, layer_name)
 
     # NOT SUPPORTED YET
     # def add_regular_array_escape(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size, trace_width, pad_diameter, escape_extent=50, routing_angle=45, odd_extra_trace=False):
