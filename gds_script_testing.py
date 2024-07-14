@@ -7,12 +7,12 @@ import gdsfactory.routing as routing
 
 array_size_x = 16
 array_size_y = 16
-pitch_x = 30
-pitch_y = 30
+pitch_x = 75
+pitch_y = 75
 escape_extent = 50
-trace_width = 1.9
+trace_width = 5
 layer_number = 1
-pad_diameter = 5
+pad_diameter = 10
 routing_angle = 45
 center = (500, 1000)
 filename = "autorouting_test-output.gds"
@@ -67,15 +67,9 @@ for layer_name in design.layers:
 
 grid, ports = design.add_regular_array_escape_four_sided("Trace", layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=escape_extent, routing_angle=routing_angle)
 
-rotation = 0
 design.add_cell_reference(array_cell_name, "Trace", origin=(0,0))
-design.add_cell_reference("TopCell", array_cell_name, origin=center, rotation=rotation)
+design.add_cell_reference("TopCell", array_cell_name, origin=center)
 design.add_cell_reference("TopCell", pad_array_cell_name, origin=center)
-
-ports = (get_rotation_matrix(rotation) @ ports.T).T
-grid = (get_rotation_matrix(rotation) @ grid.T).T
-
-pad_ports = (get_rotation_matrix(rotation) @ pad_ports.T).T
 
 ports[:, 0] = ports[:, 0] + center[0]
 ports[:, 1] = ports[:, 1] + center[1]
@@ -109,7 +103,8 @@ for i, idx in enumerate(sorted_inds):
                      center=ports[idx], cross_section=cross_section)
 
 routing.route_bundle(gdspath, ports1=[gdspath.ports[f"Electrode {i}"] for i in range(len(sorted_inds))], 
-                     ports2=[gdspath.ports[f"Top Pad {i}"] for i in range(len(sorted_inds))], cross_section=cross_section)
+                     ports2=[gdspath.ports[f"Top Pad {i}"] for i in range(len(sorted_inds))], cross_section=cross_section,
+                     separation=trace_width)
 
 bottom_inds = np.where(ports[:, 1] == ports[:, 1].min())[0]
 bottom_inds = bottom_inds[np.argsort(ports[bottom_inds][:, 0])]
@@ -129,6 +124,7 @@ for i, idx in enumerate(sorted_inds2):
 gdspath.pprint_ports()
 
 routing.route_bundle(gdspath, ports1=[gdspath.ports[f"Electrode {i}"] for i in range(len(sorted_inds), len(sorted_inds) + len(sorted_inds2))], 
-                     ports2=[gdspath.ports[f"Top Pad {i}"] for i in range(len(sorted_inds), len(sorted_inds) + len(sorted_inds2))], cross_section=cross_section)
+                     ports2=[gdspath.ports[f"Top Pad {i}"] for i in range(len(sorted_inds), len(sorted_inds) + len(sorted_inds2))], cross_section=cross_section,
+                     separation=trace_width)
 
 gdspath.write_gds(filename)
