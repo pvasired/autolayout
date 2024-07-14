@@ -1503,6 +1503,8 @@ class GDSDesign:
                                                 post_rotation=180, post_reflection=False)
                 self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                 ports[top_route[0]][special_row] = np.array(hinged_path[-1])
+        
+        return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
         # Assume `layer_number` is already determined from `layer_name`
