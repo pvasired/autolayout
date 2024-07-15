@@ -757,8 +757,9 @@ class GDSDesign:
                 ports[i][j] = np.array(hinged_path[-1])
                 cnt += 1
         
-        return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
+        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3)
     
+    # The traces escape from the array on the positive and negative x directions and the positive y direction
     def add_regular_array_escape_three_sided(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -822,7 +823,7 @@ class GDSDesign:
                 ports[j][i] = np.array(hinged_path[-1])
                 cnt += 1
         
-        return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
+        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3)
     
     # The traces escape from the array on the negative x direction
     # The longer dimension of the array should be the y dimension
@@ -851,8 +852,9 @@ class GDSDesign:
                 ports[i][j] = np.array(hinged_path[-1])
                 cnt += 1
         
-        return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
+        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3)
 
+    # The traces escape from all four sides of the array
     def add_regular_array_escape_four_sided(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
         effective_pitch_x = pitch_x - pad_diameter
         effective_pitch_y = pitch_y - pad_diameter
@@ -1569,7 +1571,7 @@ class GDSDesign:
                 self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                 ports[top_route[0]][special_row] = np.array(hinged_path[-1])
         
-        return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
+        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3)
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
         # Assume `layer_number` is already determined from `layer_name`
