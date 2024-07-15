@@ -636,7 +636,7 @@ class GDSDesign:
             path_polygon = gdspy.Polygon(poly, layer=layer_number, datatype=datatype)
             self.add_component(cell, cell_name, path_polygon, netID, layer_number)
 
-    def add_circle_as_polygon(self, cell_name, center, radius, layer_name, num_points=100, datatype=0, netID=0):
+    def add_circle_as_polygon(self, cell_name, center, radius, layer_name, num_points=5000, datatype=0, netID=0):
         """
         Create a circle and immediately approximate it as a polygon with a specified number of points.
         The approximated circle (polygon) is then added to the specified cell and layer.
@@ -1594,6 +1594,45 @@ class GDSDesign:
                     height = bbox[1][1] - bbox[0][1]
                     if width < min_size or height < min_size:
                         raise ValueError(f"Feature on layer '{layer_name}' in cell '{cell_name}' is smaller than the minimum size {min_size}.")
+    
+    def calculate_area_for_layer(self, layer_name):
+        """
+        Calculate the total area of all polygons on a specified layer in the top cell.
+        Returns the total area in mm^2.
+
+        Args:
+        - layer_name (str): Name of the layer to calculate the area for.
+        """
+        cell = self.check_cell_exists(self.top_cell_names[0])
+        layer_number = self.get_layer_number(layer_name)
+
+        # Get polygons by specification (layer and datatype)
+        polygons_by_spec = cell.get_polygons(by_spec=True)
+
+        # Filter for the specific layer (and possibly datatype if relevant)
+        layer_polygons = []
+        for (lay, dat), polys in polygons_by_spec.items():
+            if lay == layer_number:
+                for poly in polys:
+                    layer_polygons.append(poly)
+        
+        # Convert gdspy polygons to shapely polygons
+        shapely_polygons = [Polygon(poly) for poly in layer_polygons]
+
+        # Cluster intersecting polygons
+        # IMPORTANT: Need to iterate until no more intersections are found
+        while True:
+            merged_polygons = cluster_intersecting_polygons(shapely_polygons)
+            if len(merged_polygons) == len(shapely_polygons):
+                break
+            shapely_polygons = merged_polygons
+        
+        # Calculate the total area of the merged polygons
+        area = 0
+        for poly in merged_polygons:
+            area += poly.area
+        
+        return area/1e6  # Convert from um^2 to mm^2
 
     def check_minimum_spacing(self, cell_name, layer_name, min_spacing):
         """
