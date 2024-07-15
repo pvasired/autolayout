@@ -712,7 +712,7 @@ class GDSDesign:
         for j in range(int(array_size_y/2)):
             available_length = effective_pitch_y - 3 * trace_width
             num_traces = int(array_size_x/2)
-            assert (2*num_traces+1)*trace_width <= effective_pitch_y, "Not enough space for traces."
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
             spacing = available_length / (num_traces - 1)
             cnt = 0
             for i in range(int(array_size_x/2)):
@@ -723,7 +723,7 @@ class GDSDesign:
 
             available_length = effective_pitch_y - 3 * trace_width
             num_traces = array_size_x - int(array_size_x/2)
-            assert (2*num_traces+1)*trace_width <= effective_pitch_y, "Not enough space for traces."
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
             spacing = available_length / (num_traces - 1)
             cnt = 0
             iter_inds = np.flip(np.arange(int(array_size_x/2), array_size_x))
@@ -736,7 +736,7 @@ class GDSDesign:
         for j in range(int(array_size_y/2), array_size_y):
             available_length = effective_pitch_y - 3 * trace_width
             num_traces = int(array_size_x/2)
-            assert (2*num_traces+1)*trace_width <= effective_pitch_y, "Not enough space for traces."
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
             spacing = available_length / (num_traces - 1)
             cnt = 0
             for i in range(int(array_size_x/2)):
@@ -747,7 +747,7 @@ class GDSDesign:
 
             available_length = effective_pitch_y - 3 * trace_width
             num_traces = array_size_x - int(array_size_x/2)
-            assert (2*num_traces+1)*trace_width <= effective_pitch_y, "Not enough space for traces."
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
             spacing = available_length / (num_traces - 1)
             cnt = 0
             iter_inds = np.flip(np.arange(int(array_size_x/2), array_size_x))
@@ -755,6 +755,71 @@ class GDSDesign:
                 hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[-1][j][0]-grid[i][j][0]+escape_extent, post_rotation=0, post_reflection=False)
                 self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                 ports[i][j] = np.array(hinged_path[-1])
+                cnt += 1
+        
+        return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
+    
+    def add_regular_array_escape_three_sided(self, trace_cell_name, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
+        effective_pitch_y = pitch_y - pad_diameter
+        effective_pitch_x = pitch_x - pad_diameter
+        self.add_cell(trace_cell_name)
+        # Create the 2D grid using NumPy
+        x = np.linspace(-pitch_x*(array_size_x-1)/2, pitch_x*(array_size_x-1)/2, array_size_x)
+        y = np.linspace(-pitch_y*(array_size_y-1)/2, pitch_y*(array_size_y-1)/2, array_size_y)
+        xx, yy = np.meshgrid(x, y, indexing='ij')
+
+        # Stack the coordinates into a single 3D array
+        grid = np.stack((xx, yy), axis=-1)
+        ports = np.full_like(grid, np.nan)
+
+        for j in range(int(array_size_y/2)):
+            available_length = effective_pitch_y - 3 * trace_width
+            num_traces = int(array_size_x/2)
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
+            spacing = available_length / (num_traces - 1)
+            cnt = 0
+            for i in range(int(array_size_x/2)):
+                hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[i][j][0]-grid[0][j][0]+escape_extent, post_rotation=180, post_reflection=False)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                ports[i][j] = np.array(hinged_path[-1])
+                cnt += 1
+
+            available_length = effective_pitch_y - 3 * trace_width
+            num_traces = array_size_x - int(array_size_x/2)
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
+            spacing = available_length / (num_traces - 1)
+            cnt = 0
+            iter_inds = np.flip(np.arange(int(array_size_x/2), array_size_x))
+            for i in iter_inds:
+                hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[-1][j][0]-grid[i][j][0]+escape_extent, post_rotation=180, post_reflection=True)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                ports[i][j] = np.array(hinged_path[-1])
+                cnt += 1
+
+        for j in range(int(array_size_x/2)):
+            available_length = effective_pitch_x - 3 * trace_width
+            num_traces = array_size_y - int(array_size_y/2)
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_x, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_x}."
+            spacing = available_length / (num_traces - 1)
+            cnt = 0
+            iter_inds = np.flip(np.arange(int(array_size_y/2), array_size_y))
+            for i in iter_inds:
+                hinged_path = create_hinged_path(grid[j][i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[j][-1][1]-grid[j][i][1]+escape_extent, post_rotation=90, post_reflection=False)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                ports[j][i] = np.array(hinged_path[-1])
+                cnt += 1
+        
+        for j in range(int(array_size_x/2), array_size_x):
+            available_length = effective_pitch_x - 3 * trace_width
+            num_traces = array_size_y - int(array_size_y/2)
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_x, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_x}."
+            spacing = available_length / (num_traces - 1)
+            cnt = 0
+            iter_inds = np.flip(np.arange(int(array_size_y/2), array_size_y))
+            for i in iter_inds:
+                hinged_path = create_hinged_path(grid[j][i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[j][-1][1]-grid[j][i][1]+escape_extent, post_rotation=-90, post_reflection=True)
+                self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                ports[j][i] = np.array(hinged_path[-1])
                 cnt += 1
         
         return grid.reshape(array_size_x*array_size_y, 2), ports.reshape(array_size_x*array_size_y, 2)
@@ -777,7 +842,7 @@ class GDSDesign:
         for j in range(array_size_y):
             available_length = effective_pitch_y - 3 * trace_width
             num_traces = array_size_x
-            assert (2*num_traces+1)*trace_width <= effective_pitch_y, "Not enough space for traces."
+            assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
             spacing = available_length / (num_traces - 1)
             cnt = 0
             for i in range(array_size_x):
