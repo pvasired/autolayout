@@ -449,6 +449,18 @@ class MyApp(QWidget):
         self.excludedLayersEdit.setToolTip('Enter comma-separated list of layer numbers or names to exclude from automatic placement search.')
         layersHBoxLayout.addWidget(self.excludedLayersEdit)
 
+        # New Calculate Layer Area button and Layer Area text box
+        self.calculateLayerAreaButton = QPushButton('Calculate Layer Area')
+        self.calculateLayerAreaButton.clicked.connect(self.calculateLayerArea)
+        self.calculateLayerAreaButton.setToolTip('Click to calculate the area for the selected layer.')
+        layersHBoxLayout.addWidget(self.calculateLayerAreaButton)
+
+        self.layerAreaEdit = QLineEdit()
+        self.layerAreaEdit.setPlaceholderText('Layer Area (mm^2)')
+        self.layerAreaEdit.setReadOnly(True)
+        self.layerAreaEdit.setToolTip('Displays the calculated area of the selected layer in mm^2.')
+        layersHBoxLayout.addWidget(self.layerAreaEdit)
+
         # Define Layer layout
         defineLayerHBoxLayout = QHBoxLayout()
         self.newLayerNumberEdit = QLineEdit()
@@ -520,6 +532,20 @@ class MyApp(QWidget):
                 self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name, self.excludedLayers)
                 self.log(f"Available space calculated.")
                 self.log(f"All other polygons calculated.")
+
+    def calculateLayerArea(self):
+        currentLayer = self.layersComboBox.currentText()
+        if currentLayer:
+            layerName = currentLayer.split(':')[1].strip()
+            try:
+                area = self.gds_design.calculate_area_for_layer(layerName)
+                self.layerAreaEdit.setText(f"{area} mm^2")
+                self.log(f"Layer Area for {layerName}: {area} mm^2")
+            except Exception as e:
+                QMessageBox.critical(self, "Calculation Error", f"Error calculating area for layer {layerName}: {str(e)}", QMessageBox.Ok)
+                self.log(f"Error calculating area for layer {layerName}: {str(e)}")
+        else:
+            QMessageBox.warning(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
 
     def log(self, message):
         if self.verbose:
