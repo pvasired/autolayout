@@ -696,6 +696,18 @@ class GDSDesign:
     
     def add_regular_array_escape_two_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
                                            escape_y=False):
+        self.check_cell_exists(trace_cell_name)
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
+        assert isinstance(pitch_y, (int, float)), "Error: Pitch in the y-direction must be a number."
+        assert isinstance(array_size_x, int), "Error: Array size in the x-direction must be an integer."
+        assert isinstance(array_size_y, int), "Error: Array size in the y-direction must be an integer."
+        assert isinstance(trace_width, (int, float)), "Error: Trace width must be a number."
+        assert isinstance(pad_diameter, (int, float)), "Error: Pad diameter must be a number."
+        assert isinstance(escape_extent, (int, float)), "Error: Escape extent must be a number."
+        assert isinstance(routing_angle, (int, float)), "Error: Routing angle must be a number."
+        assert isinstance(escape_y, bool), "Error: Escape direction must be a boolean."
+
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
         # Create the 2D grid using NumPy
@@ -814,6 +826,19 @@ class GDSDesign:
     # The traces escape from the array on the positive and negative x directions and the positive y direction
     def add_regular_array_escape_three_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
                                              escape_y=True, escape_negative=False):
+        self.check_cell_exists(trace_cell_name)
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
+        assert isinstance(pitch_y, (int, float)), "Error: Pitch in the y-direction must be a number."
+        assert isinstance(array_size_x, int), "Error: Array size in the x-direction must be an integer."
+        assert isinstance(array_size_y, int), "Error: Array size in the y-direction must be an integer."
+        assert isinstance(trace_width, (int, float)), "Error: Trace width must be a number."
+        assert isinstance(pad_diameter, (int, float)), "Error: Pad diameter must be a number."
+        assert isinstance(escape_extent, (int, float)), "Error: Escape extent must be a number."
+        assert isinstance(routing_angle, (int, float)), "Error: Routing angle must be a number."
+        assert isinstance(escape_y, bool), "Error: Escape direction must be a boolean."
+        assert isinstance(escape_negative, bool), "Error: Escape negative must be a boolean."
+
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
         # Create the 2D grid using NumPy
@@ -1037,6 +1062,19 @@ class GDSDesign:
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
                                            escape_y=False, escape_negative=True):
+        self.check_cell_exists(trace_cell_name)
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
+        assert isinstance(pitch_y, (int, float)), "Error: Pitch in the y-direction must be a number."
+        assert isinstance(array_size_x, int), "Error: Array size in the x-direction must be an integer."
+        assert isinstance(array_size_y, int), "Error: Array size in the y-direction must be an integer."
+        assert isinstance(trace_width, (int, float)), "Error: Trace width must be a number."
+        assert isinstance(pad_diameter, (int, float)), "Error: Pad diameter must be a number."
+        assert isinstance(escape_extent, (int, float)), "Error: Escape extent must be a number."
+        assert isinstance(routing_angle, (int, float)), "Error: Routing angle must be a number."
+        assert isinstance(escape_y, bool), "Error: Escape direction must be a boolean."
+        assert isinstance(escape_negative, bool), "Error: Escape negative must be a boolean."
+
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
         # Create the 2D grid using NumPy
@@ -1108,6 +1146,17 @@ class GDSDesign:
 
     # The traces escape from all four sides of the array
     def add_regular_array_escape_four_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45):
+        self.check_cell_exists(trace_cell_name)
+        assert isinstance(center, tuple), "Error: Center must be a tuple."
+        assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
+        assert isinstance(pitch_y, (int, float)), "Error: Pitch in the y-direction must be a number."
+        assert isinstance(array_size_x, int), "Error: Array size in the x-direction must be an integer."
+        assert isinstance(array_size_y, int), "Error: Array size in the y-direction must be an integer."
+        assert isinstance(trace_width, (int, float)), "Error: Trace width must be a number."
+        assert isinstance(pad_diameter, (int, float)), "Error: Pad diameter must be a number."
+        assert isinstance(escape_extent, (int, float)), "Error: Escape extent must be a number."
+        assert isinstance(routing_angle, (int, float)), "Error: Routing angle must be a number."
+        
         effective_pitch_x = pitch_x - pad_diameter
         effective_pitch_y = pitch_y - pad_diameter
         # Assuming the array is centered at the origin, find the diagonal lines that connect the corners of the array 

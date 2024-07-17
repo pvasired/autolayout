@@ -978,6 +978,9 @@ class MyApp(QWidget):
         return params
 
     def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Trace_Width, Pad_Diameter, Orientation):
+        if Orientation is None:
+            QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the escape routing.", QMessageBox.Ok)
+            return False
         Orientation = Orientation.lower()
         split = Orientation.split(',')
         if split[0].strip() == '1':
