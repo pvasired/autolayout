@@ -694,7 +694,7 @@ class GDSDesign:
                 self.add_component(target_cell, target_cell_name, ref, netIDs[i][j] if netIDs is not None else cnt)
                 cnt += 1
     
-    def add_regular_array_escape_two_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45,
+    def add_regular_array_escape_two_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
                                            escape_y=False):
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -812,7 +812,7 @@ class GDSDesign:
         return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3)
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
-    def add_regular_array_escape_three_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45,
+    def add_regular_array_escape_three_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
                                              escape_y=True, escape_negative=False):
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1035,7 +1035,7 @@ class GDSDesign:
         
         return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3)
     
-    def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45,
+    def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
                                            escape_y=False, escape_negative=True):
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1107,7 +1107,7 @@ class GDSDesign:
         return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3)
 
     # The traces escape from all four sides of the array
-    def add_regular_array_escape_four_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=100, routing_angle=45):
+    def add_regular_array_escape_four_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45):
         effective_pitch_x = pitch_x - pad_diameter
         effective_pitch_y = pitch_y - pad_diameter
         # Assuming the array is centered at the origin, find the diagonal lines that connect the corners of the array 

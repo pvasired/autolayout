@@ -51,7 +51,7 @@ class MyApp(QWidget):
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
             "Interlayer Via Test", "Electronics Via Test", "Short Test", 
-            "Rectangle", "Circle", "Text", "Polygon", "Path", "Custom Test Structure"
+            "Rectangle", "Circle", "Text", "Polygon", "Path", "Escape Routing", "Custom Test Structure"
         ]
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent", "Automatic Placement"],
@@ -65,6 +65,7 @@ class MyApp(QWidget):
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
+            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Trace Width", "Pad Diameter", "Orientation"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Automatic Placement"]
         }
         self.paramTooltips = {
@@ -181,6 +182,18 @@ class MyApp(QWidget):
             "Path": {
                 "Layer": "Select the layer for the path.",
                 "Width": "Enter the width of the path."
+            },
+            "Escape Routing": {
+                "Cell Name": "Select the cell name for the escape routing.",
+                "Layer": "Select the layer for the escape routing.",
+                "Center": "Enter the center (x, y) coordinate of the escape routing.",
+                "Copies X": "Enter the number of copies in the x direction.",
+                "Copies Y": "Enter the number of copies in the y direction.",
+                "Spacing X": "Enter the spacing between copies in the x direction.",
+                "Spacing Y": "Enter the spacing between copies in the y direction.",
+                "Trace Width": "Enter the width of the traces.",
+                "Pad Diameter": "Enter the diameter of the pads.",
+                "Orientation": "Enter the orientation of the escape routing."
             },
             "Custom Test Structure": {
                 "Center": "Enter the center (x, y) coordinate of the custom test structure.",
@@ -309,6 +322,18 @@ class MyApp(QWidget):
             "Path": {
                 "Layer": '',
                 "Width": ''
+            },
+            "Escape Routing": {
+                "Cell Name": '',
+                "Layer": '',
+                "Center": '',
+                "Copies X": '',
+                "Copies Y": '',
+                "Spacing X": '',
+                "Spacing Y": '',
+                "Trace Width": '',
+                "Pad Diameter": '',
+                "Orientation": ''
             },
             "Custom Test Structure": {
                 "Center": '',
@@ -884,6 +909,8 @@ class MyApp(QWidget):
                 retval = self.addPolygon(**params)
             elif testStructureName == "Path":
                 retval = self.addPath(**params)
+            elif testStructureName == "Escape Routing":
+                retval = self.addEscapeRouting(**params)
             
             if retval:
                 # Write the design
@@ -949,6 +976,135 @@ class MyApp(QWidget):
                             value = None
                     params[param.replace(" ", "_")] = value
         return params
+
+    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Trace_Width, Pad_Diameter, Orientation):
+        Orientation = Orientation.lower()
+        split = Orientation.split(',')
+        if split[0].strip() == '1':
+            if split[1].strip() == '-x':
+                escape_y = False
+                escape_negative = True
+            elif split[1].strip() == '+x':
+                escape_y = False
+                escape_negative = False
+            elif split[1].strip() == '-y':
+                escape_y = True
+                escape_negative = True
+            elif split[1].strip() == '+y':
+                escape_y = True
+                escape_negative = False
+            else:
+                QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+                return False
+            
+            try:
+                self.gds_design.add_regular_array_escape_one_sided(
+                    trace_cell_name=Cell_Name,
+                    center=Center,
+                    layer_name=Layer,
+                    pitch_x=float(Spacing_X),
+                    pitch_y=float(Spacing_Y),
+                    array_size_x=int(Copies_X),
+                    array_size_y=int(Copies_Y),
+                    trace_width=float(Trace_Width),
+                    pad_diameter=float(Pad_Diameter),
+                    escape_y=escape_y,
+                    escape_negative=escape_negative
+                )
+                self.log(f"One-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                return True
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding one-sided escape: {str(e)}", QMessageBox.Ok)
+                self.log(f"One-sided escape placement error: {str(e)}")
+                return False
+            
+        elif split[0].strip() == '2':
+            if split[1].strip() == 'x':
+                escape_y = False
+            elif split[1].strip() == 'y':
+                escape_y = True
+            else:
+                QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+                return False
+
+            try:
+                self.gds_design.add_regular_array_escape_two_sided(
+                    trace_cell_name=Cell_Name,
+                    center=Center,
+                    layer_name=Layer,
+                    pitch_x=float(Spacing_X),
+                    pitch_y=float(Spacing_Y),
+                    array_size_x=int(Copies_X),
+                    array_size_y=int(Copies_Y),
+                    trace_width=float(Trace_Width),
+                    pad_diameter=float(Pad_Diameter),
+                    escape_y=escape_y
+                )
+                self.log(f"Two-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                return True
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding two-sided escape: {str(e)}", QMessageBox.Ok)
+                self.log(f"Two-sided escape placement error: {str(e)}")
+                return False
+        elif split[0].strip() == '3':
+            if split[1].strip() == '-x':
+                escape_y = False
+                escape_negative = True
+            elif split[1].strip() == '+x':
+                escape_y = False
+                escape_negative = False
+            elif split[1].strip() == '-y':
+                escape_y = True
+                escape_negative = True
+            elif split[1].strip() == '+y':
+                escape_y = True
+                escape_negative = False
+            else:
+                QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+                return False
+            
+            try:
+                self.gds_design.add_regular_array_escape_three_sided(
+                    trace_cell_name=Cell_Name,
+                    center=Center,
+                    layer_name=Layer,
+                    pitch_x=float(Spacing_X),
+                    pitch_y=float(Spacing_Y),
+                    array_size_x=int(Copies_X),
+                    array_size_y=int(Copies_Y),
+                    trace_width=float(Trace_Width),
+                    pad_diameter=float(Pad_Diameter),
+                    escape_y=escape_y,
+                    escape_negative=escape_negative
+                )
+                self.log(f"Three-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                return True
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding three-sided escape: {str(e)}", QMessageBox.Ok)
+                self.log(f"Three-sided escape placement error: {str(e)}")
+                return False
+        elif split[0].strip() == '4':
+            try:
+                self.gds_design.add_regular_array_escape_four_sided(
+                    trace_cell_name=Cell_Name,
+                    center=Center,
+                    layer_name=Layer,
+                    pitch_x=float(Spacing_X),
+                    pitch_y=float(Spacing_Y),
+                    array_size_x=int(Copies_X),
+                    array_size_y=int(Copies_Y),
+                    trace_width=float(Trace_Width),
+                    pad_diameter=float(Pad_Diameter)
+                )
+                self.log(f"Four-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                return True
+            except Exception as e:
+                QMessageBox.critical(self, "Placement Error", f"Error adding four-sided escape: {str(e)}", QMessageBox.Ok)
+                self.log(f"Four-sided escape placement error: {str(e)}")
+                return False
+        else:
+            QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+            return False
 
     def addMLAAlignmentMark(self, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
