@@ -8,6 +8,9 @@ from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
 import klayout.db as kdb
 import geopandas as gpd
+from phidl import Device, Path
+import phidl.routing as pr
+import phidl.geometry as pg
 
 TEXT_SPACING_FACTOR = 0.3
 
@@ -2287,3 +2290,82 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     path_points[:, 1] += start_point[1]
     
     return path_points
+
+def route_port_to_port(filename, ports1, orientations1, ports2, orientations2, trace_width, layer_number, cnt):
+    assert len(ports1) == len(ports2)
+    assert np.all(orientations1 == orientations1[0])
+    assert np.all(orientations2 == orientations2[0])
+    assert isinstance(trace_width, (int, float))
+    assert isinstance(layer_number, int)
+    assert isinstance(cnt, int)
+
+    D = pg.import_gds(filename)
+    if orientations1[0] == 180 and orientations2[0] == 270:
+        ports1 = ports1[np.argsort(ports1[:, 1])]
+        ports2 = ports2[np.argsort(ports2[:, 0])]
+
+        if ports1[:, 0].min() > ports2[:, 0].max():
+            for i, port in enumerate(ports1):
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
+
+                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                cnt += 1
+        else:
+            left_inds = np.where(ports1[:, 0] - ports2[:, 0] >= 0)[0]
+            right_inds = np.setdiff1d(np.arange(len(ports1)), left_inds)
+            right_inds = right_inds[np.flip(np.argsort(ports1[right_inds][:, 1]))]
+
+            additional_y = (2*len(right_inds)+1) * trace_width
+            xmin = np.inf
+            for i, idx in enumerate(right_inds):
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0]-2*i*trace_width, ports1[idx][1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[-1-i][0], ports2[-1-i][1]-2*(len(right_inds)-i)*trace_width-additional_y), width=trace_width, orientation=orientations2[0])
+
+                route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                D.add_ref(route_path)
+                if route_path.xmin < xmin:
+                    xmin = route_path.xmin
+
+                P = Path([ports1[idx], port1.midpoint])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                P = Path([ports2[-1-i], port2.midpoint])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+                cnt += 1
+            
+            current_x_shift = 2*i*trace_width + 2*trace_width
+            current_y_shift = 2*(len(right_inds)-i)*trace_width+additional_y - 2*trace_width
+
+            remaining_inds_right = left_inds[np.where(ports2[left_inds, 0] > xmin)[0]]
+            remaining_inds_right = np.flip(left_inds[np.where(ports2[left_inds, 0] > xmin - (2*len(remaining_inds_right)+1)*trace_width - trace_width/2)[0]])
+            left_inds = np.setdiff1d(left_inds, remaining_inds_right)
+
+            for i, idx in enumerate(remaining_inds_right):
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0]-2*i*trace_width-current_x_shift, ports1[idx][1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[-1-i-len(right_inds)][0], ports2[-1-i-len(right_inds)][1]-current_y_shift+2*i*trace_width), width=trace_width, orientation=orientations2[0])
+
+                route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                D.add_ref(route_path)
+
+                P = Path([ports1[idx], port1.midpoint])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                P = Path([ports2[-1-i-len(right_inds)], port2.midpoint])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+                cnt += 1
+
+            for i, idx in enumerate(left_inds):
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
+
+                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                cnt += 1
+    
+    D.write_gds(filename, cellname="TopCell")
+
+    return cnt
