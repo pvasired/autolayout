@@ -2557,68 +2557,7 @@ def route_port_to_port(filename, cell_name, ports1, orientations1, ports2, orien
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
                 D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
-                cnt += 1
-
-    elif orientations1[0] == 270 and orientations2[0] == 90:
-        ports1 = ports1[np.argsort(ports1[:, 0])]
-        ports2 = ports2[np.argsort(ports2[:, 0])]
-
-        if ports1[:, 0].min() > ports2[:, 0].max():
-            for i, port in enumerate(ports1):
-                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]-2*i*trace_width), width=trace_width, orientation=orientations1[0])
-                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
-
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
-
-                P = Path([port, port1.midpoint])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-                cnt += 1
-
-        elif ports1[:, 0].max() < ports2[:, 0].min():
-            ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
-            ports2 = ports2[np.flip(np.argsort(ports2[:, 0]))]
-            for i, port in enumerate(ports1):
-                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]-2*i*trace_width), width=trace_width, orientation=orientations1[0])
-                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
-
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
-
-                P = Path([port, port1.midpoint])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-                cnt += 1
-        
-        else:
-            left_inds = np.where(ports1[:, 0] >= ports2[:, 0])[0]
-            left_ind_boundary = max_value_before_jump(left_inds)
-            left_inds = np.arange(left_ind_boundary+1)
-            right_inds = np.flip(np.setdiff1d(np.arange(len(ports1)), left_inds))
-            additional_y = 0
-            for i, idx in enumerate(left_inds):
-                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]-additional_y), width=trace_width, orientation=orientations1[0])
-                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
-
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
-
-                P = Path([ports1[idx], port1.midpoint])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-                cnt += 1
-                additional_y += 2*trace_width
-            
-            additional_y = 0
-            for i, idx in enumerate(right_inds):
-                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]-additional_y), width=trace_width, orientation=orientations1[0])
-                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[-1-i], width=trace_width, orientation=orientations2[0])
-
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
-
-                P = Path([ports1[idx], port1.midpoint])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-                cnt += 1
-                additional_y += 2*trace_width            
+                cnt += 1      
     
     elif orientations1[0] == 0 and orientations2[0] == 90:
         ports1 = ports1[np.argsort(ports1[:, 1])]
@@ -2685,60 +2624,68 @@ def route_port_to_port(filename, cell_name, ports1, orientations1, ports2, orien
                 D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
                 cnt += 1
 
-    elif orientations1[0] == 90 and orientations2[0] == 0:
-        ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
+    elif orientations1[0] == 0 and orientations2[0] == 180:
+        ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
         ports2 = ports2[np.flip(np.argsort(ports2[:, 1]))]
-        if ports1[:, 0].max() < ports2[:, 0].min():
+
+        if ports1[:, 1].max() < ports2[:, 1].min():
             for i, port in enumerate(ports1):
-                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]+2*i*trace_width), width=trace_width, orientation=orientations1[0])
-                port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0]+2*i*trace_width, ports2[i][1]), width=trace_width, orientation=orientations2[0])
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
                 D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
 
                 P = Path([port, port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
                 D.add_ref(path)
-
-                P = Path([ports2[i], port2.midpoint])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
                 cnt += 1
 
-        elif (ports1[:, 0].max() > ports2[:, 0].min() and ports1[:, 0].min() < ports2[:, 0].min()) or bbox1[0][0] - bbox2[1][0] <= (2*len(ports1)+1)*trace_width:
-            additional_x = bbox1[1][0] - bbox2[1][0] + 2*trace_width
-            print(additional_x)
-            for i, port in enumerate(ports1):
-                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]+2*i*trace_width), width=trace_width, orientation=orientations1[0])
-                port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0]+2*i*trace_width+additional_x, ports2[i][1]), width=trace_width, orientation=orientations2[0])
-
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
-
-                P = Path([port, port1.midpoint])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                P = Path([ports2[i], port2.midpoint])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-                cnt += 1
-        else:
-            ports1 = ports1[np.argsort(ports1[:, 0])]
+        elif ports1[:, 1].min() > ports2[:, 1].max():
+            ports1 = ports1[np.argsort(ports1[:, 1])]
             ports2 = ports2[np.argsort(ports2[:, 1])]
             for i, port in enumerate(ports1):
-                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]+2*i*trace_width), width=trace_width, orientation=orientations1[0])
-                port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0]+2*(len(ports1)-i)*trace_width, ports2[i][1]), width=trace_width, orientation=orientations2[0])
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
                 D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
 
                 P = Path([port, port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
                 D.add_ref(path)
+                cnt += 1
+        
+        else:
+            left_inds = np.where(ports1[:, 1] < ports2[:, 1])[0]
+            left_ind_boundary = max_value_before_jump(left_inds)
+            left_inds = np.arange(left_ind_boundary+1)
+            right_inds = np.flip(np.setdiff1d(np.arange(len(ports1)), left_inds))
 
-                P = Path([ports2[i], port2.midpoint])
+            for i, idx in enumerate(right_inds):
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0]+2*i*trace_width, ports1[idx][1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[-1-i][0], ports2[-1-i][1]), width=trace_width, orientation=orientations2[0])
+
+                route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                D.add_ref(route_path)
+
+                P = Path([ports1[idx], port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
                 D.add_ref(path)
-                cnt += 1
 
+                cnt += 1
+            
+            for i, idx in enumerate(left_inds):
+                port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0]+2*i*trace_width, ports1[idx][1]), width=trace_width, orientation=orientations1[0])
+                port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]), width=trace_width, orientation=orientations2[0])
+
+                route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                D.add_ref(route_path)
+
+                P = Path([ports1[idx], port1.midpoint])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                cnt += 1
+            
     else:
         raise ValueError("Invalid orientations for routing. Try changing orientations for ports")
         
