@@ -2443,6 +2443,77 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
                 D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
 
         D.write_gds(filename, cellname="TopCell")
+    
+    elif orientations[0] == 0:
+        ports = ports[np.argsort(ports[:, 1])]
+        center_ind = math.ceil(len(ports)/2)-1
+
+        iter_inds_B = np.flip(np.arange(center_ind+1))
+        iter_inds_T = np.arange(center_ind+1, len(ports))
+        max_x_B = (ports[center_ind][1] - 2*len(iter_inds_B)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
+        max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+        max_x = max(max_x_B, max_x_T)
+
+        x_accumulated = 0
+        for i, idx in enumerate(iter_inds_B):
+            if i > 1:
+                p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+                x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+                                                 routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=False)
+                P = Path(hinged_path)
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
+            elif i == 1:
+                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=False)
+                P = Path(hinged_path)
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                D.add_ref(circle).move(ports[idx])
+            else:
+                circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                D.add_ref(circle).move(ports[idx])
+
+                P = Path([ports[idx], (ports[idx][0]+max_x, ports[idx][1])])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+        x_accumulated = 0
+        for i, idx in enumerate(iter_inds_T):
+            if i == 0:
+                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=True)
+                P = Path(hinged_path)
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                D.add_ref(circle).move(ports[idx])
+            else:
+                p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+                x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+                                                    routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=True)
+                P = Path(hinged_path)
+                path = P.extrude(trace_width, layer=layer_number)
+                D.add_ref(path)
+
+                circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
+
+        D.write_gds(filename, cellname="TopCell")
             
 # def route_port_to_port(filename, cell_name, ports1_, orientations1, ports2_, orientations2, trace_width, layer_number, cnt,
 #                        bbox1=None, bbox2=None):
