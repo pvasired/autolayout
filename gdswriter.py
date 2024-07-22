@@ -2308,9 +2308,14 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
 
         iter_inds_L = np.flip(np.arange(center_ind+1))
         iter_inds_R = np.arange(center_ind+1, len(ports))
-        max_y_L = (ports[center_ind][0] - 2*len(iter_inds_L)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
+        max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_y = max(max_y_L, max_y_R)
+
+        left_coord = (ports[center_ind][0]-2*(len(iter_inds_L)-1)*trace_width-trace_width/2, ports[:, 1].max()+max_y)
+        right_coord = (ports[center_ind][0]+2*len(iter_inds_R)*trace_width+trace_width/2, ports[:, 1].max()+max_y)
+        tie_center = ((left_coord[0]+right_coord[0])/2, (left_coord[1]+right_coord[1])/2)
+        tie_width = right_coord[0] - left_coord[0]
 
         y_accumulated = 0
         for i, idx in enumerate(iter_inds_L):
@@ -2372,6 +2377,7 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
                 D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
 
         D.write_gds(filename, cellname="TopCell")
+        return tie_center, tie_width
     
     elif orientations[0] == 270:
         ports = ports[np.argsort(ports[:, 0])]
@@ -2379,9 +2385,14 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
 
         iter_inds_L = np.flip(np.arange(center_ind+1))
         iter_inds_R = np.arange(center_ind+1, len(ports))
-        max_y_L = (ports[center_ind][0] - 2*len(iter_inds_L)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
+        max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_y = max(max_y_L, max_y_R)
+
+        left_coord = (ports[center_ind][0]-2*(len(iter_inds_L)-1)*trace_width-trace_width/2, ports[:, 1].min()-max_y)
+        right_coord = (ports[center_ind][0]+2*len(iter_inds_R)*trace_width+trace_width/2, ports[:, 1].min()-max_y)
+        tie_center = ((left_coord[0]+right_coord[0])/2, (left_coord[1]+right_coord[1])/2)
+        tie_width = right_coord[0] - left_coord[0]
 
         y_accumulated = 0
         for i, idx in enumerate(iter_inds_L):
@@ -2443,6 +2454,7 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
                 D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
 
         D.write_gds(filename, cellname="TopCell")
+        return tie_center, tie_width
     
     elif orientations[0] == 0:
         ports = ports[np.argsort(ports[:, 1])]
@@ -2450,9 +2462,14 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
 
         iter_inds_B = np.flip(np.arange(center_ind+1))
         iter_inds_T = np.arange(center_ind+1, len(ports))
-        max_x_B = (ports[center_ind][1] - 2*len(iter_inds_B)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
+        max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_x = max(max_x_B, max_x_T)
+
+        bot_coord = (ports[:, 0].max()+max_x, ports[center_ind][1]-2*(len(iter_inds_B)-1)*trace_width-trace_width/2)
+        top_coord = (ports[:, 0].max()+max_x, ports[center_ind][1]+2*len(iter_inds_T)*trace_width+trace_width/2)
+        tie_center = ((bot_coord[0]+top_coord[0])/2, (bot_coord[1]+top_coord[1])/2)
+        tie_width = top_coord[1] - bot_coord[1]
 
         x_accumulated = 0
         for i, idx in enumerate(iter_inds_B):
@@ -2514,6 +2531,7 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
                 D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
 
         D.write_gds(filename, cellname="TopCell")
+        return tie_center, tie_width
     
     elif orientations[0] == 180:
         ports = ports[np.argsort(ports[:, 1])]
@@ -2521,9 +2539,14 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
 
         iter_inds_B = np.flip(np.arange(center_ind+1))
         iter_inds_T = np.arange(center_ind+1, len(ports))
-        max_x_B = (ports[center_ind][1] - 2*len(iter_inds_B)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
+        max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
         max_x = max(max_x_B, max_x_T)
+
+        bot_coord = (ports[:, 0].min()-max_x, ports[center_ind][1]-2*(len(iter_inds_B)-1)*trace_width-trace_width/2)
+        top_coord = (ports[:, 0].min()-max_x, ports[center_ind][1]+2*len(iter_inds_T)*trace_width+trace_width/2)
+        tie_center = ((bot_coord[0]+top_coord[0])/2, (bot_coord[1]+top_coord[1])/2)
+        tie_width = top_coord[1] - bot_coord[1]
 
         x_accumulated = 0
         for i, idx in enumerate(iter_inds_B):
@@ -2585,3 +2608,4 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
                 D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
 
         D.write_gds(filename, cellname="TopCell")
+        return tie_center, tie_width
