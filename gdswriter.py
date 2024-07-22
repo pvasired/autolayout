@@ -2293,7 +2293,8 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     
     return path_points
 
-def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, layer_number, routing_angle=45, escape_extent=250):
+def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, layer_number, routing_angle=45, escape_extent=250,
+                    top_cell_name="TopCell"):
     # TODO: escape extent is hardcoded but may not be large enough for all cases
     ports = deepcopy(ports_)
     assert np.all(orientations == orientations[0])
@@ -2375,9 +2376,6 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
 
                 circle = pg.circle(radius=trace_width/2, layer=layer_number)
                 D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
-
-        D.write_gds(filename, cellname="TopCell")
-        return tie_center, tie_width
     
     elif orientations[0] == 270:
         ports = ports[np.argsort(ports[:, 0])]
@@ -2452,9 +2450,6 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
 
                 circle = pg.circle(radius=trace_width/2, layer=layer_number)
                 D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
-
-        D.write_gds(filename, cellname="TopCell")
-        return tie_center, tie_width
     
     elif orientations[0] == 0:
         ports = ports[np.argsort(ports[:, 1])]
@@ -2529,9 +2524,6 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
 
                 circle = pg.circle(radius=trace_width/2, layer=layer_number)
                 D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
-
-        D.write_gds(filename, cellname="TopCell")
-        return tie_center, tie_width
     
     elif orientations[0] == 180:
         ports = ports[np.argsort(ports[:, 1])]
@@ -2607,5 +2599,12 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
                 circle = pg.circle(radius=trace_width/2, layer=layer_number)
                 D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
 
-        D.write_gds(filename, cellname="TopCell")
-        return tie_center, tie_width
+    top_level_device = pg.import_gds(filename)
+    if top_level_device.name != cell_name:
+        for ref in top_level_device.references:
+            if ref.ref_cell.name == cell_name:
+                ref.ref_cell = D
+        top_level_device.write_gds(filename, cellname=top_cell_name)
+    else:
+        D.write_gds(filename, cellname=top_cell_name)
+    return tie_center, tie_width

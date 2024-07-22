@@ -88,8 +88,8 @@ upper_right = offset + center + np.array([width/2, height/2])
 bbox2 = np.array([lower_left, upper_right])
 
 top_center, top_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[top_inds_elec], orientations[top_inds_elec], trace_width, layer_number)
-# left_center, left_width = gdswriter.cable_tie_ports(filename, "TopCell", ports[left_inds_elec], orientations[left_inds_elec], trace_width, layer_number)
-# right_center, right_width = gdswriter.cable_tie_ports(filename, "TopCell", ports[right_inds_elec], orientations[right_inds_elec], trace_width, layer_number)
-# bot_center, bot_width = gdswriter.cable_tie_ports(filename, "TopCell", ports[bottom_inds_elec], orientations[bottom_inds_elec], trace_width, layer_number)
+left_center, left_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[left_inds_elec], orientations[left_inds_elec], trace_width, layer_number)
+right_center, right_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[right_inds_elec], orientations[right_inds_elec], trace_width, layer_number)
+bot_center, bot_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[bottom_inds_elec], orientations[bottom_inds_elec], trace_width, layer_number)
 
 import pdb; pdb.set_trace()
