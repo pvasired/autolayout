@@ -2626,14 +2626,17 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
     return wire_ports, wire_orientations
 
 def route_port_to_port(filename, cell_name, ports1_, orientations1, ports2_, orientations2, trace_width, layer_number,
-                       bbox1=None, bbox2=None, top_cell_name="TopCell"):
-    ports1 = deepcopy(ports1_)
-    ports2 = deepcopy(ports2_)
-    assert len(ports1) == len(ports2)
+                       bbox1_=None, bbox2_=None, top_cell_name="TopCell"):
+    assert len(ports1_) == len(ports2_)
     assert np.all(orientations1 == orientations1[0])
     assert np.all(orientations2 == orientations2[0])
     assert isinstance(trace_width, (int, float))
     assert isinstance(layer_number, int)
+    ports1 = deepcopy(ports1_)
+    ports2 = deepcopy(ports2_)
+    if bbox1_ is not None and bbox2_ is not None:
+        bbox1 = deepcopy(bbox1_)
+        bbox2 = deepcopy(bbox2_)
 
     D = pg.import_gds(filename, cellname=cell_name)
     # Seems to work: requires that ports2 is above ports1 in y
@@ -3070,27 +3073,31 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1, ports2_, ori
 
                 cnt += 1
     
-    # elif orientations1[0] == orientations2[0] == 0:
-    #     if ports1[:, 0].max() > ports2[:, 0].max():
-    #         ports1, ports2 = ports2, ports1
+    # Works in most scenarios and throws error if it won't
+    elif orientations1[0] == orientations2[0] == 0:
+        if ports1[:, 0].max() > ports2[:, 0].max():
+            ports1, ports2 = ports2, ports1
+            bbox1, bbox2 = bbox2, bbox1
 
-    #     if ports1[:, 1].max() < ports2[:, 1].min():
-    #         ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
-    #         ports2 = ports2[np.argsort(ports2[:, 1])]
-    #     else:
-    #         ports1 = ports1[np.argsort(ports1[:, 1])]
-    #         ports2 = ports2[np.flip(np.argsort(ports2[:, 1]))] 
+        assert ports1[:, 1].max() < bbox2[0][1] - 3*trace_width/2 or ports1[:, 1].min() > bbox2[1][1] + 3*trace_width/2, "No space for routing"
 
-    #     for i, port in enumerate(ports1):
-    #         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
-    #         port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0]+2*i*trace_width, ports2[i][1]), width=trace_width, orientation=orientations2[0])
+        if ports1[:, 1].max() < ports2[:, 1].min():
+            ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
+            ports2 = ports2[np.argsort(ports2[:, 1])]
+        else:
+            ports1 = ports1[np.argsort(ports1[:, 1])]
+            ports2 = ports2[np.flip(np.argsort(ports2[:, 1]))] 
 
-    #         D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+        for i, port in enumerate(ports1):
+            port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
+            port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0]+2*i*trace_width, ports2[i][1]), width=trace_width, orientation=orientations2[0])
 
-    #         P = Path([ports2[i], port2.midpoint])
-    #         path = P.extrude(trace_width, layer=layer_number)
-    #         D.add_ref(path)
-    #         cnt += 1
+            D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+
+            P = Path([ports2[i], port2.midpoint])
+            path = P.extrude(trace_width, layer=layer_number)
+            D.add_ref(path)
+            cnt += 1
 
     else:
         raise ValueError("Invalid orientations for routing. Try changing orientations for ports")
