@@ -3075,6 +3075,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1, ports2_, ori
     
     # Works in most scenarios and throws error if it won't
     elif orientations1[0] == orientations2[0] == 0:
+        assert bbox1 is not None and bbox2 is not None, "Bounding boxes must be provided for this orientation"
         if ports1[:, 0].max() > ports2[:, 0].max():
             ports1, ports2 = ports2, ports1
             bbox1, bbox2 = bbox2, bbox1
@@ -3099,6 +3100,31 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1, ports2_, ori
             D.add_ref(path)
             cnt += 1
 
+    elif orientations1[0] == orientations2[0] == 90:
+        assert bbox1 is not None and bbox2 is not None, "Bounding boxes must be provided for this orientation"
+        if ports1[:, 1].max() > ports2[:, 1].max():
+            ports1, ports2 = ports2, ports1
+            bbox1, bbox2 = bbox2, bbox1
+
+        assert ports1[:, 0].max() < bbox2[0][0] - 3*trace_width/2 or ports1[:, 0].min() > bbox2[1][0] + 3*trace_width/2, "No space for routing"
+
+        if ports1[:, 0].max() < ports2[:, 0].min():
+            ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
+            ports2 = ports2[np.argsort(ports2[:, 0])]
+        else:
+            ports1 = ports1[np.argsort(ports1[:, 0])]
+            ports2 = ports2[np.flip(np.argsort(ports2[:, 0]))]
+
+        for i, port in enumerate(ports1):
+            port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
+            port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width), width=trace_width, orientation=orientations2[0])
+
+            D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+
+            P = Path([ports2[i], port2.midpoint])
+            path = P.extrude(trace_width, layer=layer_number)
+            D.add_ref(path)
+            cnt += 1
     else:
         raise ValueError("Invalid orientations for routing. Try changing orientations for ports")
         
