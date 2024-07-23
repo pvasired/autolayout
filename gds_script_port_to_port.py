@@ -41,11 +41,11 @@ design.add_cell(array_cell_name)
 # Create an array of the larger circle cell on 'Metal' layer
 design.add_cell_array(array_cell_name, circle_cell_name1, copies_x=array_size_x, copies_y=array_size_y, spacing_x=pitch_x, spacing_y=pitch_y, origin=(0, 0))
 
-pad_pitch_x = 100
+pad_pitch_x = 200
 pad_pitch_y = 150
 pad_array_cell_name = "Pad Array"
 design.add_cell(pad_array_cell_name)
-center_pad = (1000, 10000)
+center_pad = (750, 10000)
 design.add_cell_array(pad_array_cell_name, circle_cell_name1, copies_x=array_size_x, copies_y=array_size_y, spacing_x=pad_pitch_x, spacing_y=pad_pitch_y, origin=(0, 0))
 pad_grid, pad_ports, pad_orientations = design.add_regular_array_escape_four_sided(pad_array_cell_name, (0, 0), layer_name, pad_pitch_x, pad_pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=escape_extent, routing_angle=routing_angle,
                                                                                   )
@@ -75,6 +75,18 @@ bottom_inds_pad = bottom_inds_pad[np.flip(np.argsort(pad_ports[bottom_inds_pad][
 
 design.write_gds(filename)
 
+top_wire_ports, top_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[top_inds_elec], orientations[top_inds_elec], trace_width, layer_number)
+left_wire_ports, left_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[left_inds_elec], orientations[left_inds_elec], trace_width, layer_number)
+right_wire_ports, right_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[right_inds_elec], orientations[right_inds_elec], trace_width, layer_number)
+bot_wire_ports, bot_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[bottom_inds_elec], orientations[bottom_inds_elec], trace_width, layer_number)
+
+top_wire_ports_pad, top_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[top_inds_pad], pad_orientations[top_inds_pad], trace_width, layer_number)
+left_wire_ports_pad, left_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[left_inds_pad], pad_orientations[left_inds_pad], trace_width, layer_number)
+right_wire_ports_pad, right_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[right_inds_pad], pad_orientations[right_inds_pad], trace_width, layer_number)
+bot_wire_ports_pad, bot_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[bottom_inds_pad], pad_orientations[bottom_inds_pad], trace_width, layer_number)
+
+design = gdswriter.GDSDesign(filename=filename)
+
 width, height, offset = design.calculate_cell_size(pad_array_cell_name)
 offset = np.array(offset)
 lower_left = offset + center_pad - np.array([width/2, height/2])
@@ -87,9 +99,6 @@ lower_left = offset + center - np.array([width/2, height/2])
 upper_right = offset + center + np.array([width/2, height/2])
 bbox2 = np.array([lower_left, upper_right])
 
-top_center, top_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[top_inds_elec], orientations[top_inds_elec], trace_width, layer_number)
-left_center, left_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[left_inds_elec], orientations[left_inds_elec], trace_width, layer_number)
-right_center, right_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[right_inds_elec], orientations[right_inds_elec], trace_width, layer_number)
-bot_center, bot_width = gdswriter.cable_tie_ports(filename, array_cell_name, ports[bottom_inds_elec], orientations[bottom_inds_elec], trace_width, layer_number)
-
-import pdb; pdb.set_trace()
+gdswriter.route_port_to_port(filename, "TopCell", top_wire_ports+center,
+                             top_wire_orientations, bot_wire_ports_pad+center_pad,
+                             bot_wire_orientations_pad, trace_width, layer_number)

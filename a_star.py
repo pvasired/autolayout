@@ -359,6 +359,8 @@ def main(obstacle_number=1500):
     bound, obstacle = boundary_and_obstacles(start, end, top_vertex,
                                              bottom_vertex,
                                              obstacle_number)
+    
+    import pdb; pdb.set_trace()
 
     path = searching_control(start, end, bound, obstacle)
     if not show_animation:
