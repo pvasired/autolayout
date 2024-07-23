@@ -2947,12 +2947,12 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
                     cnt += 1      
     
-    # Kind of works: requires that ports1 is above ports2 in y
+    # Works, covers most cases
     elif (orientations1[0] == 0 and orientations2[0] == 90) or (orientations1[0] == 90 and orientations2[0] == 0):
         if orientations1[0] == 90:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
-        if ports1[:, 1].min() > ports2[:, 1].max():
+        if bbox1[0][1] > bbox2[1][1] + (2*len(ports1)+1)*trace_width:
             ports1 = ports1[np.argsort(ports1[:, 1])]
             ports2 = ports2[np.argsort(ports2[:, 0])]
 
@@ -3027,11 +3027,12 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         else:
             ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
             ports2 = ports2[np.flip(np.argsort(ports2[:, 0]))]
+            additional_y = max(0, bbox1[1][1] - bbox2[1][1] + 3*trace_width/2)
 
             if ports1[:, 0].min() > bbox2[1][0] + 3*trace_width/2:
                 for i, port in enumerate(ports1):
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
-                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width), width=trace_width, orientation=orientations2[0])
+                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width+additional_y), width=trace_width, orientation=orientations2[0])
 
                     D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
 
