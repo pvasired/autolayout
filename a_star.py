@@ -35,13 +35,14 @@ def gcost(fixed_node, update_node_coordinate):
     return gcost
 
 
-def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, user_obstacles):
+def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, user_obstacles, path_width):
     """
     :param start: start coordinate
     :param goal: goal coordinate
     :param top_vertex: top right vertex coordinate of boundary
     :param bottom_vertex: bottom left vertex coordinate of boundary
     :param user_obstacles: list of user-defined rectangular obstacles
+    :param path_width: width of the path
     :return: boundary_obstacle array, obstacle list
     """
     # below can be merged into a rectangle boundary
@@ -59,7 +60,7 @@ def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, user_obstacle
     y = ay + by + cy + dy
 
     # Process user-defined obstacles
-    obstacle = convert_rectangles_to_obstacles(user_obstacles)
+    obstacle = convert_rectangles_to_obstacles(user_obstacles, path_width)
 
     # remove start and goal coordinate in obstacle list
     obstacle = [coor for coor in obstacle if coor != start and coor != goal]
@@ -310,16 +311,16 @@ def searching_control(start, end, bound, obstacle):
             break
     return path
 
-def convert_rectangles_to_obstacles(rectangles):
+def convert_rectangles_to_obstacles(rectangles, path_width):
     obstacles = []
     for rect in rectangles:
         lower_left, upper_right = rect
-        for x in range(lower_left[0], upper_right[0] + 1):
-            for y in range(lower_left[1], upper_right[1] + 1):
+        for x in range(lower_left[0] - path_width + 1, upper_right[0] + path_width):
+            for y in range(lower_left[1] - path_width + 1, upper_right[1] + path_width):
                 obstacles.append([x, y])
     return obstacles
 
-def main(start, end, user_obstacles):
+def main(start, end, user_obstacles, path_width):
     print(__file__ + ' start!')
 
     top_vertex = [60, 60]  # top right vertex of boundary
@@ -328,7 +329,7 @@ def main(start, end, user_obstacles):
     # generate boundary and obstacles
     bound, obstacle = boundary_and_obstacles(start, end, top_vertex,
                                              bottom_vertex,
-                                             user_obstacles)
+                                             user_obstacles, path_width)
     
     path = searching_control(start, end, bound, obstacle)
     if not show_animation:
@@ -342,4 +343,5 @@ if __name__ == '__main__':
         ([10, 10], [15, 15]),
         ([20, 20], [25, 25])
     ]
-    main(start, end, user_obstacles)
+    path_width = 2
+    main(start, end, user_obstacles, path_width)
