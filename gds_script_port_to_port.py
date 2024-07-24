@@ -8,10 +8,10 @@ from phidl import Device, Path
 import phidl.routing as pr
 import phidl.geometry as pg
 
-array_size_x = 10
-array_size_y = 10
+array_size_x = 16
+array_size_y = 16
 pitch_x = 100
-pitch_y = 100
+pitch_y = 200
 escape_extent = 50
 trace_width = 5
 layer_number = 1
@@ -41,11 +41,11 @@ design.add_cell(array_cell_name)
 # Create an array of the larger circle cell on 'Metal' layer
 design.add_cell_array(array_cell_name, circle_cell_name1, copies_x=array_size_x, copies_y=array_size_y, spacing_x=pitch_x, spacing_y=pitch_y, origin=(0, 0))
 
-pad_pitch_x = 200
-pad_pitch_y = 150
+pad_pitch_x = 100
+pad_pitch_y = 100
 pad_array_cell_name = "Pad Array"
 design.add_cell(pad_array_cell_name)
-center_pad = (750, 10000)
+center_pad = (10000, -10000)
 design.add_cell_array(pad_array_cell_name, circle_cell_name1, copies_x=array_size_x, copies_y=array_size_y, spacing_x=pad_pitch_x, spacing_y=pad_pitch_y, origin=(0, 0))
 pad_grid, pad_ports, pad_orientations = design.add_regular_array_escape_four_sided(pad_array_cell_name, (0, 0), layer_name, pad_pitch_x, pad_pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=escape_extent, routing_angle=routing_angle,
                                                                                   )
@@ -91,14 +91,19 @@ width, height, offset = design.calculate_cell_size(pad_array_cell_name)
 offset = np.array(offset)
 lower_left = offset + center_pad - np.array([width/2, height/2])
 upper_right = offset + center_pad + np.array([width/2, height/2])
-bbox1 = np.array([lower_left, upper_right])
+bbox2 = np.array([lower_left, upper_right])
 
 width, height, offset = design.calculate_cell_size(array_cell_name)
 offset = np.array(offset)
 lower_left = offset + center - np.array([width/2, height/2])
 upper_right = offset + center + np.array([width/2, height/2])
-bbox2 = np.array([lower_left, upper_right])
+bbox1 = np.array([lower_left, upper_right])
 
-gdswriter.route_port_to_port(filename, "TopCell", top_wire_ports+center,
-                             top_wire_orientations, bot_wire_ports_pad+center_pad,
-                             bot_wire_orientations_pad, trace_width, layer_number)
+# gdswriter.route_port_to_port(filename, "TopCell", right_wire_ports+center, right_wire_orientations, 
+#                              left_wire_ports_pad+center_pad, left_wire_orientations_pad, trace_width, layer_number, bbox1_=bbox1, bbox2_=bbox2)
+
+# design.route_ports_a_star("TopCell", right_wire_ports+center, right_wire_orientations,
+#                           left_wire_ports_pad+center_pad, left_wire_orientations_pad, trace_width, '1', bbox1, bbox2)
+
+gdswriter.route_ports_a_star_outside(filename, "TopCell", right_wire_ports+center, right_wire_orientations,
+                                     left_wire_ports_pad+center_pad, left_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2)

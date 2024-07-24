@@ -35,29 +35,33 @@ def gcost(fixed_node, update_node_coordinate):
     return gcost
 
 
-def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, user_obstacles, path_width):
+def boundary_and_obstacles(start, goal, lower_left, upper_right, user_obstacles, path_width):
     """
     :param start: start coordinate
     :param goal: goal coordinate
-    :param top_vertex: top right vertex coordinate of boundary
-    :param bottom_vertex: bottom left vertex coordinate of boundary
+    :param lower_left: lower left vertex coordinate of boundary
+    :param upper_right: upper right vertex coordinate of boundary
     :param user_obstacles: list of user-defined rectangular obstacles
     :param path_width: width of the path
     :return: boundary_obstacle array, obstacle list
     """
-    # below can be merged into a rectangle boundary
-    ay = list(range(bottom_vertex[1], top_vertex[1]))
-    ax = [bottom_vertex[0]] * len(ay)
-    cy = ay
-    cx = [top_vertex[0]] * len(cy)
-    bx = list(range(bottom_vertex[0] + 1, top_vertex[0]))
-    by = [bottom_vertex[1]] * len(bx)
-    dx = [bottom_vertex[0]] + bx + [top_vertex[0]]
-    dy = [top_vertex[1]] * len(dx)
+    # Generate boundary only if lower_left and upper_right are provided
+    if lower_left and upper_right:
+        ay = list(range(lower_left[1], upper_right[1]))
+        ax = [lower_left[0]] * len(ay)
+        cy = ay
+        cx = [upper_right[0]] * len(cy)
+        bx = list(range(lower_left[0] + 1, upper_right[0]))
+        by = [lower_left[1]] * len(bx)
+        dx = [lower_left[0]] + bx + [upper_right[0]]
+        dy = [upper_right[1]] * len(dx)
 
-    # x y coordinate in certain order for boundary
-    x = ax + bx + cx + dx
-    y = ay + by + cy + dy
+        # x y coordinate in certain order for boundary
+        x = ax + bx + cx + dx
+        y = ay + by + cy + dy
+        bound = np.vstack((x, y)).T
+    else:
+        bound = np.array([])
 
     # Process user-defined obstacles
     obstacle = convert_rectangles_to_obstacles(user_obstacles, path_width)
@@ -65,8 +69,12 @@ def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, user_obstacle
     # remove start and goal coordinate in obstacle list
     obstacle = [coor for coor in obstacle if coor != start and coor != goal]
     obs_array = np.array(obstacle)
-    bound = np.vstack((x, y)).T
-    bound_obs = np.vstack((bound, obs_array))
+
+    if bound.size > 0:
+        bound_obs = np.vstack((bound, obs_array))
+    else:
+        bound_obs = obs_array
+    
     return bound_obs, obstacle
 
 
@@ -321,28 +329,25 @@ def convert_rectangles_to_obstacles(rectangles, path_width):
                 obstacles.append([x, y])
     return obstacles
 
-def main(start, end, user_obstacles, path_width):
+def main(start, end, user_obstacles, path_width, lower_left_bound=None, upper_right_bound=None):
     print(__file__ + ' start!')
 
-    top_vertex = [60, 60]  # top right vertex of boundary
-    bottom_vertex = [0, 0]  # bottom left vertex of boundary
-
     # generate boundary and obstacles
-    bound, obstacle = boundary_and_obstacles(start, end, top_vertex,
-                                             bottom_vertex,
+    bound, obstacle = boundary_and_obstacles(start, end, lower_left_bound,
+                                             upper_right_bound,
                                              user_obstacles, path_width)
     
     path = searching_control(start, end, bound, obstacle)
-    if not show_animation:
-        print(path)
+    return path
 
 
 if __name__ == '__main__':
     start = [10, 8]
-    end = [23, 27]
+    end = [103, 107]
     user_obstacles = [
         ([10, 10], [15, 15]),
-        ([20, 20], [25, 25])
+        ([100, 100], [105, 105])
     ]
     path_width = 4
-    main(start, end, user_obstacles, path_width)
+    path = main(start, end, user_obstacles, path_width)
+    print(path)
