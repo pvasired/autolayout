@@ -2626,7 +2626,7 @@ def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, laye
     return wire_ports, wire_orientations
 
 def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_number,
-                       bbox1_=None, bbox2_=None, top_cell_name="TopCell"):
+                       bbox1_, bbox2_, top_cell_name="TopCell"):
     orientations1 = deepcopy(orientations1_)
     orientations2 = deepcopy(orientations2_)
     assert len(ports1_) == len(ports2_)
@@ -2636,9 +2636,8 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
     assert isinstance(layer_number, int)
     ports1 = deepcopy(ports1_)
     ports2 = deepcopy(ports2_)
-    if bbox1_ is not None and bbox2_ is not None:
-        bbox1 = deepcopy(bbox1_)
-        bbox2 = deepcopy(bbox2_)
+    bbox1 = deepcopy(bbox1_)
+    bbox2 = deepcopy(bbox2_)
 
     D = pg.import_gds(filename, cellname=cell_name)
     # Seems to work: requires that ports2 is above ports1 in y
@@ -3151,7 +3150,6 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
     
     # Works in most scenarios and throws error if it won't
     elif orientations1[0] == orientations2[0] == 0:
-        assert bbox1 is not None and bbox2 is not None, "Bounding boxes must be provided for this orientation"
         if ports1[:, 0].max() > ports2[:, 0].max():
             ports1, ports2 = ports2, ports1
             bbox1, bbox2 = bbox2, bbox1
@@ -3177,7 +3175,6 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             cnt += 1
 
     elif orientations1[0] == orientations2[0] == 90:
-        assert bbox1 is not None and bbox2 is not None, "Bounding boxes must be provided for this orientation"
         if ports1[:, 1].max() > ports2[:, 1].max():
             ports1, ports2 = ports2, ports1
             bbox1, bbox2 = bbox2, bbox1
@@ -3203,7 +3200,6 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             cnt += 1
     
     elif orientations1[0] == orientations2[0] == 180:
-        assert bbox1 is not None and bbox2 is not None, "Bounding boxes must be provided for this orientation"
         if ports1[:, 0].min() < ports2[:, 0].min():
             ports1, ports2 = ports2, ports1
             bbox1, bbox2 = bbox2, bbox1
@@ -3229,7 +3225,6 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             cnt += 1
     
     elif orientations1[0] == orientations2[0] == 270:
-        assert bbox1 is not None and bbox2 is not None, "Bounding boxes must be provided for this orientation"
         if ports1[:, 1].min() < ports2[:, 1].min():
             ports1, ports2 = ports2, ports1
             bbox1, bbox2 = bbox2, bbox1
