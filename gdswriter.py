@@ -13,6 +13,7 @@ import phidl.routing as pr
 import phidl.geometry as pg
 from copy import deepcopy
 import math
+import a_star
 
 TEXT_SPACING_FACTOR = 0.3
 
@@ -640,6 +641,51 @@ class GDSDesign:
         for poly in path_polygons.polygons:
             path_polygon = gdspy.Polygon(poly, layer=layer_number, datatype=datatype)
             self.add_component(cell, cell_name, path_polygon, netID, layer_number)
+
+    def route_ports_a_star(self, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
+                           bbox1, bbox2):
+        assert len(ports1) == len(ports2)
+        assert np.all(orientations1 == orientations1[0])
+        assert np.all(orientations2 == orientations2[0])
+        assert isinstance(trace_width, (int, float))
+
+        grid_spacing = (2*len(ports1)+1) * trace_width
+
+        bbox1_grid_raw = np.array(bbox1) / grid_spacing
+        bbox1_grid = np.where(bbox1_grid_raw > 0, np.ceil(bbox1_grid_raw), np.floor(bbox1_grid_raw)).astype(int)
+        bbox2_grid_raw = np.array(bbox2) / grid_spacing
+        bbox2_grid = np.where(bbox2_grid_raw > 0, np.ceil(bbox2_grid_raw), np.floor(bbox2_grid_raw)).astype(int)
+
+        trace_width_grid = math.ceil((2*len(ports1)+1) * trace_width / grid_spacing)
+
+        ports1_center = np.mean(ports1, axis=0)
+        ports1_center_raw = ports1_center / grid_spacing
+        ports1_center_grid = np.where(ports1_center_raw > 0, np.ceil(ports1_center_raw), np.floor(ports1_center_raw)).astype(int)
+        if orientations1[0] == 0:
+            ports1_center_grid[0] += math.ceil(trace_width_grid/2)
+        elif orientations1[0] == 90:
+            ports1_center_grid[1] += math.ceil(trace_width_grid/2)
+        elif orientations1[0] == 180:
+            ports1_center_grid[0] -= math.ceil(trace_width_grid/2)
+        elif orientations1[0] == 270:
+            ports1_center_grid[1] -= math.ceil(trace_width_grid/2)
+
+        ports2_center = np.mean(ports2, axis=0)
+        ports2_center_raw = ports2_center / grid_spacing
+        ports2_center_grid = np.where(ports2_center_raw > 0, np.ceil(ports2_center_raw), np.floor(ports2_center_raw)).astype(int)
+        if orientations2[0] == 0:
+            ports2_center_grid[0] += math.ceil(trace_width_grid/2)
+        elif orientations2[0] == 90:
+            ports2_center_grid[1] += math.ceil(trace_width_grid/2)
+        elif orientations2[0] == 180:
+            ports2_center_grid[0] -= math.ceil(trace_width_grid/2)
+        elif orientations2[0] == 270:
+            ports2_center_grid[1] -= math.ceil(trace_width_grid/2)
+
+        a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_grid.tolist(), bbox2_grid.tolist()], trace_width_grid)
+        a_star_path = (np.array(a_star_path) * grid_spacing).astype(float)
+
+        self.add_path_as_polygon(cell_name, a_star_path, trace_width, layer_name)
 
     def add_circle_as_polygon(self, cell_name, center, radius, layer_name, num_points=5000, datatype=0, netID=0):
         """
