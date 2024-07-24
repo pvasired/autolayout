@@ -313,10 +313,11 @@ def searching_control(start, end, bound, obstacle):
 
 def convert_rectangles_to_obstacles(rectangles, path_width):
     obstacles = []
+    buffer = path_width // 2
     for rect in rectangles:
         lower_left, upper_right = rect
-        for x in range(lower_left[0] - path_width + 1, upper_right[0] + path_width):
-            for y in range(lower_left[1] - path_width + 1, upper_right[1] + path_width):
+        for x in range(lower_left[0] - buffer, upper_right[0] + buffer + 1):
+            for y in range(lower_left[1] - buffer, upper_right[1] + buffer + 1):
                 obstacles.append([x, y])
     return obstacles
 
@@ -337,11 +338,11 @@ def main(start, end, user_obstacles, path_width):
 
 
 if __name__ == '__main__':
-    start = [10, 9]
-    end = [23, 26]
+    start = [10, 8]
+    end = [23, 27]
     user_obstacles = [
         ([10, 10], [15, 15]),
         ([20, 20], [25, 25])
     ]
-    path_width = 2
+    path_width = 4
     main(start, end, user_obstacles, path_width)
