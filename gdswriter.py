@@ -8,7 +8,7 @@ from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
 import klayout.db as kdb
 import geopandas as gpd
-from phidl import Device, Path
+from phidl import Device, Path, CrossSection
 import phidl.routing as pr
 import phidl.geometry as pg
 from copy import deepcopy
@@ -2782,7 +2782,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 270:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
-        assert ports1[:, 1].max() < ports2[:, 1].min(), "Ports1 must be below Ports2 in y"
+        assert bbox1[0][1] > bbox2[1][1] + (2*len(ports1)+1) * trace_width, "No space for routing"
         ports1 = ports1[np.argsort(ports1[:, 0])]
         ports2 = ports2[np.argsort(ports2[:, 0])]
 
@@ -3253,7 +3253,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 180:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
-        assert ports1[:, 0].max() < ports2[:, 0].min(), "Ports1 must be left of Ports2 in x"
+        assert bbox1[1][0] < bbox2[0][0] - (2*len(ports1)+1) * trace_width, "No space for routing"
         ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
         ports2 = ports2[np.flip(np.argsort(ports2[:, 1]))]
 
@@ -3418,7 +3418,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             cnt += 1
     else:
         raise ValueError("Invalid orientations for routing. Try changing orientations for ports")
-        
+
     top_level_device = pg.import_gds(filename)
     if top_level_device.name != cell_name:
         for ref in top_level_device.references:
