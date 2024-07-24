@@ -1,10 +1,3 @@
-"""
-A* algorithm
-Author: Weicent
-randomly generate obstacles, start and goal point
-searching path from start and end simultaneously
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import math
@@ -36,18 +29,19 @@ def hcost(node_coordinate, goal):
 def gcost(fixed_node, update_node_coordinate):
     dx = abs(fixed_node.coordinate[0] - update_node_coordinate[0])
     dy = abs(fixed_node.coordinate[1] - update_node_coordinate[1])
-    gc = math.hypot(dx, dy)  # gc = move from fixed_node to update_node
+    # cost is 1 for horizontal or vertical movement
+    gc = dx + dy
     gcost = fixed_node.G + gc  # gcost = move from start point to update_node
     return gcost
 
 
-def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, obs_number):
+def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, user_obstacles):
     """
     :param start: start coordinate
     :param goal: goal coordinate
     :param top_vertex: top right vertex coordinate of boundary
     :param bottom_vertex: bottom left vertex coordinate of boundary
-    :param obs_number: number of obstacles generated in the map
+    :param user_obstacles: list of user-defined rectangular obstacles
     :return: boundary_obstacle array, obstacle list
     """
     # below can be merged into a rectangle boundary
@@ -60,15 +54,13 @@ def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, obs_number):
     dx = [bottom_vertex[0]] + bx + [top_vertex[0]]
     dy = [top_vertex[1]] * len(dx)
 
-    # generate random obstacles
-    ob_x = np.random.randint(bottom_vertex[0] + 1,
-                             top_vertex[0], obs_number).tolist()
-    ob_y = np.random.randint(bottom_vertex[1] + 1,
-                             top_vertex[1], obs_number).tolist()
     # x y coordinate in certain order for boundary
     x = ax + bx + cx + dx
     y = ay + by + cy + dy
-    obstacle = np.vstack((ob_x, ob_y)).T.tolist()
+
+    # Process user-defined obstacles
+    obstacle = convert_rectangles_to_obstacles(user_obstacles)
+
     # remove start and goal coordinate in obstacle list
     obstacle = [coor for coor in obstacle if coor != start and coor != goal]
     obs_array = np.array(obstacle)
@@ -81,39 +73,13 @@ def find_neighbor(node, ob, closed):
     # generate neighbors in certain condition
     ob_list = ob.tolist()
     neighbor: list = []
-    for x in range(node.coordinate[0] - 1, node.coordinate[0] + 2):
-        for y in range(node.coordinate[1] - 1, node.coordinate[1] + 2):
-            if [x, y] not in ob_list:
-                # find all possible neighbor nodes
-                neighbor.append([x, y])
-    # remove node violate the motion rule
-    # 1. remove node.coordinate itself
-    neighbor.remove(node.coordinate)
-    # 2. remove neighbor nodes who cross through two diagonal
-    # positioned obstacles since there is no enough space for
-    # robot to go through two diagonal positioned obstacles
-
-    # top bottom left right neighbors of node
-    top_nei = [node.coordinate[0], node.coordinate[1] + 1]
-    bottom_nei = [node.coordinate[0], node.coordinate[1] - 1]
-    left_nei = [node.coordinate[0] - 1, node.coordinate[1]]
-    right_nei = [node.coordinate[0] + 1, node.coordinate[1]]
-    # neighbors in four vertex
-    lt_nei = [node.coordinate[0] - 1, node.coordinate[1] + 1]
-    rt_nei = [node.coordinate[0] + 1, node.coordinate[1] + 1]
-    lb_nei = [node.coordinate[0] - 1, node.coordinate[1] - 1]
-    rb_nei = [node.coordinate[0] + 1, node.coordinate[1] - 1]
-
-    # remove the unnecessary neighbors
-    if top_nei and left_nei in ob_list and lt_nei in neighbor:
-        neighbor.remove(lt_nei)
-    if top_nei and right_nei in ob_list and rt_nei in neighbor:
-        neighbor.remove(rt_nei)
-    if bottom_nei and left_nei in ob_list and lb_nei in neighbor:
-        neighbor.remove(lb_nei)
-    if bottom_nei and right_nei in ob_list and rb_nei in neighbor:
-        neighbor.remove(rb_nei)
-    neighbor = [x for x in neighbor if x not in closed]
+    # consider only horizontal and vertical neighbors
+    for x, y in [(node.coordinate[0] - 1, node.coordinate[1]),
+                 (node.coordinate[0] + 1, node.coordinate[1]),
+                 (node.coordinate[0], node.coordinate[1] - 1),
+                 (node.coordinate[0], node.coordinate[1] + 1)]:
+        if [x, y] not in ob_list and [x, y] not in closed:
+            neighbor.append([x, y])
     return neighbor
 
 
@@ -344,28 +310,36 @@ def searching_control(start, end, bound, obstacle):
             break
     return path
 
+def convert_rectangles_to_obstacles(rectangles):
+    obstacles = []
+    for rect in rectangles:
+        lower_left, upper_right = rect
+        for x in range(lower_left[0], upper_right[0] + 1):
+            for y in range(lower_left[1], upper_right[1] + 1):
+                obstacles.append([x, y])
+    return obstacles
 
-def main(obstacle_number=1500):
+def main(start, end, user_obstacles):
     print(__file__ + ' start!')
 
     top_vertex = [60, 60]  # top right vertex of boundary
     bottom_vertex = [0, 0]  # bottom left vertex of boundary
 
-    # generate start and goal point randomly
-    start = random_coordinate(bottom_vertex, top_vertex)
-    end = random_coordinate(bottom_vertex, top_vertex)
-
     # generate boundary and obstacles
     bound, obstacle = boundary_and_obstacles(start, end, top_vertex,
                                              bottom_vertex,
-                                             obstacle_number)
+                                             user_obstacles)
     
-    import pdb; pdb.set_trace()
-
     path = searching_control(start, end, bound, obstacle)
     if not show_animation:
         print(path)
 
 
 if __name__ == '__main__':
-    main(obstacle_number=1500)
+    start = [10, 9]
+    end = [23, 26]
+    user_obstacles = [
+        ([10, 10], [15, 15]),
+        ([20, 20], [25, 25])
+    ]
+    main(start, end, user_obstacles)
