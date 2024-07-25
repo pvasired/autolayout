@@ -3437,7 +3437,7 @@ def max_value_before_jump(arr):
     return arr[-1]
 
 def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number, 
-                           bbox1, bbox2, top_cell_name="TopCell"):
+                           bbox1, bbox2, top_cell_name="TopCell", show_animation=False):
     assert len(ports1) == len(ports2)
     assert np.all(orientations1 == orientations1[0])
     assert np.all(orientations2 == orientations2[0])
@@ -3476,7 +3476,8 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
     elif orientations2[0] == 270:
         ports2_center_grid[1] -= 1
 
-    a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_grid.tolist(), bbox2_grid.tolist()], 1)
+    a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_grid.tolist(), bbox2_grid.tolist()], 1,
+                              show_animation=show_animation)
     if a_star_path is None:
         raise ValueError("No path found between ports")
     a_star_path = (np.array(a_star_path) * grid_spacing).astype(float)
@@ -3523,33 +3524,20 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
             multiplier = i - int(len(ports1)/2) + 0.5
         X.add(width=trace_width, offset=2*multiplier*trace_width, layer=layer_number)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        try:
-            P = Path(a_star_path)
-            path = P.extrude(X)
-            D.add_ref(path)
+    u, ind = np.unique(a_star_path, axis=0, return_index=True)
+    a_star_path = u[np.argsort(ind)]
 
-            top_level_device = pg.import_gds(filename)
-            if top_level_device.name != cell_name:
-                for ref in top_level_device.references:
-                    if ref.ref_cell.name == cell_name:
-                        ref.ref_cell = D
-                top_level_device.write_gds(filename, cellname=top_cell_name)
-            else:
-                D.write_gds(filename, cellname=top_cell_name)
-        except:
-            P = Path(np.flip(a_star_path, axis=0))
-            path = P.extrude(X)
-            D.add_ref(path)
+    P = Path(a_star_path)
+    path = P.extrude(X)
+    D.add_ref(path)
 
-            top_level_device = pg.import_gds(filename)
-            if top_level_device.name != cell_name:
-                for ref in top_level_device.references:
-                    if ref.ref_cell.name == cell_name:
-                        ref.ref_cell = D
-                top_level_device.write_gds(filename, cellname=top_cell_name)
-            else:
-                D.write_gds(filename, cellname=top_cell_name)
-    
+    top_level_device = pg.import_gds(filename)
+    if top_level_device.name != cell_name:
+        for ref in top_level_device.references:
+            if ref.ref_cell.name == cell_name:
+                ref.ref_cell = D
+        top_level_device.write_gds(filename, cellname=top_cell_name)
+    else:
+        D.write_gds(filename, cellname=top_cell_name)
+
     return a_star_path

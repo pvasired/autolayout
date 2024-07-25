@@ -2,8 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-show_animation = False
-
 
 class Node:
     """node with properties of g, h, coordinate and parent node"""
@@ -223,7 +221,8 @@ def draw(close_origin, close_goal, start, end, bound):
     plt.pause(0.0001)
 
 
-def draw_control(org_closed, goal_closed, flag, start, end, bound, obstacle):
+def draw_control(org_closed, goal_closed, flag, start, end, bound, obstacle,
+                 show_animation=False):
     """
     control the plot process, evaluate if the searching finished
     flag == 0 : draw the searching process and plot path
@@ -273,7 +272,7 @@ def draw_control(org_closed, goal_closed, flag, start, end, bound, obstacle):
     return stop_loop, path
 
 
-def searching_control(start, end, bound, obstacle):
+def searching_control(start, end, bound, obstacle, show_animation=False):
     """manage the searching process, start searching from two side"""
     # initial origin node and end node
     origin = Node(coordinate=start, H=hcost(start, end))
@@ -296,7 +295,7 @@ def searching_control(start, end, bound, obstacle):
         if not origin_open:  # no path condition
             flag = 1  # origin node is blocked
             draw_control(origin_close, goal_close, flag, start, end, bound,
-                         obstacle)
+                         obstacle, show_animation=show_animation)
             break
         # update target for searching from end to start
         target_origin = min(origin_open, key=lambda x: x.F).coordinate
@@ -307,14 +306,14 @@ def searching_control(start, end, bound, obstacle):
         if not goal_open:  # no path condition
             flag = 2  # goal is blocked
             draw_control(origin_close, goal_close, flag, start, end, bound,
-                         obstacle)
+                         obstacle, show_animation=show_animation)
             break
         # update target for searching from start to end
         target_goal = min(goal_open, key=lambda x: x.F).coordinate
 
         # continue searching, draw the process
         stop_sign, path = draw_control(origin_close, goal_close, flag, start,
-                                       end, bound, obstacle)
+                                       end, bound, obstacle, show_animation=show_animation)
         if stop_sign:
             break
     return path
@@ -329,13 +328,14 @@ def convert_rectangles_to_obstacles(rectangles, path_width):
                 obstacles.append([x, y])
     return obstacles
 
-def main(start, end, user_obstacles, path_width, lower_left_bound=None, upper_right_bound=None):
+def main(start, end, user_obstacles, path_width, lower_left_bound=None, upper_right_bound=None,
+         show_animation=False):
     # generate boundary and obstacles
     bound, obstacle = boundary_and_obstacles(start, end, lower_left_bound,
                                              upper_right_bound,
                                              user_obstacles, path_width)
     
-    path = searching_control(start, end, bound, obstacle)
+    path = searching_control(start, end, bound, obstacle, show_animation=show_animation)
     return path
 
 
