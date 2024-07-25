@@ -2,14 +2,9 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 import gdswriter
 import numpy as np
-import gdsfactory as gf
-import gdsfactory.routing as routing
-from phidl import Device, Path
-import phidl.routing as pr
-import phidl.geometry as pg
 
-array_size_x = 16
-array_size_y = 16
+array_size_x = 18
+array_size_y = 18
 pitch_x = 100
 pitch_y = 200
 escape_extent = 50
@@ -73,19 +68,15 @@ right_inds_pad = right_inds_pad[np.flip(np.argsort(pad_ports[right_inds_pad][:, 
 bottom_inds_pad = np.where(pad_orientations == 270)[0]
 bottom_inds_pad = bottom_inds_pad[np.flip(np.argsort(pad_ports[bottom_inds_pad][:, 0]))]
 
-design.write_gds(filename)
+top_wire_ports, top_wire_orientations = design.cable_tie_ports(array_cell_name, layer_name, ports[top_inds_elec], orientations[top_inds_elec], trace_width)
+left_wire_ports, left_wire_orientations = design.cable_tie_ports(array_cell_name, layer_name, ports[left_inds_elec], orientations[left_inds_elec], trace_width)
+right_wire_ports, right_wire_orientations = design.cable_tie_ports(array_cell_name, layer_name, ports[right_inds_elec], orientations[right_inds_elec], trace_width)
+bot_wire_ports, bot_wire_orientations = design.cable_tie_ports(array_cell_name, layer_name, ports[bottom_inds_elec], orientations[bottom_inds_elec], trace_width)
 
-top_wire_ports, top_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[top_inds_elec], orientations[top_inds_elec], trace_width, layer_number)
-left_wire_ports, left_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[left_inds_elec], orientations[left_inds_elec], trace_width, layer_number)
-right_wire_ports, right_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[right_inds_elec], orientations[right_inds_elec], trace_width, layer_number)
-bot_wire_ports, bot_wire_orientations = gdswriter.cable_tie_ports(filename, array_cell_name, ports[bottom_inds_elec], orientations[bottom_inds_elec], trace_width, layer_number)
-
-top_wire_ports_pad, top_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[top_inds_pad], pad_orientations[top_inds_pad], trace_width, layer_number)
-left_wire_ports_pad, left_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[left_inds_pad], pad_orientations[left_inds_pad], trace_width, layer_number)
-right_wire_ports_pad, right_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[right_inds_pad], pad_orientations[right_inds_pad], trace_width, layer_number)
-bot_wire_ports_pad, bot_wire_orientations_pad = gdswriter.cable_tie_ports(filename, pad_array_cell_name, pad_ports[bottom_inds_pad], pad_orientations[bottom_inds_pad], trace_width, layer_number)
-
-design = gdswriter.GDSDesign(filename=filename)
+top_wire_ports_pad, top_wire_orientations_pad = design.cable_tie_ports(pad_array_cell_name, layer_name, pad_ports[top_inds_pad], pad_orientations[top_inds_pad], trace_width)
+left_wire_ports_pad, left_wire_orientations_pad = design.cable_tie_ports(pad_array_cell_name, layer_name, pad_ports[left_inds_pad], pad_orientations[left_inds_pad], trace_width)
+right_wire_ports_pad, right_wire_orientations_pad = design.cable_tie_ports(pad_array_cell_name, layer_name, pad_ports[right_inds_pad], pad_orientations[right_inds_pad], trace_width)
+bot_wire_ports_pad, bot_wire_orientations_pad = design.cable_tie_ports(pad_array_cell_name, layer_name, pad_ports[bottom_inds_pad], pad_orientations[bottom_inds_pad], trace_width)
 
 width, height, offset = design.calculate_cell_size(pad_array_cell_name)
 offset = np.array(offset)
@@ -99,15 +90,19 @@ lower_left = offset + center - np.array([width/2, height/2])
 upper_right = offset + center + np.array([width/2, height/2])
 bbox1 = np.array([lower_left, upper_right])
 
+design.write_gds(filename)
+
 show_animation = True
 try:
     gdswriter.route_port_to_port(filename, "TopCell", top_wire_ports+center, top_wire_orientations, 
                                 bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1_=bbox1, bbox2_=bbox2)
-except Exception as e:
+except AssertionError as e:
     print("Geometric routing failed: " + str(e))
     try:
         gdswriter.route_ports_a_star(filename, "TopCell", top_wire_ports+center, top_wire_orientations,
                                         bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2,
                                         show_animation=show_animation)
-    except Exception as e:
+    except (Exception, AssertionError) as e:
         print("A* routing failed: " + str(e))
+
+import pdb; pdb.set_trace()

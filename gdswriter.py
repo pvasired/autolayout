@@ -40,6 +40,7 @@ class GDSDesign:
             self.bounds = bounds  # Design size
             self.unit = unit  # Measurement units
             self.precision = precision
+            self.filename = None
         else:
             self.lib = gdspy.GdsLibrary(infile=filename)
             self.cells = {}  # Cells by name
@@ -76,6 +77,7 @@ class GDSDesign:
             self.bounds = [min_x, max_x, min_y, max_y]
             self.unit = self.lib.unit
             self.precision = self.lib.precision
+            self.filename = filename
 
     def add_cell(self, cell_name):
         if cell_name in self.cells or cell_name in self.lib.cells or cell_name in gdspy.current_library.cells:
@@ -3445,6 +3447,8 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
     for i in range(len(ports1)):
         if len(ports1) % 2 == 0:
             multiplier = i - int(len(ports1)/2) + 0.5
+        else:
+            multiplier = i - int(len(ports1)/2)
         X.add(width=trace_width, offset=2*multiplier*trace_width, layer=layer_number)
 
     u, ind = np.unique(a_star_path, axis=0, return_index=True)
