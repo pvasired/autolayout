@@ -2221,15 +2221,11 @@ class GDSDesign:
 
         raise ValueError("No available space found.")
     
-    def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, layer_number, routing_angle=45, escape_extent=250,
-                        top_cell_name="TopCell"):
+    def cable_tie_ports(self, cell_name, layer_name, ports_, orientations, trace_width, routing_angle=45, escape_extent=250):
         # TODO: escape extent is hardcoded but may not be large enough for all cases
         ports = deepcopy(ports_)
         assert np.all(orientations == orientations[0])
         assert isinstance(trace_width, (int, float))
-        assert isinstance(layer_number, int)
-
-        D = pg.import_gds(filename, cellname=cell_name)
 
         if orientations[0] == 90:
             ports = ports[np.argsort(ports[:, 0])]
@@ -2255,59 +2251,43 @@ class GDSDesign:
                 if i > 1:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                     routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]+max_y)])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path) 
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y)]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                         routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
         
         elif orientations[0] == 270:
             ports = ports[np.argsort(ports[:, 0])]
@@ -2333,59 +2313,43 @@ class GDSDesign:
                 if i > 1:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                     routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]-max_y)])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path) 
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-max_y)]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
                         
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                         routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
         
         elif orientations[0] == 0:
             ports = ports[np.argsort(ports[:, 1])]
@@ -2411,59 +2375,43 @@ class GDSDesign:
                 if i > 1:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    P = Path([ports[idx], (ports[idx][0]+max_x, ports[idx][1])])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0]+max_x, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                         routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
         
         elif orientations[0] == 180:
             ports = ports[np.argsort(ports[:, 1])]
@@ -2489,68 +2437,44 @@ class GDSDesign:
                 if i > 1:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=True)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
-
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+                    
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    P = Path([ports[idx], (ports[idx][0]-max_x, ports[idx][1])])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0]-max_x, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move(ports[idx])
+                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    P = Path([ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])])
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                         routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=False)
-                    P = Path(hinged_path)
-                    path = P.extrude(trace_width, layer=layer_number)
-                    D.add_ref(path)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                    D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
 
-        top_level_device = pg.import_gds(filename)
-        if top_level_device.name != cell_name:
-            for ref in top_level_device.references:
-                if ref.ref_cell.name == cell_name:
-                    ref.ref_cell = D
-            top_level_device.write_gds(filename, cellname=top_cell_name)
-        else:
-            D.write_gds(filename, cellname=top_cell_name)
         return wire_ports, wire_orientations
 
 def cluster_intersecting_polygons(polygons):
