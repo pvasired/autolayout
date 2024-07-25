@@ -99,9 +99,9 @@ try:
 except AssertionError as e:
     print("Geometric routing failed: " + str(e))
     try:
-        gdswriter.route_ports_a_star(filename, "TopCell", top_wire_ports+center, top_wire_orientations,
+        path_a_star = gdswriter.route_ports_a_star(filename, "TopCell", top_wire_ports+center, top_wire_orientations,
                                         bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2,
-                                        show_animation=show_animation)
+                                        show_animation=show_animation, obstacles=[([-8000, -3000], [-2000, -1750])])
     except (Exception, AssertionError) as e:
         print("A* routing failed: " + str(e))
 

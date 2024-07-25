@@ -3360,7 +3360,7 @@ def max_value_before_jump(arr):
     return arr[-1]
 
 def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number, 
-                           bbox1, bbox2, top_cell_name="TopCell", show_animation=False):
+                           bbox1, bbox2, top_cell_name="TopCell", show_animation=False, obstacles=[]):
     assert len(ports1) == len(ports2)
     assert np.all(orientations1 == orientations1[0])
     assert np.all(orientations2 == orientations2[0])
@@ -3370,10 +3370,28 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
 
     grid_spacing = (2*len(ports1)-1) * trace_width
 
-    bbox1_grid_raw = np.array(bbox1) / grid_spacing
+    bbox1_xmin, bbox1_ymin = bbox1[0]
+    bbox1_xmax, bbox1_ymax = bbox1[1]
+    bbox2_xmin, bbox2_ymin = bbox2[0]
+    bbox2_xmax, bbox2_ymax = bbox2[1]
+
+    bbox1_vertices = [[bbox1_xmin, bbox1_ymin], [bbox1_xmin, bbox1_ymax], [bbox1_xmax, bbox1_ymax], [bbox1_xmax, bbox1_ymin]]
+    bbox1_grid_raw = np.array(bbox1_vertices) / grid_spacing
     bbox1_grid = np.where(bbox1_grid_raw > 0, np.ceil(bbox1_grid_raw), np.floor(bbox1_grid_raw)).astype(int)
-    bbox2_grid_raw = np.array(bbox2) / grid_spacing
+
+    bbox2_vertices = [[bbox2_xmin, bbox2_ymin], [bbox2_xmin, bbox2_ymax], [bbox2_xmax, bbox2_ymax], [bbox2_xmax, bbox2_ymin]]
+    bbox2_grid_raw = np.array(bbox2_vertices) / grid_spacing
     bbox2_grid = np.where(bbox2_grid_raw > 0, np.ceil(bbox2_grid_raw), np.floor(bbox2_grid_raw)).astype(int)
+
+    obstacles_grid = []
+    for obstacle in obstacles:
+        if len(obstacle) == 2:
+            xmin, ymin = obstacle[0]
+            xmax, ymax = obstacle[1]
+            obstacle = [[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]]
+        obstacle_grid_raw = np.array(obstacle) / grid_spacing
+        obstacle_grid = np.where(obstacle_grid_raw > 0, np.ceil(obstacle_grid_raw), np.floor(obstacle_grid_raw)).astype(int)
+        obstacles_grid.append(obstacle_grid.tolist())
 
     ports1_center = np.mean(ports1, axis=0)
     ports1_center_raw = ports1_center / grid_spacing
@@ -3399,7 +3417,7 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
     elif orientations2[0] == 270:
         ports2_center_grid[1] -= 1
 
-    a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_grid.tolist(), bbox2_grid.tolist()], 1,
+    a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_grid.tolist(), bbox2_grid.tolist()]+obstacles_grid, 1,
                               show_animation=show_animation)
     if a_star_path is None:
         raise ValueError("No path found between ports")

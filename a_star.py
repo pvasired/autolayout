@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-
+from shapely.geometry import Polygon, Point
 
 class Node:
     """node with properties of g, h, coordinate and parent node"""
@@ -33,13 +33,13 @@ def gcost(fixed_node, update_node_coordinate):
     return gcost
 
 
-def boundary_and_obstacles(start, goal, lower_left, upper_right, user_obstacles, path_width):
+def boundary_and_obstacles(start, goal, lower_left, upper_right, user_polygons, path_width):
     """
     :param start: start coordinate
     :param goal: goal coordinate
     :param lower_left: lower left vertex coordinate of boundary
     :param upper_right: upper right vertex coordinate of boundary
-    :param user_obstacles: list of user-defined rectangular obstacles
+    :param user_polygons: list of user-defined polygons
     :param path_width: width of the path
     :return: boundary_obstacle array, obstacle list
     """
@@ -61,8 +61,8 @@ def boundary_and_obstacles(start, goal, lower_left, upper_right, user_obstacles,
     else:
         bound = np.array([])
 
-    # Process user-defined obstacles
-    obstacle = convert_rectangles_to_obstacles(user_obstacles, path_width)
+    # Process user-defined polygon obstacles
+    obstacle = convert_polygons_to_obstacles(user_polygons, path_width)
 
     # remove start and goal coordinate in obstacle list
     obstacle = [coor for coor in obstacle if coor != start and coor != goal]
@@ -318,22 +318,29 @@ def searching_control(start, end, bound, obstacle, show_animation=False):
             break
     return path
 
-def convert_rectangles_to_obstacles(rectangles, path_width):
+def convert_polygons_to_obstacles(polygons, path_width):
     obstacles = []
-    buffer = math.ceil(path_width/2)
-    for rect in rectangles:
-        lower_left, upper_right = rect
-        for x in range(lower_left[0] - buffer, upper_right[0] + buffer + 1):
-            for y in range(lower_left[1] - buffer, upper_right[1] + buffer + 1):
-                obstacles.append([x, y])
+    buffer = math.ceil(path_width / 2)
+    
+    for poly_coords in polygons:
+        polygon = Polygon(poly_coords)
+        buffered_polygon = polygon.buffer(buffer)  # Buffer the polygon
+        buffered_bounds = buffered_polygon.bounds
+        minx, miny, maxx, maxy = [int(x) for x in buffered_bounds]
+        for x in range(minx, maxx + 1):
+            for y in range(miny, maxy + 1):
+                point = Point(x, y)
+                if buffered_polygon.contains(point):
+                    obstacles.append([x, y])
+    
     return obstacles
 
-def main(start, end, user_obstacles, path_width, lower_left_bound=None, upper_right_bound=None,
+def main(start, end, user_polygons, path_width, lower_left_bound=None, upper_right_bound=None,
          show_animation=False):
     # generate boundary and obstacles
     bound, obstacle = boundary_and_obstacles(start, end, lower_left_bound,
                                              upper_right_bound,
-                                             user_obstacles, path_width)
+                                             user_polygons, path_width)
     
     path = searching_control(start, end, bound, obstacle, show_animation=show_animation)
     return path
@@ -342,10 +349,10 @@ def main(start, end, user_obstacles, path_width, lower_left_bound=None, upper_ri
 if __name__ == '__main__':
     start = [10, 8]
     end = [103, 107]
-    user_obstacles = [
-        ([10, 10], [15, 15]),
-        ([100, 100], [105, 105])
+    user_polygons = [
+        [(10, 10), (15, 10), (15, 15), (10, 15)],  # Square polygon
+        [(100, 100), (105, 100), (105, 105), (100, 105)]  # Another square polygon
     ]
     path_width = 4
-    path = main(start, end, user_obstacles, path_width)
+    path = main(start, end, user_polygons, path_width, show_animation=True)
     print(path)
