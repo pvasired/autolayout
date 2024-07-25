@@ -14,7 +14,6 @@ import phidl.geometry as pg
 from copy import deepcopy
 import math
 import a_star
-import warnings
 
 TEXT_SPACING_FACTOR = 0.3
 
@@ -2221,6 +2220,338 @@ class GDSDesign:
                 print("Rectangle does not fit.")
 
         raise ValueError("No available space found.")
+    
+    def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, layer_number, routing_angle=45, escape_extent=250,
+                        top_cell_name="TopCell"):
+        # TODO: escape extent is hardcoded but may not be large enough for all cases
+        ports = deepcopy(ports_)
+        assert np.all(orientations == orientations[0])
+        assert isinstance(trace_width, (int, float))
+        assert isinstance(layer_number, int)
+
+        D = pg.import_gds(filename, cellname=cell_name)
+
+        if orientations[0] == 90:
+            ports = ports[np.argsort(ports[:, 0])]
+            center_ind = math.ceil(len(ports)/2)-1
+
+            iter_inds_L = np.flip(np.arange(center_ind+1))
+            iter_inds_R = np.arange(center_ind+1, len(ports))
+            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_y = max(max_y_L, max_y_R)
+
+            wire_ports = []
+            for i in range(len(iter_inds_L)):
+                wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].max()+max_y))
+            for i in range(len(iter_inds_R)):
+                wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].max()+max_y))
+            wire_ports = np.array(wire_ports)
+            wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
+            wire_orientations = np.full(len(wire_ports), 90)
+
+            y_accumulated = 0
+            for i, idx in enumerate(iter_inds_L):
+                if i > 1:
+                    p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
+                    y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
+                                                    routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
+                elif i == 1:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+
+                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]+max_y)])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path) 
+            
+            y_accumulated = 0
+            for i, idx in enumerate(iter_inds_R):
+                if i == 0:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
+                    y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
+                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
+        
+        elif orientations[0] == 270:
+            ports = ports[np.argsort(ports[:, 0])]
+            center_ind = math.ceil(len(ports)/2)-1
+
+            iter_inds_L = np.flip(np.arange(center_ind+1))
+            iter_inds_R = np.arange(center_ind+1, len(ports))
+            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_y = max(max_y_L, max_y_R)
+
+            wire_ports = []
+            for i in range(len(iter_inds_L)):
+                wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].min()-max_y))
+            for i in range(len(iter_inds_R)):
+                wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].min()-max_y))
+            wire_ports = np.array(wire_ports)
+            wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
+            wire_orientations = np.full(len(wire_ports), 270)
+
+            y_accumulated = 0
+            for i, idx in enumerate(iter_inds_L):
+                if i > 1:
+                    p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
+                    y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
+                                                    routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
+                elif i == 1:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+
+                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]-max_y)])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path) 
+                        
+            y_accumulated = 0
+            for i, idx in enumerate(iter_inds_R):
+                if i == 0:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
+                    y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
+                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
+        
+        elif orientations[0] == 0:
+            ports = ports[np.argsort(ports[:, 1])]
+            center_ind = math.ceil(len(ports)/2)-1
+
+            iter_inds_B = np.flip(np.arange(center_ind+1))
+            iter_inds_T = np.arange(center_ind+1, len(ports))
+            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_x = max(max_x_B, max_x_T)
+
+            wire_ports = []
+            for i in range(len(iter_inds_B)):
+                wire_ports.append((ports[:, 0].max()+max_x, ports[center_ind][1]-2*i*trace_width))
+            for i in range(len(iter_inds_T)):
+                wire_ports.append((ports[:, 0].max()+max_x, ports[center_ind][1]+2*(i+1)*trace_width))
+            wire_ports = np.array(wire_ports)
+            wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
+            wire_orientations = np.full(len(wire_ports), 0)
+
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_B):
+                if i > 1:
+                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+                                                    routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
+                elif i == 1:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+
+                    P = Path([ports[idx], (ports[idx][0]+max_x, ports[idx][1])])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_T):
+                if i == 0:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
+        
+        elif orientations[0] == 180:
+            ports = ports[np.argsort(ports[:, 1])]
+            center_ind = math.ceil(len(ports)/2)-1
+
+            iter_inds_B = np.flip(np.arange(center_ind+1))
+            iter_inds_T = np.arange(center_ind+1, len(ports))
+            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            max_x = max(max_x_B, max_x_T)
+
+            wire_ports = []
+            for i in range(len(iter_inds_B)):
+                wire_ports.append((ports[:, 0].min()-max_x, ports[center_ind][1]-2*i*trace_width))
+            for i in range(len(iter_inds_T)):
+                wire_ports.append((ports[:, 0].min()-max_x, ports[center_ind][1]+2*(i+1)*trace_width))
+            wire_ports = np.array(wire_ports)
+            wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
+            wire_orientations = np.full(len(wire_ports), 180)
+
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_B):
+                if i > 1:
+                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
+                                                    routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
+                elif i == 1:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=True)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+
+                    P = Path([ports[idx], (ports[idx][0]-max_x, ports[idx][1])])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_T):
+                if i == 0:
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move(ports[idx])
+                else:
+                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    P = Path([ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])])
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
+                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=False)
+                    P = Path(hinged_path)
+                    path = P.extrude(trace_width, layer=layer_number)
+                    D.add_ref(path)
+
+                    circle = pg.circle(radius=trace_width/2, layer=layer_number)
+                    D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
+
+        top_level_device = pg.import_gds(filename)
+        if top_level_device.name != cell_name:
+            for ref in top_level_device.references:
+                if ref.ref_cell.name == cell_name:
+                    ref.ref_cell = D
+            top_level_device.write_gds(filename, cellname=top_cell_name)
+        else:
+            D.write_gds(filename, cellname=top_cell_name)
+        return wire_ports, wire_orientations
 
 def cluster_intersecting_polygons(polygons):
     """Groups intersecting polygons into clusters using an R-tree for efficient spatial indexing,
@@ -2294,338 +2625,6 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     path_points[:, 1] += start_point[1]
     
     return path_points
-
-def cable_tie_ports(filename, cell_name, ports_, orientations, trace_width, layer_number, routing_angle=45, escape_extent=250,
-                    top_cell_name="TopCell"):
-    # TODO: escape extent is hardcoded but may not be large enough for all cases
-    ports = deepcopy(ports_)
-    assert np.all(orientations == orientations[0])
-    assert isinstance(trace_width, (int, float))
-    assert isinstance(layer_number, int)
-
-    D = pg.import_gds(filename, cellname=cell_name)
-
-    if orientations[0] == 90:
-        ports = ports[np.argsort(ports[:, 0])]
-        center_ind = math.ceil(len(ports)/2)-1
-
-        iter_inds_L = np.flip(np.arange(center_ind+1))
-        iter_inds_R = np.arange(center_ind+1, len(ports))
-        max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_y = max(max_y_L, max_y_R)
-
-        wire_ports = []
-        for i in range(len(iter_inds_L)):
-            wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].max()+max_y))
-        for i in range(len(iter_inds_R)):
-            wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].max()+max_y))
-        wire_ports = np.array(wire_ports)
-        wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
-        wire_orientations = np.full(len(wire_ports), 90)
-
-        y_accumulated = 0
-        for i, idx in enumerate(iter_inds_L):
-            if i > 1:
-                p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                 routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
-            elif i == 1:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-
-                P = Path([ports[idx], (ports[idx][0], ports[idx][1]+max_y)])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path) 
-        
-        y_accumulated = 0
-        for i, idx in enumerate(iter_inds_R):
-            if i == 0:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
-                y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                    routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0], ports[idx][1]+y_accumulated))
-    
-    elif orientations[0] == 270:
-        ports = ports[np.argsort(ports[:, 0])]
-        center_ind = math.ceil(len(ports)/2)-1
-
-        iter_inds_L = np.flip(np.arange(center_ind+1))
-        iter_inds_R = np.arange(center_ind+1, len(ports))
-        max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_y = max(max_y_L, max_y_R)
-
-        wire_ports = []
-        for i in range(len(iter_inds_L)):
-            wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].min()-max_y))
-        for i in range(len(iter_inds_R)):
-            wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].min()-max_y))
-        wire_ports = np.array(wire_ports)
-        wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
-        wire_orientations = np.full(len(wire_ports), 270)
-
-        y_accumulated = 0
-        for i, idx in enumerate(iter_inds_L):
-            if i > 1:
-                p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
-                                                 routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
-            elif i == 1:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-
-                P = Path([ports[idx], (ports[idx][0], ports[idx][1]-max_y)])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path) 
-                    
-        y_accumulated = 0
-        for i, idx in enumerate(iter_inds_R):
-            if i == 0:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
-                y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
-                                                    routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0], ports[idx][1]-y_accumulated))
-    
-    elif orientations[0] == 0:
-        ports = ports[np.argsort(ports[:, 1])]
-        center_ind = math.ceil(len(ports)/2)-1
-
-        iter_inds_B = np.flip(np.arange(center_ind+1))
-        iter_inds_T = np.arange(center_ind+1, len(ports))
-        max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_x = max(max_x_B, max_x_T)
-
-        wire_ports = []
-        for i in range(len(iter_inds_B)):
-            wire_ports.append((ports[:, 0].max()+max_x, ports[center_ind][1]-2*i*trace_width))
-        for i in range(len(iter_inds_T)):
-            wire_ports.append((ports[:, 0].max()+max_x, ports[center_ind][1]+2*(i+1)*trace_width))
-        wire_ports = np.array(wire_ports)
-        wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
-        wire_orientations = np.full(len(wire_ports), 0)
-
-        x_accumulated = 0
-        for i, idx in enumerate(iter_inds_B):
-            if i > 1:
-                p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
-                                                 routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
-            elif i == 1:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-
-                P = Path([ports[idx], (ports[idx][0]+max_x, ports[idx][1])])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-        x_accumulated = 0
-        for i, idx in enumerate(iter_inds_T):
-            if i == 0:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
-                                                    routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0]+x_accumulated, ports[idx][1]))
-    
-    elif orientations[0] == 180:
-        ports = ports[np.argsort(ports[:, 1])]
-        center_ind = math.ceil(len(ports)/2)-1
-
-        iter_inds_B = np.flip(np.arange(center_ind+1))
-        iter_inds_T = np.arange(center_ind+1, len(ports))
-        max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
-        max_x = max(max_x_B, max_x_T)
-
-        wire_ports = []
-        for i in range(len(iter_inds_B)):
-            wire_ports.append((ports[:, 0].min()-max_x, ports[center_ind][1]-2*i*trace_width))
-        for i in range(len(iter_inds_T)):
-            wire_ports.append((ports[:, 0].min()-max_x, ports[center_ind][1]+2*(i+1)*trace_width))
-        wire_ports = np.array(wire_ports)
-        wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
-        wire_orientations = np.full(len(wire_ports), 180)
-
-        x_accumulated = 0
-        for i, idx in enumerate(iter_inds_B):
-            if i > 1:
-                p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
-                                                 routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
-            elif i == 1:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=True)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-
-                P = Path([ports[idx], (ports[idx][0]-max_x, ports[idx][1])])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-        x_accumulated = 0
-        for i, idx in enumerate(iter_inds_T):
-            if i == 0:
-                hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move(ports[idx])
-            else:
-                p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                P = Path([ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])])
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
-                                                    routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=False)
-                P = Path(hinged_path)
-                path = P.extrude(trace_width, layer=layer_number)
-                D.add_ref(path)
-
-                circle = pg.circle(radius=trace_width/2, layer=layer_number)
-                D.add_ref(circle).move((ports[idx][0]-x_accumulated, ports[idx][1]))
-
-    top_level_device = pg.import_gds(filename)
-    if top_level_device.name != cell_name:
-        for ref in top_level_device.references:
-            if ref.ref_cell.name == cell_name:
-                ref.ref_cell = D
-        top_level_device.write_gds(filename, cellname=top_cell_name)
-    else:
-        D.write_gds(filename, cellname=top_cell_name)
-    return wire_ports, wire_orientations
 
 def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_number,
                        bbox1_, bbox2_, top_cell_name="TopCell"):
