@@ -2784,7 +2784,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 270:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
-        assert bbox1[0][1] > bbox2[1][1] + (2*len(ports1)+1) * trace_width, "No space for routing"
+        assert bbox2[0][1] > bbox1[1][1] + (2*len(ports1)+1) * trace_width, "No space for routing"
         ports1 = ports1[np.argsort(ports1[:, 0])]
         ports2 = ports2[np.argsort(ports2[:, 0])]
 
@@ -3436,7 +3436,7 @@ def max_value_before_jump(arr):
             return arr[i-1]
     return arr[-1]
 
-def route_ports_a_star_outside(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number, 
+def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number, 
                            bbox1, bbox2, top_cell_name="TopCell"):
     assert len(ports1) == len(ports2)
     assert np.all(orientations1 == orientations1[0])
@@ -3477,9 +3477,11 @@ def route_ports_a_star_outside(filename, cell_name, ports1, orientations1, ports
         ports2_center_grid[1] -= 1
 
     a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_grid.tolist(), bbox2_grid.tolist()], 1)
+    if a_star_path is None:
+        raise ValueError("No path found between ports")
     a_star_path = (np.array(a_star_path) * grid_spacing).astype(float)
 
-    if orientations1[0] == 0:
+    if orientations1[0] == 0 or orientations1[0] == 180:
         starting_y = a_star_path[0][1]
         for coord in a_star_path:
             if coord[1] == starting_y:
@@ -3487,12 +3489,30 @@ def route_ports_a_star_outside(filename, cell_name, ports1, orientations1, ports
             else:
                 break
         a_star_path = np.vstack((np.expand_dims(ports1_center, axis=0), a_star_path))
+    
+    elif orientations1[0] == 270 or orientations1[0] == 90:
+        starting_x = a_star_path[0][0]
+        for coord in a_star_path:
+            if coord[0] == starting_x:
+                coord[0] = ports1_center[0]
+            else:
+                break
+        a_star_path = np.vstack((np.expand_dims(ports1_center, axis=0), a_star_path))
 
-    if orientations2[0] == 180:
+    if orientations2[0] == 180 or orientations2[0] == 0:
         ending_y = a_star_path[-1][1]
         for coord in a_star_path[::-1]:
             if coord[1] == ending_y:
                 coord[1] = ports2_center[1]
+            else:
+                break
+        a_star_path = np.vstack((a_star_path, np.expand_dims(ports2_center, axis=0)))
+    
+    elif orientations2[0] == 270 or orientations2[0] == 90:
+        ending_x = a_star_path[-1][0]
+        for coord in a_star_path[::-1]:
+            if coord[0] == ending_x:
+                coord[0] = ports2_center[0]
             else:
                 break
         a_star_path = np.vstack((a_star_path, np.expand_dims(ports2_center, axis=0)))
@@ -3531,3 +3551,5 @@ def route_ports_a_star_outside(filename, cell_name, ports1, orientations1, ports
                 top_level_device.write_gds(filename, cellname=top_cell_name)
             else:
                 D.write_gds(filename, cellname=top_cell_name)
+    
+    return a_star_path

@@ -45,7 +45,7 @@ pad_pitch_x = 100
 pad_pitch_y = 100
 pad_array_cell_name = "Pad Array"
 design.add_cell(pad_array_cell_name)
-center_pad = (10000, -10000)
+center_pad = (-4000, 1000)
 design.add_cell_array(pad_array_cell_name, circle_cell_name1, copies_x=array_size_x, copies_y=array_size_y, spacing_x=pad_pitch_x, spacing_y=pad_pitch_y, origin=(0, 0))
 pad_grid, pad_ports, pad_orientations = design.add_regular_array_escape_four_sided(pad_array_cell_name, (0, 0), layer_name, pad_pitch_x, pad_pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=escape_extent, routing_angle=routing_angle,
                                                                                   )
@@ -99,11 +99,13 @@ lower_left = offset + center - np.array([width/2, height/2])
 upper_right = offset + center + np.array([width/2, height/2])
 bbox1 = np.array([lower_left, upper_right])
 
-# gdswriter.route_port_to_port(filename, "TopCell", right_wire_ports+center, right_wire_orientations, 
-#                              left_wire_ports_pad+center_pad, left_wire_orientations_pad, trace_width, layer_number, bbox1_=bbox1, bbox2_=bbox2)
-
-# design.route_ports_a_star("TopCell", right_wire_ports+center, right_wire_orientations,
-#                           left_wire_ports_pad+center_pad, left_wire_orientations_pad, trace_width, '1', bbox1, bbox2)
-
-gdswriter.route_ports_a_star_outside(filename, "TopCell", right_wire_ports+center, right_wire_orientations,
-                                     left_wire_ports_pad+center_pad, left_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2)
+try:
+    gdswriter.route_port_to_port(filename, "TopCell", top_wire_ports+center, top_wire_orientations, 
+                                bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1_=bbox1, bbox2_=bbox2)
+except Exception as e:
+    print("Geometric routing failed: " + str(e))
+    try:
+        gdswriter.route_ports_a_star(filename, "TopCell", top_wire_ports+center, top_wire_orientations,
+                                        bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2)
+    except Exception as e:
+        print("A* routing failed: " + str(e))

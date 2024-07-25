@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-show_animation = True
+show_animation = False
 
 
 class Node:
@@ -321,7 +321,7 @@ def searching_control(start, end, bound, obstacle):
 
 def convert_rectangles_to_obstacles(rectangles, path_width):
     obstacles = []
-    buffer = path_width // 2
+    buffer = math.ceil(path_width/2)
     for rect in rectangles:
         lower_left, upper_right = rect
         for x in range(lower_left[0] - buffer, upper_right[0] + buffer + 1):
@@ -330,8 +330,6 @@ def convert_rectangles_to_obstacles(rectangles, path_width):
     return obstacles
 
 def main(start, end, user_obstacles, path_width, lower_left_bound=None, upper_right_bound=None):
-    print(__file__ + ' start!')
-
     # generate boundary and obstacles
     bound, obstacle = boundary_and_obstacles(start, end, lower_left_bound,
                                              upper_right_bound,
