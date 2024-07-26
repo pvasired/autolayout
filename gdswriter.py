@@ -3657,7 +3657,10 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
             if coord[1] == starting_y:
                 coord[1] = ports1_center[1]
             else:
-                break
+                if abs(coord[1] - ports1_center[1]) < grid_spacing:
+                    coord[1] = ports1_center[1]
+                else:
+                    break
         a_star_path = np.vstack((np.expand_dims(ports1_center, axis=0), a_star_path))
     
     elif orientations1[0] == 270 or orientations1[0] == 90:
@@ -3666,7 +3669,10 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
             if coord[0] == starting_x:
                 coord[0] = ports1_center[0]
             else:
-                break
+                if abs(coord[0] - ports1_center[0]) < grid_spacing:
+                    coord[0] = ports1_center[0]
+                else:
+                    break
         a_star_path = np.vstack((np.expand_dims(ports1_center, axis=0), a_star_path))
 
     if orientations2[0] == 180 or orientations2[0] == 0:
@@ -3675,7 +3681,10 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
             if coord[1] == ending_y:
                 coord[1] = ports2_center[1]
             else:
-                break
+                if abs(coord[1] - ports2_center[1]) < grid_spacing:
+                    coord[1] = ports2_center[1]
+                else:
+                    break
         a_star_path = np.vstack((a_star_path, np.expand_dims(ports2_center, axis=0)))
     
     elif orientations2[0] == 270 or orientations2[0] == 90:
@@ -3684,7 +3693,10 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
             if coord[0] == ending_x:
                 coord[0] = ports2_center[0]
             else:
-                break
+                if abs(coord[0] - ports2_center[0]) < grid_spacing:
+                    coord[0] = ports2_center[0]
+                else:
+                    break
         a_star_path = np.vstack((a_star_path, np.expand_dims(ports2_center, axis=0)))
 
     X = CrossSection()
@@ -3735,6 +3747,6 @@ def route_ports_combined(filename, cell_name, ports1, orientations1, ports2, ori
                                                 bbox1, bbox2, top_cell_name=top_cell_name, show_animation=show_animation, obstacles=obstacles)
         except (AssertionError, ValueError, Exception) as e:
             print("A* routing failed: " + str(e))
-            return None
+            return []
     
     return path_obstacles
