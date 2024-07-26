@@ -2551,7 +2551,7 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     return path_points
 
 def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_number,
-                       bbox1_, bbox2_, top_cell_name="TopCell"):
+                       bbox1_, bbox2_, top_cell_name="TopCell", obstacles=[]):
     orientations1 = deepcopy(orientations1_)
     orientations2 = deepcopy(orientations2_)
     assert len(ports1_) == len(ports2_)
@@ -2573,6 +2573,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 270:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
+            bbox1, bbox2 = bbox2, bbox1
         if bbox1[1][1] < bbox2[0][1] - (2*len(ports1)+1) * trace_width:
             ports1 = ports1[np.argsort(ports1[:, 1])]
             ports2 = ports2[np.argsort(ports2[:, 0])]
@@ -2748,6 +2749,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 270:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
+            bbox1, bbox2 = bbox2, bbox1
         assert bbox2[0][1] > bbox1[1][1] + (2*len(ports1)+1) * trace_width, "No space for routing"
         ports1 = ports1[np.argsort(ports1[:, 0])]
         ports2 = ports2[np.argsort(ports2[:, 0])]
@@ -2835,6 +2837,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 270:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
+            bbox1, bbox2 = bbox2, bbox1
         if bbox1[1][1] < bbox2[0][1] - (2*len(ports1)+1) * trace_width:
             ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
             ports2 = ports2[np.argsort(ports2[:, 0])]
@@ -3009,6 +3012,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 90:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
+            bbox1, bbox2 = bbox2, bbox1
         if bbox1[0][1] > bbox2[1][1] + (2*len(ports1)+1)*trace_width:
             ports1 = ports1[np.argsort(ports1[:, 1])]
             ports2 = ports2[np.flip(np.argsort(ports2[:, 0]))]
@@ -3183,6 +3187,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 90:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
+            bbox1, bbox2 = bbox2, bbox1
         if bbox1[0][1] > bbox2[1][1] + (2*len(ports1)+1)*trace_width:
             ports1 = ports1[np.argsort(ports1[:, 1])]
             ports2 = ports2[np.argsort(ports2[:, 0])]
@@ -3356,6 +3361,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         if orientations1[0] == 180:
             ports1, ports2 = ports2, ports1
             orientations1, orientations2 = orientations2, orientations1
+            bbox1, bbox2 = bbox2, bbox1
         assert bbox1[1][0] < bbox2[0][0] - (2*len(ports1)+1) * trace_width, "No space for routing"
         ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
         ports2 = ports2[np.flip(np.argsort(ports2[:, 1]))]
@@ -3560,6 +3566,13 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
     else:
         raise ValueError("Invalid orientations for routing. Try changing orientations for ports")
 
+    for obstacle in obstacles:
+        obstacle_poly = Polygon(obstacle)
+        for path_obstacle in path_obstacles:
+            path_obstacle_poly = Polygon(path_obstacle)
+            if obstacle_poly.intersects(path_obstacle_poly):
+                raise ValueError("Obstacle intersects with path")
+            
     top_level_device = pg.import_gds(filename)
     if top_level_device.name != cell_name:
         for ref in top_level_device.references:
@@ -3568,7 +3581,7 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         top_level_device.write_gds(filename, cellname=top_cell_name)
     else:
         D.write_gds(filename, cellname=top_cell_name)
-
+          
     return path_obstacles
 
 def max_value_before_jump(arr):
@@ -3594,22 +3607,15 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
     bbox2_xmax, bbox2_ymax = bbox2[1]
 
     bbox1_vertices = [[bbox1_xmin, bbox1_ymin], [bbox1_xmin, bbox1_ymax], [bbox1_xmax, bbox1_ymax], [bbox1_xmax, bbox1_ymin]]
-    bbox1_grid_raw = np.array(bbox1_vertices) / grid_spacing
-    bbox1_grid = np.where(bbox1_grid_raw > 0, np.ceil(bbox1_grid_raw), np.floor(bbox1_grid_raw)).astype(int)
-
     bbox2_vertices = [[bbox2_xmin, bbox2_ymin], [bbox2_xmin, bbox2_ymax], [bbox2_xmax, bbox2_ymax], [bbox2_xmax, bbox2_ymin]]
-    bbox2_grid_raw = np.array(bbox2_vertices) / grid_spacing
-    bbox2_grid = np.where(bbox2_grid_raw > 0, np.ceil(bbox2_grid_raw), np.floor(bbox2_grid_raw)).astype(int)
 
-    obstacles_grid = []
+    obstacles_poly = []
     for obstacle in obstacles:
         if len(obstacle) == 2:
             xmin, ymin = obstacle[0]
             xmax, ymax = obstacle[1]
             obstacle = [[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]]
-        obstacle_grid_raw = np.array(obstacle) / grid_spacing
-        obstacle_grid = np.where(obstacle_grid_raw > 0, np.ceil(obstacle_grid_raw), np.floor(obstacle_grid_raw)).astype(int)
-        obstacles_grid.append(obstacle_grid.tolist())
+        obstacles_poly.append(obstacle)
 
     ports1_center = np.mean(ports1, axis=0)
     ports1_center_raw = ports1_center / grid_spacing
@@ -3635,8 +3641,8 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
     elif orientations2[0] == 270:
         ports2_center_grid[1] -= 1
 
-    a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_grid.tolist(), bbox2_grid.tolist()]+obstacles_grid, 1,
-                              show_animation=show_animation)
+    a_star_path = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_vertices, bbox2_vertices]+obstacles_poly, 1,
+                              grid_spacing, show_animation=show_animation)
     if a_star_path is None:
         raise ValueError("No path found between ports")
     a_star_path = (np.array(a_star_path) * grid_spacing).astype(float)
@@ -3705,5 +3711,26 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
     path_obstacles = []
     for poly in path_polygons.polygons:
         path_obstacles.append(poly.tolist())
+    
+    return path_obstacles
+
+def route_ports_combined(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number, 
+                           bbox1, bbox2, top_cell_name="TopCell", show_animation=False, obstacles=[]):
+    assert len(ports1) == len(ports2)
+    assert np.all(orientations1 == orientations1[0])
+    assert np.all(orientations2 == orientations2[0])
+    assert isinstance(trace_width, (int, float))
+
+    try:
+        path_obstacles = route_port_to_port(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number,
+                                            bbox1, bbox2, top_cell_name=top_cell_name, obstacles=obstacles)
+    except (AssertionError, ValueError, Exception) as e:
+        print("Geometric routing failed: " + str(e))
+        try:
+            path_obstacles = route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number,
+                                                bbox1, bbox2, top_cell_name=top_cell_name, show_animation=show_animation, obstacles=obstacles)
+        except (AssertionError, ValueError, Exception) as e:
+            print("A* routing failed: " + str(e))
+            return None
     
     return path_obstacles

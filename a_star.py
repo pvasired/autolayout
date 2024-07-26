@@ -33,7 +33,7 @@ def gcost(fixed_node, update_node_coordinate):
     return gcost
 
 
-def boundary_and_obstacles(start, goal, lower_left, upper_right, user_polygons, path_width):
+def boundary_and_obstacles(start, goal, lower_left, upper_right, user_polygons, path_width, spacing):
     """
     :param start: start coordinate
     :param goal: goal coordinate
@@ -62,7 +62,7 @@ def boundary_and_obstacles(start, goal, lower_left, upper_right, user_polygons, 
         bound = np.array([])
 
     # Process user-defined polygon obstacles
-    obstacle = convert_polygons_to_obstacles(user_polygons, path_width)
+    obstacle = convert_polygons_to_obstacles(user_polygons, path_width, spacing)
 
     # remove start and goal coordinate in obstacle list
     obstacle = [coor for coor in obstacle if coor != start and coor != goal]
@@ -318,29 +318,33 @@ def searching_control(start, end, bound, obstacle, show_animation=False):
             break
     return path
 
-def convert_polygons_to_obstacles(polygons, path_width):
+def convert_polygons_to_obstacles(polygons, path_width, spacing):
     obstacles = []
     buffer = math.ceil(path_width / 2)
     
     for poly_coords in polygons:
-        polygon = Polygon(poly_coords)
+        raw_poly = np.array(poly_coords)/spacing
+        polygon = Polygon(raw_poly)
         buffered_polygon = polygon.buffer(buffer)  # Buffer the polygon
         buffered_bounds = buffered_polygon.bounds
-        minx, miny, maxx, maxy = [int(x) for x in buffered_bounds]
+        minx = math.floor(buffered_bounds[0])
+        miny = math.floor(buffered_bounds[1])
+        maxx = math.ceil(buffered_bounds[2])
+        maxy = math.ceil(buffered_bounds[3])
         for x in range(minx, maxx + 1):
             for y in range(miny, maxy + 1):
                 point = Point(x, y)
-                if buffered_polygon.contains(point):
+                if buffered_polygon.contains(point) and [x, y] not in obstacles:
                     obstacles.append([x, y])
     
     return obstacles
 
-def main(start, end, user_polygons, path_width, lower_left_bound=None, upper_right_bound=None,
+def main(start, end, user_polygons, path_width, spacing, lower_left_bound=None, upper_right_bound=None,
          show_animation=False):
     # generate boundary and obstacles
     bound, obstacle = boundary_and_obstacles(start, end, lower_left_bound,
                                              upper_right_bound,
-                                             user_polygons, path_width)
+                                             user_polygons, path_width, spacing)
     
     path = searching_control(start, end, bound, obstacle, show_animation=show_animation)
     return path
