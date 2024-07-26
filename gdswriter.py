@@ -2565,6 +2565,8 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
     bbox2 = deepcopy(bbox2_)
 
     D = pg.import_gds(filename, cellname=cell_name)
+
+    path_obstacles = []
     # Works, covers most cases
     cnt = 0
     if (orientations1[0] == 180 and orientations2[0] == 270) or (orientations1[0] == 270 and orientations2[0] == 180):
@@ -2580,7 +2582,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
                     cnt += 1
             else:
                 left_inds = np.where(ports1[:, 0] - ports2[:, 0] >= 0)[0]
@@ -2597,16 +2602,22 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[-1-i][0], ports2[-1-i][1]-2*(len(right_inds)-i)*trace_width-additional_y), width=trace_width, orientation=orientations2[0])
 
                     route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route_path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(route_path)
                     if route_path.xmin < xmin:
                         xmin = route_path.xmin
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[-1-i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
                 
@@ -2628,14 +2639,20 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[-1-i-len(right_inds)][0], ports2[-1-i-len(right_inds)][1]-current_y_shift+2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route_path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(route_path)
 
                         P = Path([ports1[idx], port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
 
                         P = Path([ports2[-1-i-len(right_inds)], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
                         cnt += 1
 
@@ -2643,7 +2660,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]), width=trace_width, orientation=orientations1[0])
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                        D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                        route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route.get_polygons():
+                            path_obstacles.append(poly.tolist())
+                        D.add_ref(route)
                         cnt += 1
         else:
             ports1 = ports1[np.argsort(ports1[:, 1])]
@@ -2655,14 +2675,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]-2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*i*trace_width-additional_y), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
 
@@ -2674,14 +2701,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]-additional_x+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
             
@@ -2691,14 +2725,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]-additional_x-2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
 
@@ -2716,10 +2757,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]+2*i*trace_width), width=trace_width, orientation=orientations1[0])
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route.get_polygons():
+                    path_obstacles.append(poly.tolist())
+                D.add_ref(route)
 
                 P = Path([port, port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
                 cnt += 1
 
@@ -2730,10 +2776,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]+2*i*trace_width), width=trace_width, orientation=orientations1[0])
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route.get_polygons():
+                    path_obstacles.append(poly.tolist())
+                D.add_ref(route)
 
                 P = Path([port, port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
                 cnt += 1
         
@@ -2748,10 +2799,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]+additional_y), width=trace_width, orientation=orientations1[0])
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route.get_polygons():
+                    path_obstacles.append(poly.tolist())
+                D.add_ref(route)
 
                 P = Path([ports1[idx], port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
                 cnt += 1
                 additional_y += 2*trace_width
@@ -2761,10 +2817,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]+additional_y), width=trace_width, orientation=orientations1[0])
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[-1-i], width=trace_width, orientation=orientations2[0])
 
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route.get_polygons():
+                    path_obstacles.append(poly.tolist())
+                D.add_ref(route)
 
                 P = Path([ports1[idx], port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
                 cnt += 1
                 additional_y += 2*trace_width
@@ -2783,7 +2844,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
                     cnt += 1
             else:
                 left_inds = np.where(ports2[:, 0] - ports1[:, 0] >= 0)[0]
@@ -2798,16 +2862,22 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*(len(right_inds)-i)*trace_width-additional_y), width=trace_width, orientation=orientations2[0])
 
                     route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route_path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(route_path)
                     if route_path.xmax > xmax:
                         xmax = route_path.xmax
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
                 
@@ -2830,14 +2900,20 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i+len(right_inds)][0], ports2[i+len(right_inds)][1]-current_y_shift+2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route_path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(route_path)
 
                         P = Path([ports1[idx], port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
 
                         P = Path([ports2[i+len(right_inds)], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
                         cnt += 1
 
@@ -2845,7 +2921,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]), width=trace_width, orientation=orientations1[0])
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[-1-i], width=trace_width, orientation=orientations2[0])
 
-                        D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                        route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route.get_polygons():
+                            path_obstacles.append(poly.tolist())
+                        D.add_ref(route)
                         cnt += 1
         else:
             ports1 = ports1[np.argsort(ports1[:, 1])]
@@ -2857,14 +2936,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*i*trace_width-additional_y), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
 
@@ -2876,14 +2962,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+additional_x-2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
             
@@ -2893,14 +2986,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+additional_x+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
     
@@ -2918,7 +3018,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
                     cnt += 1
             else:
                 left_inds = np.where(ports1[:, 0] - ports2[:, 0] >= 0)[0]
@@ -2934,16 +3037,22 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*(len(right_inds)-i)*trace_width+additional_y), width=trace_width, orientation=orientations2[0])
 
                     route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route_path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(route_path)
                     if route_path.xmin < xmin:
                         xmin = route_path.xmin
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
                 
@@ -2965,14 +3074,20 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i+len(right_inds)][0], ports2[i+len(right_inds)][1]+current_y_shift-2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route_path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(route_path)
 
                         P = Path([ports1[idx], port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
 
                         P = Path([ports2[i+len(right_inds)], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
                         cnt += 1
 
@@ -2980,7 +3095,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]), width=trace_width, orientation=orientations1[0])
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[-1-i], width=trace_width, orientation=orientations2[0])
 
-                        D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                        route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route.get_polygons():
+                            path_obstacles.append(poly.tolist())
+                        D.add_ref(route)
                         cnt += 1
         else:
             ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
@@ -2992,14 +3110,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]-2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width+additional_y), width=trace_width, orientation=orientations2[0])
 
-                        D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                        route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route.get_polygons():
+                            path_obstacles.append(poly.tolist())
+                        D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
                         cnt += 1
 
@@ -3011,14 +3136,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]-additional_x+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
             
@@ -3028,14 +3160,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]-additional_x-2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
     
@@ -3053,7 +3192,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
                     cnt += 1
             else:
                 left_inds = np.where(ports2[:, 0] - ports1[:, 0] >= 0)[0]
@@ -3068,16 +3210,22 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[-i][1]+2*(len(right_inds)-i)*trace_width+additional_y), width=trace_width, orientation=orientations2[0])
 
                     route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route_path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(route_path)
                     if route_path.xmax > xmax:
                         xmax = route_path.xmax
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
                 
@@ -3099,14 +3247,20 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i+len(right_inds)][0], ports2[i+len(right_inds)][1]+current_y_shift-2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route_path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(route_path)
 
                         P = Path([ports1[idx], port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
 
                         P = Path([ports2[i+len(right_inds)], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
+                        for poly in path.get_polygons():
+                            path_obstacles.append(poly.tolist())
                         D.add_ref(path)
                         cnt += 1
 
@@ -3114,7 +3268,10 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0], ports1[idx][1]), width=trace_width, orientation=orientations1[0])
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[-1-i], width=trace_width, orientation=orientations2[0])
 
-                        D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                        route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                        for poly in route.get_polygons():
+                            path_obstacles.append(poly.tolist())
+                        D.add_ref(route)
                         cnt += 1
         else:
             ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
@@ -3126,14 +3283,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width+additional_y), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
 
@@ -3145,14 +3309,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+additional_x-2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
 
@@ -3162,14 +3333,21 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+additional_x+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                     port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-                    D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                    for poly in route.get_polygons():
+                        path_obstacles.append(poly.tolist())
+                    D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
 
                     P = Path([ports2[i], port2.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
+                    for poly in path.get_polygons():
+                        path_obstacles.append(poly.tolist())
                     D.add_ref(path)
                     cnt += 1
 
@@ -3187,10 +3365,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route.get_polygons():
+                    path_obstacles.append(poly.tolist())
+                D.add_ref(route)
 
                 P = Path([port, port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
                 cnt += 1
 
@@ -3201,10 +3384,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+2*i*trace_width, port[1]), width=trace_width, orientation=orientations1[0])
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=ports2[i], width=trace_width, orientation=orientations2[0])
 
-                D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+                route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route.get_polygons():
+                    path_obstacles.append(poly.tolist())
+                D.add_ref(route)
 
                 P = Path([port, port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
                 cnt += 1
         
@@ -3220,10 +3408,14 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[-1-i][0], ports2[-1-i][1]), width=trace_width, orientation=orientations2[0])
 
                 route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route_path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(route_path)
 
                 P = Path([ports1[idx], port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
 
                 cnt += 1
@@ -3233,10 +3425,14 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
                 port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]), width=trace_width, orientation=orientations2[0])
 
                 route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+                for poly in route_path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(route_path)
 
                 P = Path([ports1[idx], port1.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
+                for poly in path.get_polygons():
+                    path_obstacles.append(poly.tolist())
                 D.add_ref(path)
 
                 cnt += 1
@@ -3260,10 +3456,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
             port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0]+2*i*trace_width, ports2[i][1]), width=trace_width, orientation=orientations2[0])
 
-            D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+            route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+            for poly in route.get_polygons():
+                path_obstacles.append(poly.tolist())
+            D.add_ref(route)
 
             P = Path([ports2[i], port2.midpoint])
             path = P.extrude(trace_width, layer=layer_number)
+            for poly in path.get_polygons():
+                path_obstacles.append(poly.tolist())
             D.add_ref(path)
             cnt += 1
 
@@ -3285,10 +3486,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
             port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-            D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+            route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+            for poly in route.get_polygons():
+                path_obstacles.append(poly.tolist())
+            D.add_ref(route)
 
             P = Path([ports2[i], port2.midpoint])
             path = P.extrude(trace_width, layer=layer_number)
+            for poly in path.get_polygons():
+                path_obstacles.append(poly.tolist())
             D.add_ref(path)
             cnt += 1
     
@@ -3310,10 +3516,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
             port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0]-2*i*trace_width, ports2[i][1]), width=trace_width, orientation=orientations2[0])
 
-            D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+            route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+            for poly in route.get_polygons():
+                path_obstacles.append(poly.tolist())
+            D.add_ref(route)
 
             P = Path([ports2[i], port2.midpoint])
             path = P.extrude(trace_width, layer=layer_number)
+            for poly in path.get_polygons():
+                path_obstacles.append(poly.tolist())
             D.add_ref(path)
             cnt += 1
     
@@ -3335,10 +3546,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
             port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0], port[1]), width=trace_width, orientation=orientations1[0])
             port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*i*trace_width), width=trace_width, orientation=orientations2[0])
 
-            D.add_ref(pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width))
+            route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
+            for poly in route.get_polygons():
+                path_obstacles.append(poly.tolist())
+            D.add_ref(route)
 
             P = Path([ports2[i], port2.midpoint])
             path = P.extrude(trace_width, layer=layer_number)
+            for poly in path.get_polygons():
+                path_obstacles.append(poly.tolist())
             D.add_ref(path)
             cnt += 1
     else:
@@ -3352,6 +3568,8 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
         top_level_device.write_gds(filename, cellname=top_cell_name)
     else:
         D.write_gds(filename, cellname=top_cell_name)
+
+    return path_obstacles
 
 def max_value_before_jump(arr):
     for i in range(1, len(arr)):
@@ -3483,4 +3701,9 @@ def route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orien
     else:
         D.write_gds(filename, cellname=top_cell_name)
 
-    return a_star_path
+    path_polygons = gdspy.FlexPath(a_star_path, (2*len(ports1)-1)*trace_width).to_polygonset()
+    path_obstacles = []
+    for poly in path_polygons.polygons:
+        path_obstacles.append(poly.tolist())
+    
+    return path_obstacles
