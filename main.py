@@ -11,6 +11,7 @@ import math
 import numpy as np
 import os
 import uuid
+from shapely.geometry import Polygon
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -550,6 +551,13 @@ class MyApp(QWidget):
         # Use the selected cell from the dropdown
         selected_cell = self.cellComboBox.currentText()
         self.log(f"Selected cell for plotting: {selected_cell}")
+
+        cell = self.gds_design.check_cell_exists(selected_cell)
+        polygons_by_spec = cell.get_polygons(by_spec=True)
+        layer_polygons = []
+        for (lay, dat), polys in polygons_by_spec.items():
+            for poly in polys:
+                layer_polygons.append(Polygon(poly))
         
         # Create a new figure with a larger size
         fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
@@ -557,9 +565,13 @@ class MyApp(QWidget):
         
         # Create an example plot
         ax = fig.add_subplot(111)
-        t = np.arange(0.0, 3.0, 0.01)
-        s = np.sin(2 * np.pi * t)
-        ax.plot(t, s)
+        for poly in layer_polygons:
+            x, y = poly.exterior.xy
+            ax.plot(x, y, color='tab:blue')
+        
+        ax.set_aspect('equal', 'datalim')
+        # Increase the size of the tick marks
+        ax.tick_params(axis='both', which='major', labelsize=18, length=10, width=2)
 
         # Create a new window for the plot
         self.plotWindow = QWidget()
@@ -574,7 +586,7 @@ class MyApp(QWidget):
 
         self.plotWindow.setLayout(layout)
         self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
-        self.plotWindow.setGeometry(100, 100, 1200, 800)  # Adjust the window size to be larger
+        self.plotWindow.setGeometry(100, 100, 2000, 1500)  # Adjust the window size to be larger
         self.plotWindow.show()
 
         # Connect the click event to the handler
