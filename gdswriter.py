@@ -3566,11 +3566,15 @@ def route_port_to_port(filename, cell_name, ports1_, orientations1_, ports2_, or
     else:
         raise ValueError("Invalid orientations for routing. Try changing orientations for ports")
 
-    for obstacle in obstacles:
-        obstacle_poly = Polygon(obstacle)
-        for path_obstacle in path_obstacles:
-            path_obstacle_poly = Polygon(path_obstacle)
-            if obstacle_poly.intersects(path_obstacle_poly):
+    obstacles_polys_prep = [prep(Polygon(obstacle)) for obstacle in obstacles]
+    obstacles_polys = [Polygon(obstacle) for obstacle in obstacles]
+    path_obstacles_polys = [Polygon(obstacle) for obstacle in path_obstacles]
+    path_obstacles_tree = STRtree(path_obstacles_polys)
+
+    for i, obstacle_poly in enumerate(obstacles_polys):
+        idx = path_obstacles_tree.query(obstacle_poly)
+        for j in idx:
+            if obstacles_polys_prep[i].intersects(path_obstacles_polys[j]):
                 raise ValueError("Obstacle intersects with path")
             
     top_level_device = pg.import_gds(filename)
