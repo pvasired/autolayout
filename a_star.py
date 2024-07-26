@@ -241,18 +241,20 @@ def draw_control(org_closed, goal_closed, flag, start, end, bound, obstacle,
         if node_intersect:  # a path is find
             path = get_path(org_closed, goal_closed, node_intersect[0])
             stop_loop = 1
-            print('Path found!')
             if show_animation:  # draw the path
+                print('Path found!')
                 plt.plot(path[:, 0], path[:, 1], '-r')
                 plt.title('Robot Arrived', size=20, loc='center')
                 plt.pause(0.01)
                 plt.show()
     elif flag == 1:  # start point blocked first
         stop_loop = 1
-        print('There is no path to the goal! Start point is blocked!')
+        if show_animation:
+            print('There is no path to the goal! Start point is blocked!')
     elif flag == 2:  # end point blocked first
         stop_loop = 1
-        print('There is no path to the goal! End point is blocked!')
+        if show_animation:
+            print('There is no path to the goal! End point is blocked!')
     if show_animation:  # blocked case, draw the border line
         info = 'There is no path to the goal!' \
                ' Robot&Goal are split by border' \

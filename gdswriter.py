@@ -3740,11 +3740,13 @@ def route_ports_combined(filename, cell_name, ports1, orientations1, ports2, ori
     try:
         path_obstacles = route_port_to_port(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number,
                                             bbox1, bbox2, top_cell_name=top_cell_name, obstacles=obstacles)
+        print("Geometric routing successful.")
     except (AssertionError, ValueError, Exception) as e:
         print("Geometric routing failed: " + str(e))
         try:
             path_obstacles = route_ports_a_star(filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_number,
                                                 bbox1, bbox2, top_cell_name=top_cell_name, show_animation=show_animation, obstacles=obstacles)
+            print("A* routing successful.")
         except (AssertionError, ValueError, Exception) as e:
             print("A* routing failed: " + str(e))
             return []
