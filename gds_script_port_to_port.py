@@ -40,7 +40,7 @@ pad_pitch_x = 100
 pad_pitch_y = 100
 pad_array_cell_name = "Pad Array"
 design.add_cell(pad_array_cell_name)
-center_pad = (0, -5000)
+center_pad = (-10000, 10000)
 design.add_cell_array(pad_array_cell_name, circle_cell_name1, copies_x=array_size_x, copies_y=array_size_y, spacing_x=pad_pitch_x, spacing_y=pad_pitch_y, origin=(0, 0))
 pad_grid, pad_ports, pad_orientations = design.add_regular_array_escape_four_sided(pad_array_cell_name, (0, 0), layer_name, pad_pitch_x, pad_pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=escape_extent, routing_angle=routing_angle,
                                                                                   )
@@ -92,17 +92,34 @@ bbox1 = np.array([lower_left, upper_right])
 
 design.write_gds(filename)
 
-show_animation = True
-try:
-    gdswriter.route_port_to_port(filename, "TopCell", top_wire_ports+center, top_wire_orientations, 
-                                bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1_=bbox1, bbox2_=bbox2)
-except AssertionError as e:
-    print("Geometric routing failed: " + str(e))
-    try:
-        path_a_star = gdswriter.route_ports_a_star(filename, "TopCell", top_wire_ports+center, top_wire_orientations,
-                                        bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2,
-                                        show_animation=show_animation, obstacles=[([-8000, -3000], [-2000, -1750])])
-    except (Exception, AssertionError) as e:
-        print("A* routing failed: " + str(e))
+show_animation = False
+obstacles = []
+
+# Get polygons from the layer in top cells
+layer_polygons = []
+for top_cell_name in design.top_cell_names:
+    cell = design.check_cell_exists(top_cell_name)
+    polygons_by_spec = cell.get_polygons(by_spec=True)
+    for (lay, dat), polys in polygons_by_spec.items():
+        if lay == layer_number:
+            for poly in polys:
+                layer_polygons.append(poly)
+                # Check if poly is in bbox1 or bbox2:
+                if np.all(poly[:, 0] >= bbox1[0][0]) and np.all(poly[:, 0] <= bbox1[1][0]) and np.all(poly[:, 1] >= bbox1[0][1]) and np.all(poly[:, 1] <= bbox1[1][1]):
+                    continue
+                if np.all(poly[:, 0] >= bbox2[0][0]) and np.all(poly[:, 0] <= bbox2[1][0]) and np.all(poly[:, 1] >= bbox2[0][1]) and np.all(poly[:, 1] <= bbox2[1][1]):
+                    continue
+                obstacles.append(poly.tolist())
+
+obstacles += gdswriter.route_ports_combined(filename, "TopCell", left_wire_ports+center, left_wire_orientations,
+                               top_wire_ports_pad+center_pad, top_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2,
+                               show_animation=show_animation, obstacles=obstacles)
+obstacles += gdswriter.route_ports_combined(filename, "TopCell", right_wire_ports+center, right_wire_orientations,
+                                            right_wire_ports_pad+center_pad, right_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2,
+                                            show_animation=show_animation, obstacles=obstacles)
+obstacles += gdswriter.route_ports_combined(filename, "TopCell", bot_wire_ports+center, bot_wire_orientations,
+                                            bot_wire_ports_pad+center_pad, bot_wire_orientations_pad, trace_width, layer_number, bbox1, bbox2,
+                                            show_animation=show_animation, obstacles=obstacles)
+
 
 import pdb; pdb.set_trace()
