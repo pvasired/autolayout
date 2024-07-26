@@ -836,7 +836,14 @@ class GDSDesign:
                     orientations[j][i] = 90
                     cnt += 1
 
-        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        unique_orientations = np.unique(orientations)
+        return_dict = {}
+        for val in unique_orientations:
+            idx = np.where(orientations == val)[0]
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            return_dict[val] = (wire_ports, wire_orientations)
+        return return_dict
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
     def add_regular_array_escape_three_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
@@ -1090,7 +1097,14 @@ class GDSDesign:
                         orientations[j][i] = 90
                         cnt += 1
         
-        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        unique_orientations = np.unique(orientations)
+        return_dict = {}
+        for val in unique_orientations:
+            idx = np.where(orientations == val)[0]
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            return_dict[val] = (wire_ports, wire_orientations)
+        return return_dict
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
                                            escape_y=False, escape_negative=True):
@@ -1179,7 +1193,14 @@ class GDSDesign:
                         orientations[j][i] = 90
                         cnt += 1
         
-        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        unique_orientations = np.unique(orientations)
+        return_dict = {}
+        for val in unique_orientations:
+            idx = np.where(orientations == val)[0]
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            return_dict[val] = (wire_ports, wire_orientations)
+        return return_dict
 
     # The traces escape from all four sides of the array
     def add_regular_array_escape_four_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45):
@@ -1918,7 +1939,14 @@ class GDSDesign:
                 self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                 ports[top_route[0]][special_row] = np.array(hinged_path[-1])
         
-        return np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        unique_orientations = np.unique(orientations)
+        return_dict = {}
+        for val in unique_orientations:
+            idx = np.where(orientations == val)[0]
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            return_dict[val] = (wire_ports, wire_orientations)
+        return return_dict
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
         # Assume `layer_number` is already determined from `layer_name`
