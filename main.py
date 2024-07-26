@@ -11,6 +11,8 @@ import math
 import numpy as np
 import os
 import uuid
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
@@ -386,6 +388,20 @@ class MyApp(QWidget):
         undoRedoLayout.addWidget(self.redoButton)
         mainLayout.addLayout(undoRedoLayout)
 
+        # Add cell dropdown and Matplotlib Button
+        plotLayout = QHBoxLayout()
+        self.cellComboBox = QComboBox()
+        self.cellComboBox.setPlaceholderText("Select Cell")
+        self.cellComboBox.setToolTip('Select a cell from the loaded GDS file.')
+        plotLayout.addWidget(self.cellComboBox)
+
+        self.matplotlibButton = QPushButton('Routing Tool')
+        self.matplotlibButton.clicked.connect(self.showMatplotlibWindow)
+        self.matplotlibButton.setToolTip('Click to show an interactive plot of the selected cell for routing.')
+        plotLayout.addWidget(self.matplotlibButton)
+
+        mainLayout.addLayout(plotLayout)
+
         # Test Structures layout
         testLayout = QVBoxLayout()
         testLabel = QLabel('Test Structures')
@@ -518,6 +534,47 @@ class MyApp(QWidget):
         self.setWindowTitle('Test Structure Automation GUI')
         self.resize(1400, 800)  # Set the initial size of the window
         self.show()
+    
+    def showMatplotlibWindow(self):
+        fig = Figure()
+        canvas = FigureCanvas(fig)
+        
+        # Create an example plot
+        ax = fig.add_subplot(111)
+        t = np.arange(0.0, 3.0, 0.01)
+        s = np.sin(2 * np.pi * t)
+        ax.plot(t, s)
+
+        # Connect the click event to the handler
+        canvas.mpl_connect('button_press_event', self.on_click)
+
+        # Create a new window for the plot
+        self.plotWindow = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(canvas)
+        self.plotWindow.setLayout(layout)
+        self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
+        self.plotWindow.setGeometry(100, 100, 800, 600)
+        self.plotWindow.show()
+
+        # Use the selected cell from the dropdown
+        selected_cell = self.cellComboBox.currentText()
+        self.log(f"Selected cell for plotting: {selected_cell}")
+        # Implement logic to use the selected cell for plotting if needed
+
+    def on_click(self, event):
+        if event.inaxes is not None:
+            x, y = event.xdata, event.ydata
+            self.log(f"Click at position: ({x}, {y})")
+            # You can process the click coordinates here
+            self.process_click(x, y)
+        else:
+            self.log("Click outside axes bounds")
+
+    def process_click(self, x, y):
+        # Implement your processing logic here
+        QMessageBox.information(self, "Click Position", f"Click at: ({x}, {y})")
+        self.log(f"Processing click at: ({x}, {y})")
     
     def updateExcludedLayers(self):
         # Output: sets self.excludedLayers and updates available space and all other polygons
@@ -703,6 +760,11 @@ class MyApp(QWidget):
                 self.customTestCellComboBox.clear()
                 self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
                 self.log(f"Custom Test Structure cell names: {list(self.gds_design.cells.keys())}")
+
+                # Populate the cell combo box with cell names
+                self.cellComboBox.clear()
+                self.cellComboBox.addItems(self.gds_design.cells.keys())
+                self.log(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
