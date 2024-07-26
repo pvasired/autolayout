@@ -13,6 +13,9 @@ import os
 import uuid
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+import matplotlib
+matplotlib.use('Qt5Agg')
 
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
@@ -391,7 +394,6 @@ class MyApp(QWidget):
         # Add cell dropdown and Matplotlib Button
         plotLayout = QHBoxLayout()
         self.cellComboBox = QComboBox()
-        self.cellComboBox.setPlaceholderText("Select Cell")
         self.cellComboBox.setToolTip('Select a cell from the loaded GDS file.')
         plotLayout.addWidget(self.cellComboBox)
 
@@ -536,7 +538,21 @@ class MyApp(QWidget):
         self.show()
     
     def showMatplotlibWindow(self):
-        fig = Figure()
+        if self.gds_design is None:
+            QMessageBox.critical(self, "Design Error", "No GDS design loaded.", QMessageBox.Ok)
+            self.log("No GDS design loaded.")
+            return
+        if self.cellComboBox.currentText() == "":
+            QMessageBox.critical(self, "Selection Error", "No cell selected from the dropdown menu.", QMessageBox.Ok)
+            self.log("No cell selected from the dropdown menu.")
+            return
+        
+        # Use the selected cell from the dropdown
+        selected_cell = self.cellComboBox.currentText()
+        self.log(f"Selected cell for plotting: {selected_cell}")
+        
+        # Create a new figure with a larger size
+        fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
         canvas = FigureCanvas(fig)
         
         # Create an example plot
@@ -545,31 +561,37 @@ class MyApp(QWidget):
         s = np.sin(2 * np.pi * t)
         ax.plot(t, s)
 
-        # Connect the click event to the handler
-        canvas.mpl_connect('button_press_event', self.on_click)
-
         # Create a new window for the plot
         self.plotWindow = QWidget()
         layout = QVBoxLayout()
+
+        # Add the Matplotlib canvas to the layout
         layout.addWidget(canvas)
+
+        # Add the navigation toolbar to the layout
+        self.toolbar = NavigationToolbar(canvas, self.plotWindow)
+        layout.addWidget(self.toolbar)
+
         self.plotWindow.setLayout(layout)
         self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
-        self.plotWindow.setGeometry(100, 100, 800, 600)
+        self.plotWindow.setGeometry(100, 100, 1200, 800)  # Adjust the window size to be larger
         self.plotWindow.show()
 
-        # Use the selected cell from the dropdown
-        selected_cell = self.cellComboBox.currentText()
-        self.log(f"Selected cell for plotting: {selected_cell}")
-        # Implement logic to use the selected cell for plotting if needed
+        # Connect the click event to the handler
+        canvas.mpl_connect('button_press_event', self.on_click)
 
     def on_click(self, event):
-        if event.inaxes is not None:
-            x, y = event.xdata, event.ydata
-            self.log(f"Click at position: ({x}, {y})")
-            # You can process the click coordinates here
-            self.process_click(x, y)
+        # Check if the toolbar is in zoom mode
+        if self.toolbar.mode == '':
+            if event.inaxes is not None:
+                x, y = event.xdata, event.ydata
+                self.log(f"Click at position: ({x}, {y})")
+                # You can process the click coordinates here
+                self.process_click(x, y)
+            else:
+                self.log("Click outside axes bounds")
         else:
-            self.log("Click outside axes bounds")
+            self.log(f"Toolbar mode is active ({self.toolbar.mode}), click not registered")
 
     def process_click(self, x, y):
         # Implement your processing logic here
