@@ -361,6 +361,7 @@ class MyApp(QWidget):
         self.path_points = [] # To store path points
         self.undoStack = []  # Initialize undo stack
         self.redoStack = []  # Initialize redo stack
+        self.escapeDicts = {}  # To store escape routing dictionaries
         self.initUI()
 
     def initUI(self):
@@ -735,7 +736,7 @@ class MyApp(QWidget):
 
     def addSnapshot(self):
         self.log("Adding snapshot to undo stack and clearing redo stack")
-        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons)))
+        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
         self.redoStack.clear()
 
     def readLogEntries(self):
@@ -749,8 +750,8 @@ class MyApp(QWidget):
     def undo(self):
         if self.undoStack:
             self.log("Adding snapshot to redo stack and reverting to previous state")
-            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons = self.undoStack.pop()
+            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.undoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:
@@ -759,8 +760,8 @@ class MyApp(QWidget):
     def redo(self):
         if self.redoStack:
             self.log("Adding snapshot to undo stack and reverting to previous state")
-            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons = self.redoStack.pop()
+            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.redoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:
@@ -1097,7 +1098,7 @@ class MyApp(QWidget):
                 return False
             
             try:
-                self.gds_design.add_regular_array_escape_one_sided(
+                escape_dict = self.gds_design.add_regular_array_escape_one_sided(
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
@@ -1110,6 +1111,9 @@ class MyApp(QWidget):
                     escape_y=escape_y,
                     escape_negative=escape_negative
                 )
+                if Cell_Name not in self.escapeDicts:
+                    self.escapeDicts[Cell_Name] = []
+                self.escapeDicts[Cell_Name].append(escape_dict)
                 self.log(f"One-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
@@ -1127,7 +1131,7 @@ class MyApp(QWidget):
                 return False
 
             try:
-                self.gds_design.add_regular_array_escape_two_sided(
+                escape_dict = self.gds_design.add_regular_array_escape_two_sided(
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
@@ -1139,6 +1143,9 @@ class MyApp(QWidget):
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y
                 )
+                if Cell_Name not in self.escapeDicts:
+                    self.escapeDicts[Cell_Name] = []
+                self.escapeDicts[Cell_Name].append(escape_dict)
                 self.log(f"Two-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
@@ -1163,7 +1170,7 @@ class MyApp(QWidget):
                 return False
             
             try:
-                self.gds_design.add_regular_array_escape_three_sided(
+                escape_dict = self.gds_design.add_regular_array_escape_three_sided(
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
@@ -1176,6 +1183,9 @@ class MyApp(QWidget):
                     escape_y=escape_y,
                     escape_negative=escape_negative
                 )
+                if Cell_Name not in self.escapeDicts:
+                    self.escapeDicts[Cell_Name] = []
+                self.escapeDicts[Cell_Name].append(escape_dict)
                 self.log(f"Three-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
@@ -1184,7 +1194,7 @@ class MyApp(QWidget):
                 return False
         elif split[0].strip() == '4':
             try:
-                self.gds_design.add_regular_array_escape_four_sided(
+                escape_dict = self.gds_design.add_regular_array_escape_four_sided(
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
@@ -1195,6 +1205,9 @@ class MyApp(QWidget):
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter)
                 )
+                if Cell_Name not in self.escapeDicts:
+                    self.escapeDicts[Cell_Name] = []
+                self.escapeDicts[Cell_Name].append(escape_dict)
                 self.log(f"Four-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
