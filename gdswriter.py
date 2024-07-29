@@ -841,7 +841,7 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
             return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
     
@@ -1102,7 +1102,7 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
             return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
     
@@ -1198,7 +1198,7 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
             return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
 
@@ -1944,7 +1944,7 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
+            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
             return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
 
@@ -2249,7 +2249,7 @@ class GDSDesign:
 
         raise ValueError("No available space found.")
     
-    def cable_tie_ports(self, cell_name, layer_name, ports_, orientations, trace_width, routing_angle=45, escape_extent=250):
+    def cable_tie_ports(self, cell_name, layer_name, ports_, orientations, trace_width, routing_angle=45, escape_extent=50):
         # TODO: escape extent is hardcoded but may not be large enough for all cases
         ports = deepcopy(ports_)
         assert np.all(orientations == orientations[0])
@@ -2261,8 +2261,18 @@ class GDSDesign:
 
             iter_inds_L = np.flip(np.arange(center_ind+1))
             iter_inds_R = np.arange(center_ind+1, len(ports))
-            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
-            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            y_acc_L = 0
+            for i, idx in enumerate(iter_inds_L):
+                if i > 1:
+                    p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
+                    y_acc_L += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            y_acc_R = 0
+            for i, idx in enumerate(iter_inds_R):
+                if i > 0:
+                    p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
+                    y_acc_R += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
+            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + y_acc_R
             max_y = max(max_y_L, max_y_R)
 
             wire_ports = []
@@ -2283,25 +2293,25 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                    routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=True)
+                                                    routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
                 elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=True)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent, post_rotation=-90, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y)]
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y+escape_extent)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
                 if i == 0:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=False)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent, post_rotation=90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2312,7 +2322,7 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=False)
+                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
@@ -2323,8 +2333,18 @@ class GDSDesign:
 
             iter_inds_L = np.flip(np.arange(center_ind+1))
             iter_inds_R = np.arange(center_ind+1, len(ports))
-            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + escape_extent
-            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            y_acc_L = 0
+            for i, idx in enumerate(iter_inds_L):
+                if i > 1:
+                    p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
+                    y_acc_L += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            y_acc_R = 0
+            for i, idx in enumerate(iter_inds_R):
+                if i > 0:
+                    p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i-1]][0]
+                    y_acc_R += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
+            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + y_acc_R
             max_y = max(max_y_L, max_y_R)
 
             wire_ports = []
@@ -2345,25 +2365,25 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
-                                                    routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y-y_accumulated, post_rotation=-90, post_reflection=False)
+                                                    routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
                 elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y, post_rotation=-90, post_reflection=False)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent, post_rotation=-90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-max_y)]
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-max_y-escape_extent)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
                         
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
                 if i == 0:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y, post_rotation=90, post_reflection=True)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent, post_rotation=90, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2374,7 +2394,7 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
-                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y-y_accumulated, post_rotation=90, post_reflection=True)
+                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
@@ -2385,8 +2405,18 @@ class GDSDesign:
 
             iter_inds_B = np.flip(np.arange(center_ind+1))
             iter_inds_T = np.arange(center_ind+1, len(ports))
-            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
-            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            x_acc_B = 0
+            for i, idx in enumerate(iter_inds_B):
+                if i > 1:
+                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+                    x_acc_B += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            x_acc_T = 0
+            for i, idx in enumerate(iter_inds_T):
+                if i > 0:
+                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+                    x_acc_T += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + x_acc_B
+            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + x_acc_T
             max_x = max(max_x_B, max_x_T)
 
             wire_ports = []
@@ -2407,25 +2437,25 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
-                                                    routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=False)
+                                                    routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=False)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    path_points = [ports[idx], (ports[idx][0]+max_x, ports[idx][1])]
+                    path_points = [ports[idx], (ports[idx][0]+max_x+escape_extent, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
                 if i == 0:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=True)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent, post_rotation=180, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2436,7 +2466,7 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
-                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=True)
+                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
@@ -2447,8 +2477,18 @@ class GDSDesign:
 
             iter_inds_B = np.flip(np.arange(center_ind+1))
             iter_inds_T = np.arange(center_ind+1, len(ports))
-            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + escape_extent
-            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + escape_extent
+            x_acc_B = 0
+            for i, idx in enumerate(iter_inds_B):
+                if i > 1:
+                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+                    x_acc_B += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            x_acc_T = 0
+            for i, idx in enumerate(iter_inds_T):
+                if i > 0:
+                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+                    x_acc_T += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + x_acc_B
+            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + x_acc_T
             max_x = max(max_x_B, max_x_T)
 
             wire_ports = []
@@ -2469,25 +2509,25 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
-                                                    routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x-x_accumulated, post_rotation=0, post_reflection=True)
+                                                    routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x, post_rotation=0, post_reflection=True)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
                     
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    path_points = [ports[idx], (ports[idx][0]-max_x, ports[idx][1])]
+                    path_points = [ports[idx], (ports[idx][0]-max_x-escape_extent, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
                 if i == 0:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x, post_rotation=180, post_reflection=False)
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent, post_rotation=180, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2498,7 +2538,7 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
-                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x-x_accumulated, post_rotation=180, post_reflection=False)
+                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
@@ -3738,7 +3778,7 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     else:
         hinge_x = extension_y / np.tan(angle_radians)
 
-    assert extension_x >= hinge_x, "Improper Usage: extension_x must be greater than hinge_x"
+    # assert extension_x >= hinge_x, "Improper Usage: extension_x must be greater than hinge_x"
     
     hinge_point = (hinge_x, extension_y)
     
