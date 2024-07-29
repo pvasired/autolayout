@@ -1,6 +1,5 @@
 import sys
 import argparse
-import re
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip
 )
@@ -16,7 +15,6 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib
-import gdswriter
 matplotlib.use('Qt5Agg')
 
 TEXT_SPACING_FACTOR = 0.55
