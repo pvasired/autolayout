@@ -1134,8 +1134,10 @@ class MyApp(QWidget):
                 # Update the available space
                 self.updateAvailableSpace()
 
-                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                self.update_plot()
+                # Update plot if open
+                if hasattr(self, 'plotWindow') and self.plotWindow.isVisible():
+                    self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                    self.update_plot()
             
             else:
                 self.undo()
