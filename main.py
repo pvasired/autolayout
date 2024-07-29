@@ -626,6 +626,7 @@ class MyApp(QWidget):
         route_trace_width = None
 
         layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+        layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
         for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
             # Calculate the distance from the click to the escape routing
             xmin = np.inf
@@ -641,7 +642,7 @@ class MyApp(QWidget):
                     ymin = min(orientation_ports[:, 1].min(), ymin)
                     ymax = max(orientation_ports[:, 1].max(), ymax)
             
-            bbox = np.array([[xmin, ymin], [xmax, ymax]])
+            bbox = np.around(np.array([[xmin, ymin], [xmax, ymax]]), 3)
             
             for orientation in escapeDict:
                 layer = escapeDict[orientation][2]
@@ -691,9 +692,15 @@ class MyApp(QWidget):
                                 continue
                             self.obstacles[layer_number].append(poly.tolist())
 
-            self.obstacles[layer_number] += gdswriter.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
-                                           ports2, orientations2, trace_width1, layer_number, bbox1, bbox2,
+            self.addSnapshot()  # Store snapshot before adding new design
+            self.obstacles[layer_number] += self.gds_design.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
+                                           ports2, orientations2, trace_width1, layer_name, bbox1, bbox2,
                                            show_animation=True, obstacles=self.obstacles[layer_number])
+            
+            # Write the design
+            self.writeToGDS()
+            # Update the available space
+            self.updateAvailableSpace()
             
             self.routing = []
     
@@ -822,7 +829,7 @@ class MyApp(QWidget):
 
     def addSnapshot(self):
         self.log("Adding snapshot to undo stack and clearing redo stack")
-        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
+        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.obstacles)))
         self.redoStack.clear()
 
     def readLogEntries(self):
@@ -836,8 +843,8 @@ class MyApp(QWidget):
     def undo(self):
         if self.undoStack:
             self.log("Adding snapshot to redo stack and reverting to previous state")
-            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.undoStack.pop()
+            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.obstacles)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.obstacles = self.undoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:
@@ -846,8 +853,8 @@ class MyApp(QWidget):
     def redo(self):
         if self.redoStack:
             self.log("Adding snapshot to undo stack and reverting to previous state")
-            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.redoStack.pop()
+            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.obstacles)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.obstacles = self.redoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
         else:

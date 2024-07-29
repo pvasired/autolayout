@@ -2541,7 +2541,6 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
                         cnt += 1
                 else:
@@ -2561,7 +2560,6 @@ class GDSDesign:
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route_path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route_path)
                         if route_path.xmin < xmin:
                             xmin = route_path.xmin
@@ -2570,14 +2568,12 @@ class GDSDesign:
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[-1-i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
                     
@@ -2601,21 +2597,18 @@ class GDSDesign:
                             route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route_path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route_path)
 
                             P = Path([ports1[idx], port1.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
 
                             P = Path([ports2[-1-i-len(right_inds)], port2.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
                             cnt += 1
 
@@ -2626,7 +2619,6 @@ class GDSDesign:
                             route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route)
                             cnt += 1
             else:
@@ -2642,21 +2634,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
 
@@ -2671,21 +2660,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
                 
@@ -2698,21 +2684,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
 
@@ -2734,14 +2717,12 @@ class GDSDesign:
                     route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
                     cnt += 1
 
@@ -2755,14 +2736,12 @@ class GDSDesign:
                     route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
                     cnt += 1
             
@@ -2780,14 +2759,12 @@ class GDSDesign:
                     route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route)
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
                     cnt += 1
                     additional_y += 2*trace_width
@@ -2800,14 +2777,12 @@ class GDSDesign:
                     route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route)
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
                     cnt += 1
                     additional_y += 2*trace_width
@@ -2830,7 +2805,6 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
                         cnt += 1
                 else:
@@ -2848,7 +2822,6 @@ class GDSDesign:
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route_path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route_path)
                         if route_path.xmax > xmax:
                             xmax = route_path.xmax
@@ -2857,14 +2830,12 @@ class GDSDesign:
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
                     
@@ -2889,21 +2860,18 @@ class GDSDesign:
                             route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route_path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route_path)
 
                             P = Path([ports1[idx], port1.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
 
                             P = Path([ports2[i+len(right_inds)], port2.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
                             cnt += 1
 
@@ -2914,7 +2882,6 @@ class GDSDesign:
                             route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route)
                             cnt += 1
             else:
@@ -2930,21 +2897,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
 
@@ -2959,21 +2923,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
                 
@@ -2986,21 +2947,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
         
@@ -3022,7 +2980,6 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
                         cnt += 1
                 else:
@@ -3041,7 +2998,6 @@ class GDSDesign:
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route_path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route_path)
                         if route_path.xmin < xmin:
                             xmin = route_path.xmin
@@ -3050,14 +3006,12 @@ class GDSDesign:
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
                     
@@ -3081,21 +3035,18 @@ class GDSDesign:
                             route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route_path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route_path)
 
                             P = Path([ports1[idx], port1.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
 
                             P = Path([ports2[i+len(right_inds)], port2.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
                             cnt += 1
 
@@ -3106,7 +3057,6 @@ class GDSDesign:
                             route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route)
                             cnt += 1
             else:
@@ -3122,21 +3072,18 @@ class GDSDesign:
                             route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route)
 
                             P = Path([port, port1.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
 
                             P = Path([ports2[i], port2.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
                             cnt += 1
 
@@ -3151,21 +3098,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
                 
@@ -3178,21 +3122,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
         
@@ -3214,7 +3155,6 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
                         cnt += 1
                 else:
@@ -3232,7 +3172,6 @@ class GDSDesign:
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route_path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route_path)
                         if route_path.xmax > xmax:
                             xmax = route_path.xmax
@@ -3241,14 +3180,12 @@ class GDSDesign:
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
                     
@@ -3272,21 +3209,18 @@ class GDSDesign:
                             route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route_path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route_path)
 
                             P = Path([ports1[idx], port1.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
 
                             P = Path([ports2[i+len(right_inds)], port2.midpoint])
                             path = P.extrude(trace_width, layer=layer_number)
                             for poly in path.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(path)
                             cnt += 1
 
@@ -3297,7 +3231,6 @@ class GDSDesign:
                             route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                             for poly in route.get_polygons():
                                 path_obstacles.append(poly.tolist())
-                                self.add_polygon(cell_name, poly, layer_name)
                             D.add_ref(route)
                             cnt += 1
             else:
@@ -3313,21 +3246,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
 
@@ -3342,21 +3272,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
 
@@ -3369,21 +3296,18 @@ class GDSDesign:
                         route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(route)
 
                         P = Path([port, port1.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
 
                         P = Path([ports2[i], port2.midpoint])
                         path = P.extrude(trace_width, layer=layer_number)
                         for poly in path.get_polygons():
                             path_obstacles.append(poly.tolist())
-                            self.add_polygon(cell_name, poly, layer_name)
                         D.add_ref(path)
                         cnt += 1
 
@@ -3405,14 +3329,12 @@ class GDSDesign:
                     route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
                     cnt += 1
 
@@ -3426,14 +3348,12 @@ class GDSDesign:
                     route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route)
 
                     P = Path([port, port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
                     cnt += 1
             
@@ -3451,14 +3371,12 @@ class GDSDesign:
                     route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route_path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route_path)
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
 
                     cnt += 1
@@ -3470,14 +3388,12 @@ class GDSDesign:
                     route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                     for poly in route_path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(route_path)
 
                     P = Path([ports1[idx], port1.midpoint])
                     path = P.extrude(trace_width, layer=layer_number)
                     for poly in path.get_polygons():
                         path_obstacles.append(poly.tolist())
-                        self.add_polygon(cell_name, poly, layer_name)
                     D.add_ref(path)
 
                     cnt += 1
@@ -3504,14 +3420,12 @@ class GDSDesign:
                 route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                 for poly in route.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(route)
 
                 P = Path([ports2[i], port2.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
                 for poly in path.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(path)
                 cnt += 1
 
@@ -3536,14 +3450,12 @@ class GDSDesign:
                 route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                 for poly in route.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(route)
 
                 P = Path([ports2[i], port2.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
                 for poly in path.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(path)
                 cnt += 1
         
@@ -3568,14 +3480,12 @@ class GDSDesign:
                 route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                 for poly in route.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(route)
 
                 P = Path([ports2[i], port2.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
                 for poly in path.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(path)
                 cnt += 1
         
@@ -3600,14 +3510,12 @@ class GDSDesign:
                 route = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                 for poly in route.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(route)
 
                 P = Path([ports2[i], port2.midpoint])
                 path = P.extrude(trace_width, layer=layer_number)
                 for poly in path.get_polygons():
                     path_obstacles.append(poly.tolist())
-                    self.add_polygon(cell_name, poly, layer_name)
                 D.add_ref(path)
                 cnt += 1
         else:
@@ -3623,7 +3531,10 @@ class GDSDesign:
             for j in idx:
                 if obstacles_polys_prep[i].intersects(path_obstacles_polys[j]):
                     raise ValueError("Obstacle intersects with path")
-                
+        
+        for poly in path_obstacles:
+            self.add_polygon(cell_name, np.array(poly), layer_name)
+            
         return path_obstacles
     
     def route_ports_a_star(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
