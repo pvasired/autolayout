@@ -562,32 +562,40 @@ class MyApp(QWidget):
         self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
         self.update_plot_data(cell)
 
-        if not hasattr(self, 'fig'):
-            # Create a new figure with a larger size
-            self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
-            self.canvas = FigureCanvas(self.fig)
-            self.ax = self.fig.add_subplot(111)
+        if hasattr(self, 'plotWindow') and self.plotWindow is not None:
+            self.plotWindow.close()
 
-            # Create a new window for the plot
-            self.plotWindow = QWidget()
-            layout = QVBoxLayout()
+        # Create a new figure with a larger size
+        self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
+        self.canvas = FigureCanvas(self.fig)
+        self.ax = self.fig.add_subplot(111)
 
-            # Add the Matplotlib canvas to the layout
-            layout.addWidget(self.canvas)
+        # Create a new window for the plot
+        self.plotWindow = QWidget()
+        self.plotWindow.closeEvent = self.closeEvent  # Set the custom close event
+        layout = QVBoxLayout()
 
-            # Add the navigation toolbar to the layout
-            self.toolbar = NavigationToolbar(self.canvas, self.plotWindow)
-            layout.addWidget(self.toolbar)
+        # Add the Matplotlib canvas to the layout
+        layout.addWidget(self.canvas)
 
-            self.plotWindow.setLayout(layout)
-            self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
-            self.plotWindow.setGeometry(100, 100, 2000, 1500)  # Adjust the window size to be larger
-            self.plotWindow.show()
+        # Add the navigation toolbar to the layout
+        self.toolbar = NavigationToolbar(self.canvas, self.plotWindow)
+        layout.addWidget(self.toolbar)
 
-            # Connect the click event to the handler
-            self.canvas.mpl_connect('button_press_event', self.on_click)
-        
+        self.plotWindow.setLayout(layout)
+        self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
+        self.plotWindow.setGeometry(100, 100, 2000, 1500)  # Adjust the window size to be larger
+        self.plotWindow.show()
+
+        # Connect the click event to the handler
+        self.canvas.mpl_connect('button_press_event', self.on_click)
+
         self.update_plot()
+
+    def closeEvent(self, event):
+        self.log("Plot window closed")
+        self.plotWindow = None
+        event.accept()
 
     def update_plot_data(self, cell):
         polygons_by_spec = cell.get_polygons(by_spec=True)
