@@ -842,7 +842,7 @@ class GDSDesign:
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
-            return_dict[val] = (wire_ports, wire_orientations)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
@@ -1103,7 +1103,7 @@ class GDSDesign:
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
-            return_dict[val] = (wire_ports, wire_orientations)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
@@ -1199,7 +1199,7 @@ class GDSDesign:
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
-            return_dict[val] = (wire_ports, wire_orientations)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
 
     # The traces escape from all four sides of the array
@@ -1945,7 +1945,7 @@ class GDSDesign:
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle)
-            return_dict[val] = (wire_ports, wire_orientations)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
         return return_dict
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):

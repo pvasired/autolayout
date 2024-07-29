@@ -16,6 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib
+import gdswriter
 matplotlib.use('Qt5Agg')
 
 TEXT_SPACING_FACTOR = 0.55
@@ -362,6 +363,8 @@ class MyApp(QWidget):
         self.undoStack = []  # Initialize undo stack
         self.redoStack = []  # Initialize redo stack
         self.escapeDicts = {}  # To store escape routing dictionaries
+        self.routing = []
+        self.obstacles = {}
         self.initUI()
 
     def initUI(self):
@@ -398,6 +401,10 @@ class MyApp(QWidget):
         self.cellComboBox = QComboBox()
         self.cellComboBox.setToolTip('Select a cell from the loaded GDS file.')
         plotLayout.addWidget(self.cellComboBox)
+
+        self.plotLayersComboBox = QComboBox()
+        self.plotLayersComboBox.setToolTip('Select a layer from the list to plot for the cell.')
+        plotLayout.addWidget(self.plotLayersComboBox)
 
         self.matplotlibButton = QPushButton('Routing Tool')
         self.matplotlibButton.clicked.connect(self.showMatplotlibWindow)
@@ -556,14 +563,16 @@ class MyApp(QWidget):
         cell = self.gds_design.check_cell_exists(selected_cell)
         polygons_by_spec = cell.get_polygons(by_spec=True)
         layer_polygons = []
+        layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
         for (lay, dat), polys in polygons_by_spec.items():
             for poly in polys:
-                layer_polygons.append(Polygon(poly))
+                if lay == layer_number:
+                    layer_polygons.append(Polygon(poly))
         
         # Create a new figure with a larger size
         fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
         canvas = FigureCanvas(fig)
-        
+
         # Create an example plot
         ax = fig.add_subplot(111)
         for poly in layer_polygons:
@@ -608,8 +617,85 @@ class MyApp(QWidget):
 
     def process_click(self, x, y):
         # Implement your processing logic here
-        QMessageBox.information(self, "Click Position", f"Click at: ({x}, {y})")
         self.log(f"Processing click at: ({x}, {y})")
+        
+        min_dist = np.inf
+        route_ports = None
+        route_orientations = None
+        route_bbox = None
+        route_trace_width = None
+
+        layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+        for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
+            # Calculate the distance from the click to the escape routing
+            xmin = np.inf
+            xmax = -np.inf
+            ymin = np.inf
+            ymax = -np.inf
+            for orientation in escapeDict:
+                orientation_ports = escapeDict[orientation][0]
+                layer = escapeDict[orientation][2]
+                if layer == layer_number:
+                    xmin = min(orientation_ports[:, 0].min(), xmin)
+                    xmax = max(orientation_ports[:, 0].max(), xmax)
+                    ymin = min(orientation_ports[:, 1].min(), ymin)
+                    ymax = max(orientation_ports[:, 1].max(), ymax)
+            
+            bbox = np.array([[xmin, ymin], [xmax, ymax]])
+            
+            for orientation in escapeDict:
+                layer = escapeDict[orientation][2]
+                if layer == layer_number:
+                    dist = np.linalg.norm(np.mean(escapeDict[orientation][0], axis=0)-np.array([x, y]))
+                    if dist < min_dist:
+                        min_dist = dist
+                        route_ports = escapeDict[orientation][0]
+                        route_orientations = escapeDict[orientation][1]  
+                        route_bbox = bbox
+                        route_trace_width = escapeDict[orientation][3]
+        
+        if route_ports is None:
+            QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
+            self.log("No valid ports found in cell.")
+            return
+        # Query the user to confirm the choice of ports and orientations
+        reply = QMessageBox.question(self, "Confirm Ports", f"You have selected ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.routing.append((route_ports, route_orientations, route_bbox, route_trace_width))
+        else:
+            return
+        
+        if len(self.routing) == 2:
+            ports1, orientations1, bbox1, trace_width1 = self.routing[0]
+            ports2, orientations2, bbox2, trace_width2 = self.routing[1]
+
+            if trace_width1 != trace_width2:
+                QMessageBox.critical(self, "Design Error", "Trace widths do not match.", QMessageBox.Ok)
+                self.log("Trace widths do not match.")
+                self.routing = []
+                return
+            
+            if layer_number not in self.obstacles:
+                self.obstacles[layer_number] = []
+                cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
+                polygons_by_spec = cell.get_polygons(by_spec=True)
+                for (lay, dat), polys in polygons_by_spec.items():
+                    if lay == layer_number:
+                        for poly in polys:
+                            poly = np.around(poly, 3)
+                            # Check if poly is in bbox1 or bbox2:
+                            if np.all(poly[:, 0] >= bbox1[0][0]) and np.all(poly[:, 0] <= bbox1[1][0]) and np.all(poly[:, 1] >= bbox1[0][1]) and np.all(poly[:, 1] <= bbox1[1][1]):
+                                continue
+                            if np.all(poly[:, 0] >= bbox2[0][0]) and np.all(poly[:, 0] <= bbox2[1][0]) and np.all(poly[:, 1] >= bbox2[0][1]) and np.all(poly[:, 1] <= bbox2[1][1]):
+                                continue
+                            self.obstacles[layer_number].append(poly.tolist())
+
+            self.obstacles[layer_number] += gdswriter.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
+                                           ports2, orientations2, trace_width1, layer_number, bbox1, bbox2,
+                                           show_animation=True, obstacles=self.obstacles[layer_number])
+            
+            self.routing = []
     
     def updateExcludedLayers(self):
         # Output: sets self.excludedLayers and updates available space and all other polygons
@@ -891,11 +977,13 @@ class MyApp(QWidget):
                 
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
+        self.plotLayersComboBox.clear()
         # Add layers to the dropdown sorted by layer number
         self.layerData.sort(key=lambda x: int(x[0]))
         for number, name in self.layerData:
             self.layersComboBox.addItem(f"{number}: {name}")
-        self.log("Layers dropdown updated")
+            self.plotLayersComboBox.addItem(f"{number}: {name}")
+        self.log("Layers dropdowns updated")
 
     def validateOutputFileName(self):
         # Output: sets self.outputFileName and renames log file if needed
