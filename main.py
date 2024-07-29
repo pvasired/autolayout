@@ -555,52 +555,60 @@ class MyApp(QWidget):
             QMessageBox.critical(self, "Selection Error", "No cell selected from the dropdown menu.", QMessageBox.Ok)
             self.log("No cell selected from the dropdown menu.")
             return
-        
+
         # Use the selected cell from the dropdown
         selected_cell = self.cellComboBox.currentText()
         self.log(f"Selected cell for plotting: {selected_cell}")
 
         cell = self.gds_design.check_cell_exists(selected_cell)
+        self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+        self.update_plot_data(cell)
+
+        if not hasattr(self, 'fig'):
+            # Create a new figure with a larger size
+            self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
+            self.canvas = FigureCanvas(self.fig)
+            self.ax = self.fig.add_subplot(111)
+
+            # Create a new window for the plot
+            self.plotWindow = QWidget()
+            layout = QVBoxLayout()
+
+            # Add the Matplotlib canvas to the layout
+            layout.addWidget(self.canvas)
+
+            # Add the navigation toolbar to the layout
+            self.toolbar = NavigationToolbar(self.canvas, self.plotWindow)
+            layout.addWidget(self.toolbar)
+
+            self.plotWindow.setLayout(layout)
+            self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
+            self.plotWindow.setGeometry(100, 100, 2000, 1500)  # Adjust the window size to be larger
+            self.plotWindow.show()
+
+            # Connect the click event to the handler
+            self.canvas.mpl_connect('button_press_event', self.on_click)
+        
+        self.update_plot()
+
+    def update_plot_data(self, cell):
         polygons_by_spec = cell.get_polygons(by_spec=True)
-        layer_polygons = []
-        layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+        self.plot_layer_polygons = []
         for (lay, dat), polys in polygons_by_spec.items():
             for poly in polys:
-                if lay == layer_number:
-                    layer_polygons.append(Polygon(poly))
-        
-        # Create a new figure with a larger size
-        fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
-        canvas = FigureCanvas(fig)
-
-        # Create an example plot
-        ax = fig.add_subplot(111)
-        for poly in layer_polygons:
+                if lay == self.plot_layer_number:
+                    self.plot_layer_polygons.append(Polygon(poly))
+    
+    def update_plot(self):
+        self.ax.clear()
+        for poly in self.plot_layer_polygons:
             x, y = poly.exterior.xy
-            ax.plot(x, y, color='tab:blue')
-        
-        ax.set_aspect('equal', 'datalim')
+            self.ax.plot(x, y, color='tab:blue')
+
+        self.ax.set_aspect('equal', 'datalim')
         # Increase the size of the tick marks
-        ax.tick_params(axis='both', which='major', labelsize=18, length=10, width=2)
-
-        # Create a new window for the plot
-        self.plotWindow = QWidget()
-        layout = QVBoxLayout()
-
-        # Add the Matplotlib canvas to the layout
-        layout.addWidget(canvas)
-
-        # Add the navigation toolbar to the layout
-        self.toolbar = NavigationToolbar(canvas, self.plotWindow)
-        layout.addWidget(self.toolbar)
-
-        self.plotWindow.setLayout(layout)
-        self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
-        self.plotWindow.setGeometry(100, 100, 2000, 1500)  # Adjust the window size to be larger
-        self.plotWindow.show()
-
-        # Connect the click event to the handler
-        canvas.mpl_connect('button_press_event', self.on_click)
+        self.ax.tick_params(axis='both', which='major', labelsize=18, length=10, width=2)
+        self.canvas.draw()
 
     def on_click(self, event):
         # Check if the toolbar is in zoom mode
@@ -625,6 +633,7 @@ class MyApp(QWidget):
         route_bbox = None
         route_trace_width = None
 
+        cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
         layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
         layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
         for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
@@ -679,7 +688,6 @@ class MyApp(QWidget):
             
             if layer_number not in self.obstacles:
                 self.obstacles[layer_number] = []
-                cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
                 polygons_by_spec = cell.get_polygons(by_spec=True)
                 for (lay, dat), polys in polygons_by_spec.items():
                     if lay == layer_number:
@@ -703,6 +711,8 @@ class MyApp(QWidget):
             self.updateAvailableSpace()
             
             self.routing = []
+            self.update_plot_data(cell)
+            self.update_plot()
     
     def updateExcludedLayers(self):
         # Output: sets self.excludedLayers and updates available space and all other polygons
@@ -847,6 +857,11 @@ class MyApp(QWidget):
             self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.obstacles = self.undoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
+
+            # Update plot if open
+            if hasattr(self, 'plotWindow') and self.plotWindow.isVisible():
+                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                self.update_plot()
         else:
             QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
 
@@ -857,6 +872,11 @@ class MyApp(QWidget):
             self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.obstacles = self.redoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
+
+            # Update plot if open
+            if hasattr(self, 'plotWindow') and self.plotWindow.isVisible():
+                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                self.update_plot()
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
 
