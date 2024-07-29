@@ -643,13 +643,12 @@ class MyApp(QWidget):
             ymin = np.inf
             ymax = -np.inf
             for orientation in escapeDict:
-                orientation_ports = escapeDict[orientation][0]
-                layer = escapeDict[orientation][2]
-                if layer == layer_number:
-                    xmin = min(orientation_ports[:, 0].min(), xmin)
-                    xmax = max(orientation_ports[:, 0].max(), xmax)
-                    ymin = min(orientation_ports[:, 1].min(), ymin)
-                    ymax = max(orientation_ports[:, 1].max(), ymax)
+                orientation_trace_width = escapeDict[orientation][3]
+                orientation_bbox = escapeDict[orientation][4]
+                xmin = min(xmin, orientation_bbox[0][0]-orientation_trace_width/2)
+                xmax = max(xmax, orientation_bbox[1][0]+orientation_trace_width/2)
+                ymin = min(ymin, orientation_bbox[0][1]-orientation_trace_width/2)
+                ymax = max(ymax, orientation_bbox[1][1]+orientation_trace_width/2)
             
             bbox = np.around(np.array([[xmin, ymin], [xmax, ymax]]), 3)
             
@@ -669,7 +668,7 @@ class MyApp(QWidget):
             self.log("No valid ports found in cell.")
             return
         # Query the user to confirm the choice of ports and orientations
-        reply = QMessageBox.question(self, "Confirm Ports", f"You have selected ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
+        reply = QMessageBox.question(self, "Confirm Ports", f"You have selected {len(route_ports)} ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.routing.append((route_ports, route_orientations, route_bbox, route_trace_width))

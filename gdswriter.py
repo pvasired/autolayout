@@ -841,8 +841,8 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
+            wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
         return return_dict
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
@@ -1102,8 +1102,8 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
+            wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
         return return_dict
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
@@ -1198,8 +1198,8 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
+            wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
         return return_dict
 
     # The traces escape from all four sides of the array
@@ -1944,8 +1944,8 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width)
+            wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
+            return_dict[val] = (np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
         return return_dict
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
@@ -2255,6 +2255,11 @@ class GDSDesign:
         assert np.all(orientations == orientations[0])
         assert isinstance(trace_width, (int, float))
 
+        bbox_xmin = np.inf
+        bbox_xmax = -np.inf
+        bbox_ymin = np.inf
+        bbox_ymax = -np.inf
+
         if orientations[0] == 90:
             ports = ports[np.argsort(ports[:, 0])]
             center_ind = math.ceil(len(ports)/2)-1
@@ -2277,9 +2282,9 @@ class GDSDesign:
 
             wire_ports = []
             for i in range(len(iter_inds_L)):
-                wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].max()+max_y))
+                wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].max()+max_y+escape_extent))
             for i in range(len(iter_inds_R)):
-                wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].max()+max_y))
+                wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].max()+max_y+escape_extent))
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
             wire_orientations = np.full(len(wire_ports), 90)
@@ -2290,15 +2295,39 @@ class GDSDesign:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                     routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent, post_rotation=-90, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2306,12 +2335,28 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y+escape_extent)]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent, post_rotation=90, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2319,10 +2364,26 @@ class GDSDesign:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                         routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
@@ -2349,9 +2410,9 @@ class GDSDesign:
 
             wire_ports = []
             for i in range(len(iter_inds_L)):
-                wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].min()-max_y))
+                wire_ports.append((ports[center_ind][0]-2*i*trace_width, ports[:, 1].min()-max_y-escape_extent))
             for i in range(len(iter_inds_R)):
-                wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].min()-max_y))
+                wire_ports.append((ports[center_ind][0]+2*(i+1)*trace_width, ports[:, 1].min()-max_y-escape_extent))
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
             wire_orientations = np.full(len(wire_ports), 270)
@@ -2362,15 +2423,39 @@ class GDSDesign:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                     routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-2*i*trace_width-ports[idx][0], max_y+escape_extent, post_rotation=-90, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2378,12 +2463,28 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]-max_y-escape_extent)]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
                         
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent, post_rotation=90, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2391,10 +2492,26 @@ class GDSDesign:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                         routing_angle, ports[idx][0]-(ports[center_ind][0]+2*(i+1)*trace_width), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
@@ -2421,9 +2538,9 @@ class GDSDesign:
 
             wire_ports = []
             for i in range(len(iter_inds_B)):
-                wire_ports.append((ports[:, 0].max()+max_x, ports[center_ind][1]-2*i*trace_width))
+                wire_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]-2*i*trace_width))
             for i in range(len(iter_inds_T)):
-                wire_ports.append((ports[:, 0].max()+max_x, ports[center_ind][1]+2*(i+1)*trace_width))
+                wire_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]+2*(i+1)*trace_width))
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
             wire_orientations = np.full(len(wire_ports), 0)
@@ -2434,15 +2551,39 @@ class GDSDesign:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2450,12 +2591,28 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
                     path_points = [ports[idx], (ports[idx][0]+max_x+escape_extent, ports[idx][1])]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent, post_rotation=180, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2463,10 +2620,26 @@ class GDSDesign:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                         routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
@@ -2493,9 +2666,9 @@ class GDSDesign:
 
             wire_ports = []
             for i in range(len(iter_inds_B)):
-                wire_ports.append((ports[:, 0].min()-max_x, ports[center_ind][1]-2*i*trace_width))
+                wire_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]-2*i*trace_width))
             for i in range(len(iter_inds_T)):
-                wire_ports.append((ports[:, 0].min()-max_x, ports[center_ind][1]+2*(i+1)*trace_width))
+                wire_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]+2*(i+1)*trace_width))
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
             wire_orientations = np.full(len(wire_ports), 180)
@@ -2506,15 +2679,39 @@ class GDSDesign:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 elif i == 1:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-2*i*trace_width-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=True)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
                     
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2522,12 +2719,28 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
                     path_points = [ports[idx], (ports[idx][0]-max_x-escape_extent, ports[idx][1])]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
                 if i == 0:
                     hinged_path = create_hinged_path(ports[idx], routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent, post_rotation=180, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
@@ -2535,15 +2748,31 @@ class GDSDesign:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
                     x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                    if np.array(path_points)[:, 0].min() < bbox_xmin:
+                        bbox_xmin = np.array(path_points)[:, 0].min()
+                    if np.array(path_points)[:, 0].max() > bbox_xmax:
+                        bbox_xmax = np.array(path_points)[:, 0].max()
+                    if np.array(path_points)[:, 1].min() < bbox_ymin:
+                        bbox_ymin = np.array(path_points)[:, 1].min()
+                    if np.array(path_points)[:, 1].max() > bbox_ymax:
+                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                         routing_angle, ports[idx][1]-(ports[center_ind][1]+2*(i+1)*trace_width), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=False)
+                    if hinged_path[:, 0].min() < bbox_xmin:
+                        bbox_xmin = hinged_path[:, 0].min()
+                    if hinged_path[:, 0].max() > bbox_xmax:
+                        bbox_xmax = hinged_path[:, 0].max()
+                    if hinged_path[:, 1].min() < bbox_ymin:
+                        bbox_ymin = hinged_path[:, 1].min()
+                    if hinged_path[:, 1].max() > bbox_ymax:
+                        bbox_ymax = hinged_path[:, 1].max()
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
 
-        return wire_ports, wire_orientations
+        return wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax
     
     def route_port_to_port(self, filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_name,
                        bbox1_, bbox2_, obstacles=[]):
@@ -3778,7 +4007,7 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     else:
         hinge_x = extension_y / np.tan(angle_radians)
 
-    # assert extension_x >= hinge_x, "Improper Usage: extension_x must be greater than hinge_x"
+    assert extension_x >= hinge_x, "Improper Usage: extension_x must be greater than hinge_x"
     
     hinge_point = (hinge_x, extension_y)
     
