@@ -714,7 +714,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Design Error", f"Error routing ports: {str(e)}", QMessageBox.Ok)
                 self.log(f"Error routing ports: {str(e)}")
 
-                self.undo()  # Undo the last action
+                self.undo()
 
             self.routing = []
     
@@ -1133,6 +1133,9 @@ class MyApp(QWidget):
                 self.writeToGDS()
                 # Update the available space
                 self.updateAvailableSpace()
+
+                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                self.update_plot()
             
             else:
                 self.undo()
