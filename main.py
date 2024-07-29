@@ -698,18 +698,23 @@ class MyApp(QWidget):
                             self.obstacles[layer_number].append(poly.tolist())
 
             self.addSnapshot()  # Store snapshot before adding new design
-            self.obstacles[layer_number] += self.gds_design.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
-                                           ports2, orientations2, trace_width1, layer_name, bbox1, bbox2,
-                                           show_animation=True, obstacles=self.obstacles[layer_number])
-            
-            # Write the design
-            self.writeToGDS()
-            # Update the available space
-            self.updateAvailableSpace()
-            
+            try:
+                self.obstacles[layer_number] += self.gds_design.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
+                                            ports2, orientations2, trace_width1, layer_name, bbox1, bbox2,
+                                            show_animation=True, obstacles=self.obstacles[layer_number])
+                
+                # Write the design
+                self.writeToGDS()
+                # Update the available space
+                self.updateAvailableSpace()
+                
+                self.update_plot_data(cell)
+                self.update_plot()
+            except (Exception, AssertionError, ValueError) as e:
+                QMessageBox.critical(self, "Design Error", f"Error routing ports: {str(e)}", QMessageBox.Ok)
+                self.log(f"Error routing ports: {str(e)}")
+
             self.routing = []
-            self.update_plot_data(cell)
-            self.update_plot()
     
     def updateExcludedLayers(self):
         # Output: sets self.excludedLayers and updates available space and all other polygons
