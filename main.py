@@ -714,6 +714,8 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Design Error", f"Error routing ports: {str(e)}", QMessageBox.Ok)
                 self.log(f"Error routing ports: {str(e)}")
 
+                self.undo()  # Undo the last action
+
             self.routing = []
     
     def updateExcludedLayers(self):
@@ -1131,6 +1133,9 @@ class MyApp(QWidget):
                 self.writeToGDS()
                 # Update the available space
                 self.updateAvailableSpace()
+            
+            else:
+                self.undo()
 
     def updateAvailableSpace(self):
         if type(self.substrateLayer) == int:
