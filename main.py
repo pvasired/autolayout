@@ -2138,6 +2138,30 @@ class MyApp(QWidget):
             if self.customTestCellName not in self.gds_design.lib.cells:
                 self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName],
                                     overwrite_duplicate=True, include_dependencies=True, update_references=False)
+                unique_layers = set()
+                for cell_name in self.gds_design.lib.cells.keys():
+                    if cell_name != '$$$CONTEXT_INFO$$$':
+                        polygons_by_spec = self.gds_design.lib.cells[cell_name].get_polygons(by_spec=True)
+                        for (lay, dat), polys in polygons_by_spec.items():
+                            unique_layers.add(lay)
+                
+                for layer_number in unique_layers:
+                    continueFlag = False
+                    for number, name in self.layerData:
+                        if int(number) == layer_number:
+                            continueFlag = True
+                            break
+                    if continueFlag:
+                        continue
+                    self.gds_design.define_layer(str(layer_number), layer_number)
+                    self.log(f"Layer defined: {layer_number} with number {layer_number}")
+                    
+                    # Add new layer if it doesn't exist already
+                    self.layerData.append((str(layer_number), str(layer_number)))
+                    self.log(f"New Layer added: {layer_number} - {layer_number}")
+
+                self.log(f"Current layers: {self.gds_design.layers}")
+                self.updateLayersComboBox()
 
         if self.customTestCellName:
             if not Array:
