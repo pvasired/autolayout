@@ -2136,6 +2136,10 @@ class MyApp(QWidget):
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
             if self.customTestCellName not in self.gds_design.lib.cells:
+                if not self.customTestCellName:
+                    QMessageBox.critical(self, "Custom Test Structure Error", "Please select a custom test structure cell name.", QMessageBox.Ok)
+                    self.log("Custom Test Structure placement error: No cell name provided")
+                    return False
                 self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName],
                                     overwrite_duplicate=True, include_dependencies=True, update_references=False)
                 unique_layers = set()
@@ -2349,6 +2353,9 @@ class MyApp(QWidget):
                     self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
                 else:
                     QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
+        else:
+            QMessageBox.critical(self, "Input Error", "Please select a Custom Test Structure Cell Name.", QMessageBox.Ok)
+            self.log("Custom Test Structure Cell Name not selected")
 
     def writeToGDS(self):
         if self.gds_design:
