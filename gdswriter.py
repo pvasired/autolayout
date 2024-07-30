@@ -1142,57 +1142,85 @@ class GDSDesign:
                     available_length = effective_pitch_y - 3 * trace_width
                     num_traces = array_size_x
                     assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
-                    spacing = available_length / (num_traces - 1)
-                    cnt = 0
-                    for i in range(array_size_x):
-                        hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[i][j][0]-grid[0][j][0]+escape_extent, post_rotation=0, post_reflection=True)
+                    if num_traces == 1:
+                        hinged_path = create_hinged_path(grid[0][j], routing_angle, pitch_y/2, escape_extent, 
+                                                        post_rotation=0, post_reflection=True)
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
-                        ports[i][j] = np.array(hinged_path[-1])
-                        orientations[i][j] = 180
-                        cnt += 1
+                        ports[0][j] = np.array(hinged_path[-1])
+                        orientations[0][j] = 180
+                    else:
+                        spacing = available_length / (num_traces - 1)
+                        cnt = 0
+                        for i in range(array_size_x):
+                            hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[i][j][0]-grid[0][j][0]+escape_extent, post_rotation=0, post_reflection=True)
+                            self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                            ports[i][j] = np.array(hinged_path[-1])
+                            orientations[i][j] = 180
+                            cnt += 1
             else:
                 for j in range(array_size_y):
                     available_length = effective_pitch_y - 3 * trace_width
                     num_traces = array_size_x
                     assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
-                    spacing = available_length / (num_traces - 1)
-                    cnt = 0
-                    iter_inds = np.flip(np.arange(array_size_x))
-                    for i in iter_inds:
-                        hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[-1][j][0]-grid[i][j][0]+escape_extent, post_rotation=0, post_reflection=False)
+                    if num_traces == 1:
+                        hinged_path = create_hinged_path(grid[0][j], routing_angle, pitch_y/2, escape_extent, 
+                                                        post_rotation=0, post_reflection=False)
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
-                        ports[i][j] = np.array(hinged_path[-1])
-                        orientations[i][j] = 0
-                        cnt += 1
+                        ports[0][j] = np.array(hinged_path[-1])
+                        orientations[0][j] = 0
+                    else:
+                        spacing = available_length / (num_traces - 1)
+                        cnt = 0
+                        iter_inds = np.flip(np.arange(array_size_x))
+                        for i in iter_inds:
+                            hinged_path = create_hinged_path(grid[i][j], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[-1][j][0]-grid[i][j][0]+escape_extent, post_rotation=0, post_reflection=False)
+                            self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                            ports[i][j] = np.array(hinged_path[-1])
+                            orientations[i][j] = 0
+                            cnt += 1
         else:
             if escape_negative:
                 for j in range(array_size_x):
                     available_length = effective_pitch_x - 3 * trace_width
                     num_traces = array_size_y
-                    assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_x, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_x}."
-                    spacing = available_length / (num_traces - 1)
-                    cnt = 0
-                    for i in range(array_size_y):
-                        hinged_path = create_hinged_path(grid[j][i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[j][i][1]-grid[j][0][1]+escape_extent, post_rotation=-90, post_reflection=False)
+                    if num_traces == 1:
+                        hinged_path = create_hinged_path(grid[j][0], routing_angle, pitch_x/2, escape_extent, 
+                                                        post_rotation=90, post_reflection=True)
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
-                        ports[j][i] = np.array(hinged_path[-1])
-                        orientations[j][i] = 270
-                        cnt += 1
+                        ports[j][0] = np.array(hinged_path[-1])
+                        orientations[j][0] = 270
+                    else:
+                        assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_x, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_x}."
+                        spacing = available_length / (num_traces - 1)
+                        cnt = 0
+                        for i in range(array_size_y):
+                            hinged_path = create_hinged_path(grid[j][i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[j][i][1]-grid[j][0][1]+escape_extent, post_rotation=-90, post_reflection=False)
+                            self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                            ports[j][i] = np.array(hinged_path[-1])
+                            orientations[j][i] = 270
+                            cnt += 1
             else:
                 for j in range(array_size_x):
                     available_length = effective_pitch_x - 3 * trace_width
                     num_traces = array_size_y
                     assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_x, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_x}."
-                    spacing = available_length / (num_traces - 1)
-                    cnt = 0
-                    iter_inds = np.flip(np.arange(array_size_y))
-                    for i in iter_inds:
-                        hinged_path = create_hinged_path(grid[j][i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[j][-1][1]-grid[j][i][1]+escape_extent, post_rotation=-90, post_reflection=True)
+                    if num_traces == 1:
+                        hinged_path = create_hinged_path(grid[j][0], routing_angle, pitch_x/2, escape_extent, 
+                                                        post_rotation=90, post_reflection=False)
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
-                        ports[j][i] = np.array(hinged_path[-1])
-                        orientations[j][i] = 90
-                        cnt += 1
-        
+                        ports[j][0] = np.array(hinged_path[-1])
+                        orientations[j][0] = 90
+                    else:
+                        spacing = available_length / (num_traces - 1)
+                        cnt = 0
+                        iter_inds = np.flip(np.arange(array_size_y))
+                        for i in iter_inds:
+                            hinged_path = create_hinged_path(grid[j][i], routing_angle, cnt*spacing + 3*trace_width/2 + pad_diameter/2, grid[j][-1][1]-grid[j][i][1]+escape_extent, post_rotation=-90, post_reflection=True)
+                            self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
+                            ports[j][i] = np.array(hinged_path[-1])
+                            orientations[j][i] = 90
+                            cnt += 1
+            
         grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
         unique_orientations = np.unique(orientations)
         return_dict = {}

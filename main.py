@@ -70,7 +70,7 @@ class MyApp(QWidget):
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
-            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Trace Width", "Pad Diameter", "Orientation"],
+            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Trace Width", "Pad Diameter", "Orientation", "Escape Extent"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Automatic Placement"]
         }
         self.paramTooltips = {
@@ -198,7 +198,8 @@ class MyApp(QWidget):
                 "Spacing Y": "Enter the spacing between copies in the y direction.",
                 "Trace Width": "Enter the width of the traces.",
                 "Pad Diameter": "Enter the diameter of the pads.",
-                "Orientation": "Enter the orientation of the escape routing."
+                "Orientation": "Enter the orientation of the escape routing.",
+                "Escape Extent": "Enter the extent of the escape routing."
             },
             "Custom Test Structure": {
                 "Center": "Enter the center (x, y) coordinate of the custom test structure.",
@@ -338,7 +339,8 @@ class MyApp(QWidget):
                 "Spacing Y": '',
                 "Trace Width": '',
                 "Pad Diameter": '',
-                "Orientation": ''
+                "Orientation": '',
+                "Escape Extent": 100
             },
             "Custom Test Structure": {
                 "Center": '',
@@ -413,7 +415,7 @@ class MyApp(QWidget):
 
         # Test Structures layout
         testLayout = QVBoxLayout()
-        testLabel = QLabel('Test Structures')
+        testLabel = QLabel('Components')
         testLayout.addWidget(testLabel)
 
         gridLayout = QGridLayout()
@@ -707,9 +709,28 @@ class MyApp(QWidget):
 
             self.addSnapshot()  # Store snapshot before adding new design
             try:
+                if len(ports1) != len(ports2):
+                    if len(ports1) < len(ports2):
+                        ports2 = ports2[:len(ports1)]
+                        orientations2 = orientations2[:len(orientations1)]
+                    else:
+                        ports1 = ports1[:len(ports2)]
+                        orientations1 = orientations1[:len(orientations2)]
+
                 self.obstacles[layer_number] += self.gds_design.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
                                             ports2, orientations2, trace_width1, layer_name, bbox1, bbox2,
                                             show_animation=True, obstacles=self.obstacles[layer_number])
+
+                # Remove the routed ports from the corresponding escapeDicts
+                for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
+                    for orientation in escapeDict:
+                        ports = escapeDict[orientation][0]
+                        
+                        idx1 = np.where(~np.any(np.all(ports[:, None] == ports1, axis=2), axis=1))[0]
+                        idx2 = np.where(~np.any(np.all(ports[:, None] == ports2, axis=2), axis=1))[0]
+
+                        idx = np.intersect1d(idx1, idx2)
+                        escapeDict[orientation] = (escapeDict[orientation][0][idx], escapeDict[orientation][1][idx], escapeDict[orientation][2], escapeDict[orientation][3], escapeDict[orientation][4])              
                 
                 # Write the design
                 self.writeToGDS()
@@ -1209,7 +1230,7 @@ class MyApp(QWidget):
                     params[param.replace(" ", "_")] = value
         return params
 
-    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Trace_Width, Pad_Diameter, Orientation):
+    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Trace_Width, Pad_Diameter, Orientation, Escape_Extent):
         if Orientation is None:
             QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the escape routing.", QMessageBox.Ok)
             return False
@@ -1244,7 +1265,8 @@ class MyApp(QWidget):
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
-                    escape_negative=escape_negative
+                    escape_negative=escape_negative,
+                    escape_extent=float(Escape_Extent)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1276,7 +1298,8 @@ class MyApp(QWidget):
                     array_size_y=int(Copies_Y),
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
-                    escape_y=escape_y
+                    escape_y=escape_y,
+                    escape_extent=float(Escape_Extent)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1316,7 +1339,8 @@ class MyApp(QWidget):
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
-                    escape_negative=escape_negative
+                    escape_negative=escape_negative,
+                    escape_extent=float(Escape_Extent)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1338,7 +1362,8 @@ class MyApp(QWidget):
                     array_size_x=int(Copies_X),
                     array_size_y=int(Copies_Y),
                     trace_width=float(Trace_Width),
-                    pad_diameter=float(Pad_Diameter)
+                    pad_diameter=float(Pad_Diameter),
+                    escape_extent=float(Escape_Extent)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
