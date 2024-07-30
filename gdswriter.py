@@ -1143,8 +1143,7 @@ class GDSDesign:
                     num_traces = array_size_x
                     assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
                     if num_traces == 1:
-                        hinged_path = create_hinged_path(grid[0][j], routing_angle, pitch_y/2, escape_extent, 
-                                                        post_rotation=0, post_reflection=True)
+                        hinged_path = [grid[0][j], (grid[0][j][0]-escape_extent, grid[0][j][1])]
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                         ports[0][j] = np.array(hinged_path[-1])
                         orientations[0][j] = 180
@@ -1163,8 +1162,7 @@ class GDSDesign:
                     num_traces = array_size_x
                     assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_y, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_y}."
                     if num_traces == 1:
-                        hinged_path = create_hinged_path(grid[0][j], routing_angle, pitch_y/2, escape_extent, 
-                                                        post_rotation=0, post_reflection=False)
+                        hinged_path = [grid[0][j], (grid[0][j][0]+escape_extent, grid[0][j][1])]
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                         ports[0][j] = np.array(hinged_path[-1])
                         orientations[0][j] = 0
@@ -1184,8 +1182,7 @@ class GDSDesign:
                     available_length = effective_pitch_x - 3 * trace_width
                     num_traces = array_size_y
                     if num_traces == 1:
-                        hinged_path = create_hinged_path(grid[j][0], routing_angle, pitch_x/2, escape_extent, 
-                                                        post_rotation=90, post_reflection=True)
+                        hinged_path = [grid[j][0], (grid[j][0][0], grid[j][0][1]-escape_extent)]
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                         ports[j][0] = np.array(hinged_path[-1])
                         orientations[j][0] = 270
@@ -1205,8 +1202,7 @@ class GDSDesign:
                     num_traces = array_size_y
                     assert round((2*num_traces+1)*trace_width, 3) <= effective_pitch_x, f"Not enough space for {num_traces} traces with trace width {trace_width} and effective pitch {effective_pitch_x}."
                     if num_traces == 1:
-                        hinged_path = create_hinged_path(grid[j][0], routing_angle, pitch_x/2, escape_extent, 
-                                                        post_rotation=90, post_reflection=False)
+                        hinged_path = [grid[j][0], (grid[j][0][0], grid[j][0][1]+escape_extent)]
                         self.add_path_as_polygon(trace_cell_name, hinged_path, trace_width, layer_name)
                         ports[j][0] = np.array(hinged_path[-1])
                         orientations[j][0] = 90
@@ -3818,6 +3814,10 @@ class GDSDesign:
         else:
             raise ValueError("Invalid orientations for routing. Try changing orientations for ports")
 
+        path_obstacles_rounded = []
+        for poly in path_obstacles:
+            path_obstacles_rounded.append(np.around(np.array(poly), 3).tolist())
+        path_obstacles = path_obstacles_rounded
         obstacles_polys_prep = [prep(Polygon(obstacle)) for obstacle in obstacles]
         obstacles_polys = [Polygon(obstacle) for obstacle in obstacles]
         path_obstacles_polys = [Polygon(obstacle) for obstacle in path_obstacles]

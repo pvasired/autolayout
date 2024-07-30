@@ -364,7 +364,6 @@ class MyApp(QWidget):
         self.redoStack = []  # Initialize redo stack
         self.escapeDicts = {}  # To store escape routing dictionaries
         self.routing = []
-        self.obstacles = {}
         self.initUI()
 
     def initUI(self):
@@ -693,19 +692,18 @@ class MyApp(QWidget):
                 self.routing = []
                 return
             
-            if layer_number not in self.obstacles:
-                self.obstacles[layer_number] = []
-                polygons_by_spec = cell.get_polygons(by_spec=True)
-                for (lay, dat), polys in polygons_by_spec.items():
-                    if lay == layer_number:
-                        for poly in polys:
-                            poly = np.around(poly, 3)
-                            # Check if poly is in bbox1 or bbox2:
-                            if np.all(poly[:, 0] >= bbox1[0][0]) and np.all(poly[:, 0] <= bbox1[1][0]) and np.all(poly[:, 1] >= bbox1[0][1]) and np.all(poly[:, 1] <= bbox1[1][1]):
-                                continue
-                            if np.all(poly[:, 0] >= bbox2[0][0]) and np.all(poly[:, 0] <= bbox2[1][0]) and np.all(poly[:, 1] >= bbox2[0][1]) and np.all(poly[:, 1] <= bbox2[1][1]):
-                                continue
-                            self.obstacles[layer_number].append(poly.tolist())
+            obstacles = []
+            polygons_by_spec = cell.get_polygons(by_spec=True)
+            for (lay, dat), polys in polygons_by_spec.items():
+                if lay == layer_number:
+                    for poly in polys:
+                        poly = np.around(poly, 3)
+                        # Check if poly is in bbox1 or bbox2:
+                        if np.all(poly[:, 0] >= bbox1[0][0]) and np.all(poly[:, 0] <= bbox1[1][0]) and np.all(poly[:, 1] >= bbox1[0][1]) and np.all(poly[:, 1] <= bbox1[1][1]):
+                            continue
+                        if np.all(poly[:, 0] >= bbox2[0][0]) and np.all(poly[:, 0] <= bbox2[1][0]) and np.all(poly[:, 1] >= bbox2[0][1]) and np.all(poly[:, 1] <= bbox2[1][1]):
+                            continue
+                        obstacles.append(poly.tolist())
 
             self.addSnapshot()  # Store snapshot before adding new design
             try:
@@ -717,9 +715,9 @@ class MyApp(QWidget):
                         ports1 = ports1[:len(ports2)]
                         orientations1 = orientations1[:len(orientations2)]
 
-                self.obstacles[layer_number] += self.gds_design.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
+                self.gds_design.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
                                             ports2, orientations2, trace_width1, layer_name, bbox1, bbox2,
-                                            show_animation=True, obstacles=self.obstacles[layer_number])
+                                            show_animation=True, obstacles=obstacles)
 
                 # Remove the routed ports from the corresponding escapeDicts
                 for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
@@ -872,7 +870,7 @@ class MyApp(QWidget):
 
     def addSnapshot(self):
         self.log("Adding snapshot to undo stack and clearing redo stack")
-        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.obstacles)))
+        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
         self.redoStack.clear()
 
     def readLogEntries(self):
@@ -886,8 +884,8 @@ class MyApp(QWidget):
     def undo(self):
         if self.undoStack:
             self.log("Adding snapshot to redo stack and reverting to previous state")
-            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.obstacles)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.obstacles = self.undoStack.pop()
+            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.undoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
@@ -901,8 +899,8 @@ class MyApp(QWidget):
     def redo(self):
         if self.redoStack:
             self.log("Adding snapshot to undo stack and reverting to previous state")
-            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.obstacles)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.obstacles = self.redoStack.pop()
+            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.redoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
