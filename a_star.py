@@ -27,8 +27,11 @@ def hcost(node_coordinate, goal):
 def gcost(fixed_node, update_node_coordinate):
     dx = abs(fixed_node.coordinate[0] - update_node_coordinate[0])
     dy = abs(fixed_node.coordinate[1] - update_node_coordinate[1])
-    # cost is 1 for horizontal or vertical movement
-    gc = dx + dy
+    # cost is 1 for horizontal or vertical movement, sqrt(2) for diagonal
+    if dx == 1 and dy == 1:
+        gc = math.sqrt(2)
+    else:
+        gc = dx + dy
     gcost = fixed_node.G + gc  # gcost = move from start point to update_node
     return gcost
 
@@ -80,11 +83,30 @@ def find_neighbor(node, ob, closed):
     # generate neighbors in certain condition
     ob_list = ob.tolist()
     neighbor: list = []
-    # consider only horizontal and vertical neighbors
-    for x, y in [(node.coordinate[0] - 1, node.coordinate[1]),
-                 (node.coordinate[0] + 1, node.coordinate[1]),
-                 (node.coordinate[0], node.coordinate[1] - 1),
-                 (node.coordinate[0], node.coordinate[1] + 1)]:
+
+    # Define all possible moves including diagonals
+    possible_moves = [
+        (0, 1), (1, 1), (1, 0), (1, -1),
+        (0, -1), (-1, -1), (-1, 0), (-1, 1)
+    ]
+
+    if node.parent is not None:
+        # Calculate the direction of the current movement
+        current_direction = (
+            node.coordinate[0] - node.parent.coordinate[0],
+            node.coordinate[1] - node.parent.coordinate[1]
+        )
+
+        # Define allowed moves based on the current direction
+        allowed_moves = [
+            move for move in possible_moves
+            if abs(math.atan2(move[1], move[0]) - math.atan2(current_direction[1], current_direction[0])) <= math.pi / 4
+        ]
+    else:
+        allowed_moves = possible_moves
+
+    for move in allowed_moves:
+        x, y = node.coordinate[0] + move[0], node.coordinate[1] + move[1]
         if [x, y] not in ob_list and [x, y] not in closed:
             neighbor.append([x, y])
     return neighbor
