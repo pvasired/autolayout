@@ -703,7 +703,7 @@ class GDSDesign:
         assert round(trace_width*num_traces+trace_space*(num_traces+1), 3) <= effective_pitch, f"Not enough space for {num_traces} traces with trace width {trace_width}, trace spacing {trace_space} and effective pitch {effective_pitch}."
     
     def add_regular_array_escape_two_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                           escape_y=False, trace_space=None, tol=1e-3):
+                                           escape_y=False, trace_space=None):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -719,8 +719,6 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space += tol
-        trace_width += tol
         
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -844,13 +842,12 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            # wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = None#(np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
+            return_dict[val] = ports[idx], orientations[idx], self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
     def add_regular_array_escape_three_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                             escape_y=True, escape_negative=False, trace_space=None, tol=1e-3):
+                                             escape_y=True, escape_negative=False, trace_space=None):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -867,8 +864,6 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space += tol
-        trace_width += tol
 
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1098,12 +1093,11 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            # wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = None#(np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
+            return_dict[val] = ports[idx], orientations[idx], self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                           escape_y=False, escape_negative=True, trace_space=None, tol=1e-3):
+                                           escape_y=False, escape_negative=True, trace_space=None):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -1120,8 +1114,6 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space += tol
-        trace_width += tol
 
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1223,13 +1215,12 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            # wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = None#(np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
+            return_dict[val] = ports[idx], orientations[idx], self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
 
     # The traces escape from all four sides of the array
     def add_regular_array_escape_four_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                            trace_space=None, tol=1e-3):
+                                            trace_space=None):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -1244,8 +1235,6 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space += tol
-        trace_width += tol
 
         effective_pitch_x = pitch_x - pad_diameter
         effective_pitch_y = pitch_y - pad_diameter
@@ -1975,8 +1964,7 @@ class GDSDesign:
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
-            # wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, routing_angle=routing_angle, escape_extent=escape_extent)
-            return_dict[val] = None#(np.around(wire_ports, 3), wire_orientations, self.get_layer_number(layer_name), trace_width, np.array([[bbox_xmin, bbox_ymin], [bbox_xmax, bbox_ymax]]))
+            return_dict[val] = ports[idx], orientations[idx], self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
@@ -2280,22 +2268,13 @@ class GDSDesign:
 
         raise ValueError("No available space found.")
     
-    def cable_tie_ports(self, cell_name, layer_name, ports_, orientations, trace_width, routing_angle=45, escape_extent=50,
-                        trace_space=None):
-        # TODO: escape extent is hardcoded but may not be large enough for all cases
+    def cable_tie_ports(self, cell_name, layer_name, ports_, orientations, trace_width, trace_space, routing_angle=45, escape_extent=50):
         ports = deepcopy(ports_)
         assert np.all(orientations == orientations[0])
         assert isinstance(trace_width, (int, float))
+        assert isinstance(trace_space, (int, float))
 
-        if type(trace_space) == float or type(trace_space) == int:
-            req_trace_pitch = trace_space/np.sin(routing_angle*np.pi/180) + trace_width
-        else:
-            req_trace_pitch = trace_width/np.sin(routing_angle*np.pi/180) + trace_width
-
-        bbox_xmin = np.inf
-        bbox_xmax = -np.inf
-        bbox_ymin = np.inf
-        bbox_ymax = -np.inf
+        trace_pitch = trace_space + trace_width
 
         if orientations[0] == 90:
             ports = ports[np.argsort(ports[:, 0])]
@@ -2307,123 +2286,61 @@ class GDSDesign:
             for i, idx in enumerate(iter_inds_L):
                 if i > 1:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    y_acc_L += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    y_acc_L += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
             y_acc_R = 0
             for i, idx in enumerate(iter_inds_R):
                 if i > 0:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
-                    y_acc_R += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
-            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + y_acc_R
+                    y_acc_R += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            max_y_L = (ports[center_ind][0] - trace_pitch*(len(iter_inds_L)-1) - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
+            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + trace_pitch*len(iter_inds_R))) * np.tan(routing_angle*np.pi/180) + y_acc_R
             max_y = max(max_y_L, max_y_R)
 
             wire_ports = []
             for i in range(len(iter_inds_L)):
-                wire_ports.append((ports[center_ind][0]-i*req_trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+                wire_ports.append((ports[center_ind][0]-i*trace_pitch, ports[:, 1].max()+max_y+escape_extent))
             for i in range(len(iter_inds_R)):
-                wire_ports.append((ports[center_ind][0]+(i+1)*req_trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+                wire_ports.append((ports[center_ind][0]+(i+1)*trace_pitch, ports[:, 1].max()+max_y+escape_extent))
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
             wire_orientations = np.full(len(wire_ports), 90)
 
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_L):
-                if i > 1:
+                if i > 0:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                    routing_angle, ports[center_ind][0]-i*req_trace_pitch-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
+                                                    routing_angle, ports[center_ind][0]-i*trace_pitch-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
-                elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-i*req_trace_pitch-ports[idx][0], max_y+escape_extent, post_rotation=-90, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
-
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y+escape_extent)]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
                 if i == 0:
-                    if ports[idx][0] < ports[center_ind][0]+(i+1)*req_trace_pitch:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch)), max_y+escape_extent, post_rotation=-90, post_reflection=True)
-                    else:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch)), max_y+escape_extent, post_rotation=90, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
+                    hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*trace_pitch)), max_y+escape_extent, post_rotation=90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
+                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
                     y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
+                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
@@ -2438,390 +2355,222 @@ class GDSDesign:
             for i, idx in enumerate(iter_inds_L):
                 if i > 1:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    y_acc_L += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                    y_acc_L += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
             y_acc_R = 0
             for i, idx in enumerate(iter_inds_R):
                 if i > 0:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i-1]][0]
-                    y_acc_R += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            max_y_L = (ports[center_ind][0] - 2*(len(iter_inds_L)-1)*trace_width - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
-            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + 2*len(iter_inds_R)*trace_width)) * np.tan(routing_angle*np.pi/180) + y_acc_R
+                    y_acc_R += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+            max_y_L = (ports[center_ind][0] - trace_pitch*(len(iter_inds_L)-1) - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
+            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + trace_pitch*len(iter_inds_R))) * np.tan(routing_angle*np.pi/180) + y_acc_R
             max_y = max(max_y_L, max_y_R)
 
             wire_ports = []
             for i in range(len(iter_inds_L)):
-                wire_ports.append((ports[center_ind][0]-i*req_trace_pitch, ports[:, 1].min()-max_y-escape_extent))
+                wire_ports.append((ports[center_ind][0]-i*trace_pitch, ports[:, 1].min()-max_y-escape_extent))
             for i in range(len(iter_inds_R)):
-                wire_ports.append((ports[center_ind][0]+(i+1)*req_trace_pitch, ports[:, 1].min()-max_y-escape_extent))
+                wire_ports.append((ports[center_ind][0]+(i+1)*trace_pitch, ports[:, 1].min()-max_y-escape_extent))
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
             wire_orientations = np.full(len(wire_ports), 270)
 
-            y_accumulated = 0
-            for i, idx in enumerate(iter_inds_L):
-                if i > 1:
-                    p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #     y_accumulated = 0
+        #     for i, idx in enumerate(iter_inds_L):
+        #         if i > 1:
+        #             p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
+        #             y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #             path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
-                                                    routing_angle, ports[center_ind][0]-i*req_trace_pitch-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
+        #                                             routing_angle, ports[center_ind][0]-i*req_trace_pitch-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=False)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
-                elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-i*req_trace_pitch-ports[idx][0], max_y+escape_extent, post_rotation=-90, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
+        #         elif i == 1:
+        #             hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][0]-i*req_trace_pitch-ports[idx][0], max_y+escape_extent, post_rotation=-90, post_reflection=False)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-                else:
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #         else:
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-max_y-escape_extent)]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #             path_points = [ports[idx], (ports[idx][0], ports[idx][1]-max_y-escape_extent)]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
                         
-            y_accumulated = 0
-            for i, idx in enumerate(iter_inds_R):
-                if i == 0:
-                    if ports[idx][0] < ports[center_ind][0]+(i+1)*req_trace_pitch:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch)), max_y+escape_extent, post_rotation=-90, post_reflection=False)
-                    else:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch)), max_y+escape_extent, post_rotation=90, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #     y_accumulated = 0
+        #     for i, idx in enumerate(iter_inds_R):
+        #         if i == 0:
+        #             if ports[idx][0] < ports[center_ind][0]+(i+1)*req_trace_pitch:
+        #                 hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch)), max_y+escape_extent, post_rotation=-90, post_reflection=False)
+        #             else:
+        #                 hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch)), max_y+escape_extent, post_rotation=90, post_reflection=True)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-                else:
-                    p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
-                    y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #         else:
+        #             p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
+        #             y_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #             path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
-                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
+        #                                                 routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*req_trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=True)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
+        #             self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
         
-        elif orientations[0] == 0:
-            ports = ports[np.argsort(ports[:, 1])]
-            center_ind = math.ceil(len(ports)/2)-1
+        # elif orientations[0] == 0:
+        #     ports = ports[np.argsort(ports[:, 1])]
+        #     center_ind = math.ceil(len(ports)/2)-1
 
-            iter_inds_B = np.flip(np.arange(center_ind+1))
-            iter_inds_T = np.arange(center_ind+1, len(ports))
-            x_acc_B = 0
-            for i, idx in enumerate(iter_inds_B):
-                if i > 1:
-                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                    x_acc_B += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            x_acc_T = 0
-            for i, idx in enumerate(iter_inds_T):
-                if i > 0:
-                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                    x_acc_T += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + x_acc_B
-            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + x_acc_T
-            max_x = max(max_x_B, max_x_T)
+        #     iter_inds_B = np.flip(np.arange(center_ind+1))
+        #     iter_inds_T = np.arange(center_ind+1, len(ports))
+        #     x_acc_B = 0
+        #     for i, idx in enumerate(iter_inds_B):
+        #         if i > 1:
+        #             p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+        #             x_acc_B += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #     x_acc_T = 0
+        #     for i, idx in enumerate(iter_inds_T):
+        #         if i > 0:
+        #             p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+        #             x_acc_T += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #     max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + x_acc_B
+        #     max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + x_acc_T
+        #     max_x = max(max_x_B, max_x_T)
 
-            wire_ports = []
-            for i in range(len(iter_inds_B)):
-                wire_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]-i*req_trace_pitch))
-            for i in range(len(iter_inds_T)):
-                wire_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]+(i+1)*req_trace_pitch))
-            wire_ports = np.array(wire_ports)
-            wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
-            wire_orientations = np.full(len(wire_ports), 0)
+        #     wire_ports = []
+        #     for i in range(len(iter_inds_B)):
+        #         wire_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]-i*req_trace_pitch))
+        #     for i in range(len(iter_inds_T)):
+        #         wire_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]+(i+1)*req_trace_pitch))
+        #     wire_ports = np.array(wire_ports)
+        #     wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
+        #     wire_orientations = np.full(len(wire_ports), 0)
 
-            x_accumulated = 0
-            for i, idx in enumerate(iter_inds_B):
-                if i > 1:
-                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #     x_accumulated = 0
+        #     for i, idx in enumerate(iter_inds_B):
+        #         if i > 1:
+        #             p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+        #             x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #             path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-                    hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
-                                                    routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+        #                                             routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=False)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
-                elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
+        #         elif i == 1:
+        #             hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=False)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-                else:
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #         else:
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    path_points = [ports[idx], (ports[idx][0]+max_x+escape_extent, ports[idx][1])]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #             path_points = [ports[idx], (ports[idx][0]+max_x+escape_extent, ports[idx][1])]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-            x_accumulated = 0
-            for i, idx in enumerate(iter_inds_T):
-                if i == 0:
-                    if ports[idx][1] < ports[center_ind][1]+(i+1)*req_trace_pitch:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=0, post_reflection=False)
-                    else:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=180, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #     x_accumulated = 0
+        #     for i, idx in enumerate(iter_inds_T):
+        #         if i == 0:
+        #             if ports[idx][1] < ports[center_ind][1]+(i+1)*req_trace_pitch:
+        #                 hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=0, post_reflection=False)
+        #             else:
+        #                 hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=180, post_reflection=True)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-                else:
-                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #         else:
+        #             p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+        #             x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #             path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-                    hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
-                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+        #                                                 routing_angle, ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=True)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
+        #             self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
         
-        elif orientations[0] == 180:
-            ports = ports[np.argsort(ports[:, 1])]
-            center_ind = math.ceil(len(ports)/2)-1
+        # elif orientations[0] == 180:
+        #     ports = ports[np.argsort(ports[:, 1])]
+        #     center_ind = math.ceil(len(ports)/2)-1
 
-            iter_inds_B = np.flip(np.arange(center_ind+1))
-            iter_inds_T = np.arange(center_ind+1, len(ports))
-            x_acc_B = 0
-            for i, idx in enumerate(iter_inds_B):
-                if i > 1:
-                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                    x_acc_B += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            x_acc_T = 0
-            for i, idx in enumerate(iter_inds_T):
-                if i > 0:
-                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                    x_acc_T += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + x_acc_B
-            max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + x_acc_T
-            max_x = max(max_x_B, max_x_T)
+        #     iter_inds_B = np.flip(np.arange(center_ind+1))
+        #     iter_inds_T = np.arange(center_ind+1, len(ports))
+        #     x_acc_B = 0
+        #     for i, idx in enumerate(iter_inds_B):
+        #         if i > 1:
+        #             p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+        #             x_acc_B += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #     x_acc_T = 0
+        #     for i, idx in enumerate(iter_inds_T):
+        #         if i > 0:
+        #             p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+        #             x_acc_T += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #     max_x_B = (ports[center_ind][1] - 2*(len(iter_inds_B)-1)*trace_width - ports[iter_inds_B[-1]][1]) * np.tan(routing_angle*np.pi/180) + x_acc_B
+        #     max_x_T = (ports[iter_inds_T[-1]][1] - (ports[center_ind][1] + 2*len(iter_inds_T)*trace_width)) * np.tan(routing_angle*np.pi/180) + x_acc_T
+        #     max_x = max(max_x_B, max_x_T)
 
-            wire_ports = []
-            for i in range(len(iter_inds_B)):
-                wire_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]-i*req_trace_pitch))
-            for i in range(len(iter_inds_T)):
-                wire_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]+(i+1)*req_trace_pitch))
-            wire_ports = np.array(wire_ports)
-            wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
-            wire_orientations = np.full(len(wire_ports), 180)
+        #     wire_ports = []
+        #     for i in range(len(iter_inds_B)):
+        #         wire_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]-i*req_trace_pitch))
+        #     for i in range(len(iter_inds_T)):
+        #         wire_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]+(i+1)*req_trace_pitch))
+        #     wire_ports = np.array(wire_ports)
+        #     wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
+        #     wire_orientations = np.full(len(wire_ports), 180)
 
-            x_accumulated = 0
-            for i, idx in enumerate(iter_inds_B):
-                if i > 1:
-                    p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #     x_accumulated = 0
+        #     for i, idx in enumerate(iter_inds_B):
+        #         if i > 1:
+        #             p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
+        #             x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #             path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-                    hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
-                                                    routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
+        #                                             routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=True)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
-                elif i == 1:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=True)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
+        #         elif i == 1:
+        #             hinged_path = create_hinged_path(ports[idx], routing_angle, ports[center_ind][1]-i*req_trace_pitch-ports[idx][1], max_x+escape_extent, post_rotation=0, post_reflection=True)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
                     
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-                else:
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #         else:
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
 
-                    path_points = [ports[idx], (ports[idx][0]-max_x-escape_extent, ports[idx][1])]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #             path_points = [ports[idx], (ports[idx][0]-max_x-escape_extent, ports[idx][1])]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-            x_accumulated = 0
-            for i, idx in enumerate(iter_inds_T):
-                if i == 0:
-                    if ports[idx][1] < ports[center_ind][1]+(i+1)*req_trace_pitch:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=0, post_reflection=True)
-                    else:
-                        hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=180, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #     x_accumulated = 0
+        #     for i, idx in enumerate(iter_inds_T):
+        #         if i == 0:
+        #             if ports[idx][1] < ports[center_ind][1]+(i+1)*req_trace_pitch:
+        #                 hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=0, post_reflection=True)
+        #             else:
+        #                 hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch)), max_x+escape_extent, post_rotation=180, post_reflection=False)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-                else:
-                    p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                    x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
-                    if np.array(path_points)[:, 0].min() < bbox_xmin:
-                        bbox_xmin = np.array(path_points)[:, 0].min()
-                    if np.array(path_points)[:, 0].max() > bbox_xmax:
-                        bbox_xmax = np.array(path_points)[:, 0].max()
-                    if np.array(path_points)[:, 1].min() < bbox_ymin:
-                        bbox_ymin = np.array(path_points)[:, 1].min()
-                    if np.array(path_points)[:, 1].max() > bbox_ymax:
-                        bbox_ymax = np.array(path_points)[:, 1].max()
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+        #             self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+        #         else:
+        #             p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
+        #             x_accumulated += math.ceil(max(0, 2*trace_width/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+        #             path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+        #             self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-                    hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
-                                                        routing_angle, ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=False)
-                    if hinged_path[:, 0].min() < bbox_xmin:
-                        bbox_xmin = hinged_path[:, 0].min()
-                    if hinged_path[:, 0].max() > bbox_xmax:
-                        bbox_xmax = hinged_path[:, 0].max()
-                    if hinged_path[:, 1].min() < bbox_ymin:
-                        bbox_ymin = hinged_path[:, 1].min()
-                    if hinged_path[:, 1].max() > bbox_ymax:
-                        bbox_ymax = hinged_path[:, 1].max()
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+        #             hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
+        #                                                 routing_angle, ports[idx][1]-(ports[center_ind][1]+(i+1)*req_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=False)
+        #             self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
+        #             self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
 
-        return wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax
+        # return wire_ports, wire_orientations, bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax
     
     def route_port_to_port(self, filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_name,
                        bbox1_, bbox2_, obstacles=[]):
