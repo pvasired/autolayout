@@ -2962,7 +2962,7 @@ class GDSDesign:
                         D.add_ref(path)
                         cnt += 1
 
-                elif ports1[:, 0].min() > bbox2[1][0] + (2*len(ports1)+1)*trace_width:
+                elif ports1[:, 0].min() > bbox2[1][0] + len(ports1) * trace_width + (len(ports1)+1) * trace_space:
                     ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
                     ports2 = ports2[np.flip(np.argsort(ports2[:, 0]))]
                     additional_x = len(ports1) * trace_width + (len(ports1)+1) * trace_space
@@ -3130,7 +3130,7 @@ class GDSDesign:
                     xmax = -np.inf
                     for i, idx in enumerate(right_inds):
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0]+i*trace_pitch, ports1[idx][1]), width=trace_width, orientation=orientations1[0])
-                        port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-2*(len(right_inds)-i)*trace_width-additional_y), width=trace_width, orientation=orientations2[0])
+                        port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]-(len(right_inds)-i)*trace_pitch-additional_y), width=trace_width, orientation=orientations2[0])
 
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route_path.get_polygons():
@@ -3306,7 +3306,7 @@ class GDSDesign:
                     xmin = np.inf
                     for i, idx in enumerate(right_inds):
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports1[idx][0]-i*trace_pitch, ports1[idx][1]), width=trace_width, orientation=orientations1[0])
-                        port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+2*(len(right_inds)-i)*trace_width+additional_y), width=trace_width, orientation=orientations2[0])
+                        port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+(len(right_inds)-i)*trace_pitch+additional_y), width=trace_width, orientation=orientations2[0])
 
                         route_path = pr.route_smooth(port1, port2, width=trace_width, layer=layer_number, radius=trace_width)
                         for poly in route_path.get_polygons():
@@ -3574,10 +3574,10 @@ class GDSDesign:
                         D.add_ref(path)
                         cnt += 1
 
-                elif ports1[:, 0].max() < bbox2[0][0] - (2*len(ports1)+1)*trace_width:
+                elif ports1[:, 0].max() < bbox2[0][0] - len(ports1) * trace_width - (len(ports1)+1) * trace_space:
                     ports1 = ports1[np.argsort(ports1[:, 1])]
                     ports2 = ports2[np.argsort(ports2[:, 0])]
-                    additional_x = (2*len(ports1)+1) * trace_width
+                    additional_x = len(ports1) * trace_width + (len(ports1)+1) * trace_space
                     for i, port in enumerate(ports1):
                         port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(port[0]+additional_x-i*trace_pitch, port[1]), width=trace_width, orientation=orientations1[0])
                         port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports2[i][0], ports2[i][1]+i*trace_pitch), width=trace_width, orientation=orientations2[0])
