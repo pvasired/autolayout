@@ -2576,7 +2576,7 @@ class GDSDesign:
 
             iter_inds_L = np.arange(center_ind+1)
             iter_inds_R = np.flip(np.arange(center_ind+1, len(ports)))
-            max_y_L = ports[iter_inds_L[0]][0]-(ports[center_ind][0] - (len(iter_inds_L)-1)*ending_trace_pitch) * np.tan(routing_angle*np.pi/180)
+            max_y_L = (ports[iter_inds_L[0]][0]-(ports[center_ind][0] - (len(iter_inds_L)-1)*ending_trace_pitch)) * np.tan(routing_angle*np.pi/180)
             max_y_R = (ports[center_ind][0] + len(iter_inds_R)*ending_trace_pitch - ports[iter_inds_R[0]][0]) * np.tan(routing_angle*np.pi/180)
             max_y = max(max_y_L, max_y_R)
 
@@ -2628,7 +2628,7 @@ class GDSDesign:
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
             wire_orientations = np.full(len(wire_ports), 90)
 
-        if orientations[0] == 270:
+        elif orientations[0] == 270:
             ports = ports[np.argsort(ports[:, 0])]
             assert round(np.diff(ports[:, 0]).min(), 3) == round(np.diff(ports[:, 0]).max(), 3), "Ports must be equally spaced for flaring."
             center_ind = math.ceil(len(ports)/2)-1
@@ -2637,7 +2637,7 @@ class GDSDesign:
 
             iter_inds_L = np.arange(center_ind+1)
             iter_inds_R = np.flip(np.arange(center_ind+1, len(ports)))
-            max_y_L = ports[iter_inds_L[0]][0]-(ports[center_ind][0] - (len(iter_inds_L)-1)*ending_trace_pitch) * np.tan(routing_angle*np.pi/180)
+            max_y_L = (ports[iter_inds_L[0]][0]-(ports[center_ind][0] - (len(iter_inds_L)-1)*ending_trace_pitch)) * np.tan(routing_angle*np.pi/180)
             max_y_R = (ports[center_ind][0] + len(iter_inds_R)*ending_trace_pitch - ports[iter_inds_R[0]][0]) * np.tan(routing_angle*np.pi/180)
             max_y = max(max_y_L, max_y_R)
 
@@ -2688,7 +2688,129 @@ class GDSDesign:
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
             wire_orientations = np.full(len(wire_ports), 270)
+
+        elif orientations[0] == 0:
+            ports = ports[np.argsort(ports[:, 1])]
+            assert round(np.diff(ports[:, 1]).min(), 3) == round(np.diff(ports[:, 1]).max(), 3), "Ports must be equally spaced for flaring."
+            center_ind = math.ceil(len(ports)/2)-1
+
+            x_increment = starting_trace_pitch/np.sin(routing_angle*np.pi/180) - starting_trace_pitch/np.tan(routing_angle*np.pi/180)
+
+            iter_inds_B = np.arange(center_ind+1)
+            iter_inds_T = np.flip(np.arange(center_ind+1, len(ports)))
+            max_x_B = (ports[iter_inds_B[0]][1]-(ports[center_ind][1] - (len(iter_inds_B)-1)*ending_trace_pitch)) * np.tan(routing_angle*np.pi/180)
+            max_x_T = (ports[center_ind][1] + len(iter_inds_T)*ending_trace_pitch - ports[iter_inds_T[0]][1]) * np.tan(routing_angle*np.pi/180)
+            max_x = max(max_x_B, max_x_T)
+
+            intermediate_ports = []
+            for i in range(len(iter_inds_B)):
+                intermediate_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]-i*ending_trace_pitch))
+            for i in range(len(iter_inds_T)):
+                intermediate_ports.append((ports[:, 0].max()+max_x+escape_extent, ports[center_ind][1]+(i+1)*ending_trace_pitch))
+            intermediate_ports = np.array(intermediate_ports)
+            intermediate_ports = intermediate_ports[np.argsort(intermediate_ports[:, 1])]
+
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_B):
+                if i < len(iter_inds_B)-1:
+                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+                                                    routing_angle, ports[idx][1]-(ports[center_ind][1]-(len(iter_inds_B)-1-i)*ending_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=True)
+                    self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
+
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), starting_trace_width/2, layer_name)
+                    x_accumulated += x_increment
+                else:
+                    path_points = [ports[idx], (ports[idx][0]+max_x+escape_extent, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+            
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_T):
+                path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
+                                                routing_angle, ports[center_ind][1]+(len(iter_inds_T)-i)*ending_trace_pitch - ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=False)
+                self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
+
+                self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), starting_trace_width/2, layer_name)
+                x_accumulated += x_increment
+            
+            wire_ports = []
+            for port in intermediate_ports:
+                points = [(port[0], port[1]+starting_trace_width/2), 
+                          (port[0], port[1]-starting_trace_width/2),
+                          (port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]-ending_trace_width/2),
+                          (port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]+ending_trace_width/2)]
+                self.add_polygon(cell_name, points, layer_name)
+
+                wire_ports.append((port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]))
+
+            wire_ports = np.array(wire_ports)
+            wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
+            wire_orientations = np.full(len(wire_ports), 0)
         
+        elif orientations[0] == 180:
+            ports = ports[np.argsort(ports[:, 1])]
+            assert round(np.diff(ports[:, 1]).min(), 3) == round(np.diff(ports[:, 1]).max(), 3), "Ports must be equally spaced for flaring."
+            center_ind = math.ceil(len(ports)/2)-1
+
+            x_increment = starting_trace_pitch/np.sin(routing_angle*np.pi/180) - starting_trace_pitch/np.tan(routing_angle*np.pi/180)
+
+            iter_inds_B = np.arange(center_ind+1)
+            iter_inds_T = np.flip(np.arange(center_ind+1, len(ports)))
+            max_x_B = (ports[iter_inds_B[0]][1]-(ports[center_ind][1] - (len(iter_inds_B)-1)*ending_trace_pitch)) * np.tan(routing_angle*np.pi/180)
+            max_x_T = (ports[center_ind][1] + len(iter_inds_T)*ending_trace_pitch - ports[iter_inds_T[0]][1]) * np.tan(routing_angle*np.pi/180)
+            max_x = max(max_x_B, max_x_T)
+
+            intermediate_ports = []
+            for i in range(len(iter_inds_B)):
+                intermediate_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]-i*ending_trace_pitch))
+            for i in range(len(iter_inds_T)):
+                intermediate_ports.append((ports[:, 0].min()-max_x-escape_extent, ports[center_ind][1]+(i+1)*ending_trace_pitch))
+            intermediate_ports = np.array(intermediate_ports)
+            intermediate_ports = intermediate_ports[np.argsort(intermediate_ports[:, 1])]
+
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_B):
+                if i < len(iter_inds_B)-1:
+                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
+                                                    routing_angle, ports[idx][1]-(ports[center_ind][1]-(len(iter_inds_B)-1-i)*ending_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=False)
+                    self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
+
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), starting_trace_width/2, layer_name)
+                    x_accumulated += x_increment
+                else:
+                    path_points = [ports[idx], (ports[idx][0]-max_x-escape_extent, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+            
+            x_accumulated = 0
+            for i, idx in enumerate(iter_inds_T):
+                path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
+                                                routing_angle, ports[center_ind][1]+(len(iter_inds_T)-i)*ending_trace_pitch - ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=True)
+                self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
+
+                self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), starting_trace_width/2, layer_name)
+                x_accumulated += x_increment
+            
+            wire_ports = []
+            for port in intermediate_ports:
+                points = [(port[0], port[1]+starting_trace_width/2), 
+                          (port[0], port[1]-starting_trace_width/2),
+                          (port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]-ending_trace_width/2),
+                          (port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]+ending_trace_width/2)]
+                self.add_polygon(cell_name, points, layer_name)
+
+                wire_ports.append((port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]))
+
+            wire_ports = np.array(wire_ports)
+            wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
+            wire_orientations = np.full(len(wire_ports), 180)
+
         return wire_ports, wire_orientations
     
     def route_port_to_port(self, filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_name,
