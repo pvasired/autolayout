@@ -703,7 +703,7 @@ class GDSDesign:
         assert round(trace_width*num_traces+trace_space*(num_traces+1), 3) <= effective_pitch, f"Not enough space for {num_traces} traces with trace width {trace_width}, trace spacing {trace_space} and effective pitch {effective_pitch}."
     
     def add_regular_array_escape_two_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                           escape_y=False, trace_space=None):
+                                           escape_y=False, trace_space=None, autorouting_angle=90):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -717,7 +717,7 @@ class GDSDesign:
         assert isinstance(escape_y, bool), "Error: Escape direction must be a boolean."
 
         if trace_space is None:
-            trace_space = trace_width
+            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
         
         effective_pitch_y = pitch_y - pad_diameter
@@ -849,7 +849,7 @@ class GDSDesign:
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
     def add_regular_array_escape_three_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                             escape_y=True, escape_negative=False, trace_space=None):
+                                             escape_y=True, escape_negative=False, trace_space=None, autorouting_angle=90):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -864,7 +864,7 @@ class GDSDesign:
         assert isinstance(escape_negative, bool), "Error: Escape negative must be a boolean."
 
         if trace_space is None:
-            trace_space = trace_width
+            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
 
         effective_pitch_y = pitch_y - pad_diameter
@@ -1101,7 +1101,7 @@ class GDSDesign:
         return return_dict
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                           escape_y=False, escape_negative=True, trace_space=None):
+                                           escape_y=False, escape_negative=True, trace_space=None, autorouting_angle=90):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -1116,7 +1116,7 @@ class GDSDesign:
         assert isinstance(escape_negative, bool), "Error: Escape negative must be a boolean."
 
         if trace_space is None:
-            trace_space = trace_width
+            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
 
         effective_pitch_y = pitch_y - pad_diameter
@@ -1226,7 +1226,7 @@ class GDSDesign:
 
     # The traces escape from all four sides of the array
     def add_regular_array_escape_four_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                            trace_space=None):
+                                            trace_space=None, autorouting_angle=90):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -1239,7 +1239,7 @@ class GDSDesign:
         assert isinstance(routing_angle, (int, float)), "Error: Routing angle must be a number."
 
         if trace_space is None:
-            trace_space = trace_width
+            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
 
         effective_pitch_x = pitch_x - pad_diameter
