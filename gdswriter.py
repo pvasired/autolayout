@@ -2328,8 +2328,6 @@ class GDSDesign:
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
                 else:
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y+escape_extent)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
             
@@ -2397,8 +2395,6 @@ class GDSDesign:
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]-y_accumulated), trace_width/2, layer_name)
                 else:
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]-max_y-escape_extent)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
                         
@@ -2466,8 +2462,6 @@ class GDSDesign:
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]+x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 else:
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-
                     path_points = [ports[idx], (ports[idx][0]+max_x+escape_extent, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
@@ -2535,8 +2529,6 @@ class GDSDesign:
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
                 else:
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
-
                     path_points = [ports[idx], (ports[idx][0]-max_x-escape_extent, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
@@ -2560,6 +2552,82 @@ class GDSDesign:
 
                     self.add_circle_as_polygon(cell_name, (ports[idx][0]-x_accumulated, ports[idx][1]), trace_width/2, layer_name)
 
+        return wire_ports, wire_orientations
+
+    def flare_ports(self, cell_name, layer_name, ports_, orientations, starting_trace_width, starting_trace_space, 
+                    ending_trace_width, ending_trace_space, routing_angle=45, escape_extent=50):
+        ports = deepcopy(ports_)
+        assert np.all(orientations == orientations[0])
+        assert isinstance(starting_trace_width, (int, float))
+        assert isinstance(starting_trace_space, (int, float))
+        assert isinstance(ending_trace_width, (int, float))
+        assert isinstance(ending_trace_space, (int, float))
+
+        starting_trace_pitch = starting_trace_space + starting_trace_width
+        ending_trace_pitch = ending_trace_space + ending_trace_width
+        assert ending_trace_pitch > starting_trace_pitch, "Flaring assumes trace pitch increases."
+
+        if orientations[0] == 90:
+            ports = ports[np.argsort(ports[:, 0])]
+            assert round(np.diff(ports[:, 0]).min(), 3) == round(np.diff(ports[:, 0]).max(), 3), "Ports must be equally spaced for flaring."
+            center_ind = math.ceil(len(ports)/2)-1
+
+            y_increment = starting_trace_pitch/np.sin(routing_angle*np.pi/180) - starting_trace_pitch/np.tan(routing_angle*np.pi/180)
+
+            iter_inds_L = np.arange(center_ind+1)
+            iter_inds_R = np.flip(np.arange(center_ind+1, len(ports)))
+            max_y_L = ports[iter_inds_L[0]][0]-(ports[center_ind][0] - (len(iter_inds_L)-1)*ending_trace_pitch) * np.tan(routing_angle*np.pi/180)
+            max_y_R = (ports[center_ind][0] + len(iter_inds_R)*ending_trace_pitch - ports[iter_inds_R[0]][0]) * np.tan(routing_angle*np.pi/180)
+            max_y = max(max_y_L, max_y_R)
+
+            intermediate_ports = []
+            for i in range(len(iter_inds_L)):
+                intermediate_ports.append((ports[center_ind][0]-i*ending_trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+            for i in range(len(iter_inds_R)):
+                intermediate_ports.append((ports[center_ind][0]+(i+1)*ending_trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+            intermediate_ports = np.array(intermediate_ports)
+            intermediate_ports = intermediate_ports[np.argsort(intermediate_ports[:, 0])]
+
+            y_accumulated = 0
+            for i, idx in enumerate(iter_inds_L):
+                if i < len(iter_inds_L)-1:
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
+                                                    routing_angle, ports[idx][0]-(ports[center_ind][0]-(len(iter_inds_L)-1-i)*ending_trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
+                    self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
+
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), starting_trace_width/2, layer_name)
+                    y_accumulated += y_increment
+                else:
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y+escape_extent)]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+            
+            y_accumulated = 0
+            for i, idx in enumerate(iter_inds_R):
+                path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
+                                                routing_angle, ports[center_ind][0]+(len(iter_inds_R)-i)*ending_trace_pitch - ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
+                self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
+
+                self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), starting_trace_width/2, layer_name)
+                y_accumulated += y_increment
+            
+            wire_ports = []
+            for port in intermediate_ports:
+                points = [(port[0]-starting_trace_width/2, port[1]), 
+                          (port[0]+starting_trace_width/2, port[1]),
+                          (port[0]+ending_trace_width/2, port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)),
+                          (port[0]-ending_trace_width/2, port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180))]
+                self.add_polygon(cell_name, points, layer_name)
+
+                wire_ports.append((port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)))
+
+            wire_ports = np.array(wire_ports)
+            wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
+            wire_orientations = np.full(len(wire_ports), 90)
+        
         return wire_ports, wire_orientations
     
     def route_port_to_port(self, filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_name,
