@@ -2317,7 +2317,7 @@ class GDSDesign:
             for i, idx in enumerate(iter_inds_L):
                 if i > 0:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
@@ -2342,7 +2342,7 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
@@ -2386,7 +2386,7 @@ class GDSDesign:
             for i, idx in enumerate(iter_inds_L):
                 if i > 0:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
@@ -2411,7 +2411,7 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
@@ -2455,7 +2455,7 @@ class GDSDesign:
             for i, idx in enumerate(iter_inds_B):
                 if i > 0:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
@@ -2480,7 +2480,7 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
@@ -2524,7 +2524,7 @@ class GDSDesign:
             for i, idx in enumerate(iter_inds_B):
                 if i > 0:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
@@ -2549,7 +2549,7 @@ class GDSDesign:
                     self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
                 else:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
-                    assert p >= trace_pitch, "Trace pitch violation. The port spacing is smaller than the trace pitch."
+                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
                     path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
