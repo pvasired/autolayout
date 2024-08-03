@@ -717,8 +717,9 @@ class GDSDesign:
         assert isinstance(escape_y, bool), "Error: Escape direction must be a boolean."
 
         if trace_space is None:
-            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
+            trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
+        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
         
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -864,8 +865,9 @@ class GDSDesign:
         assert isinstance(escape_negative, bool), "Error: Escape negative must be a boolean."
 
         if trace_space is None:
-            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
+            trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
+        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
 
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1116,8 +1118,9 @@ class GDSDesign:
         assert isinstance(escape_negative, bool), "Error: Escape negative must be a boolean."
 
         if trace_space is None:
-            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
+            trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
+        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
 
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1239,8 +1242,9 @@ class GDSDesign:
         assert isinstance(routing_angle, (int, float)), "Error: Routing angle must be a number."
 
         if trace_space is None:
-            trace_space = trace_width/np.sin(autorouting_angle*np.pi/180)
+            trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
+        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
 
         effective_pitch_x = pitch_x - pad_diameter
         effective_pitch_y = pitch_y - pad_diameter
@@ -3855,61 +3859,62 @@ class GDSDesign:
         return path_obstacles
     
     def route_ports_a_star(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
-                           bbox1, bbox2, show_animation=False, obstacles=[], routing_angle=45):
+                           show_animation=True, obstacles=[], routing_angle=45, trace_space=None, autorouting_angle=90):
         assert len(ports1) == len(ports2)
         assert np.all(orientations1 == orientations1[0])
         assert np.all(orientations2 == orientations2[0])
         assert isinstance(trace_width, (int, float))
 
-        req_trace_pitch = trace_width/np.sin(routing_angle*np.pi/180) + trace_width
+        if trace_space is None:
+            trace_space = trace_width
+        assert isinstance(trace_space, (int, float))
+        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
+        trace_pitch = trace_width + trace_space
 
         D = pg.import_gds(filename, cellname=cell_name)
         layer_number = self.get_layer_number(layer_name)
 
-        grid_spacing = (len(ports1)-1)*req_trace_pitch + trace_width
-
-        bbox1_xmin, bbox1_ymin = bbox1[0]
-        bbox1_xmax, bbox1_ymax = bbox1[1]
-        bbox2_xmin, bbox2_ymin = bbox2[0]
-        bbox2_xmax, bbox2_ymax = bbox2[1]
-
-        bbox1_vertices = [[bbox1_xmin, bbox1_ymin], [bbox1_xmin, bbox1_ymax], [bbox1_xmax, bbox1_ymax], [bbox1_xmax, bbox1_ymin]]
-        bbox2_vertices = [[bbox2_xmin, bbox2_ymin], [bbox2_xmin, bbox2_ymax], [bbox2_xmax, bbox2_ymax], [bbox2_xmax, bbox2_ymin]]
-
-        obstacles_poly = []
-        for obstacle in obstacles:
-            if len(obstacle) == 2:
-                xmin, ymin = obstacle[0]
-                xmax, ymax = obstacle[1]
-                obstacle = [[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]]
-            obstacles_poly.append(obstacle)
+        grid_spacing = float(math.ceil((trace_pitch/np.sin(routing_angle*np.pi/180)-trace_pitch/np.tan(routing_angle*np.pi/180))*len(ports1)))
 
         ports1_center = np.mean(ports1, axis=0)
         ports1_center_raw = ports1_center / grid_spacing
         ports1_center_grid = np.where(ports1_center_raw > 0, np.ceil(ports1_center_raw), np.floor(ports1_center_raw)).astype(int)
-        if orientations1[0] == 0:
-            ports1_center_grid[0] += 1
-        elif orientations1[0] == 90:
-            ports1_center_grid[1] += 1
-        elif orientations1[0] == 180:
-            ports1_center_grid[0] -= 1
-        elif orientations1[0] == 270:
-            ports1_center_grid[1] -= 1
 
         ports2_center = np.mean(ports2, axis=0)
         ports2_center_raw = ports2_center / grid_spacing
         ports2_center_grid = np.where(ports2_center_raw > 0, np.ceil(ports2_center_raw), np.floor(ports2_center_raw)).astype(int)
-        if orientations2[0] == 0:
-            ports2_center_grid[0] += 1
-        elif orientations2[0] == 90:
-            ports2_center_grid[1] += 1
-        elif orientations2[0] == 180:
-            ports2_center_grid[0] -= 1
-        elif orientations2[0] == 270:
-            ports2_center_grid[1] -= 1
 
-        a_star_path_grid = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), [bbox1_vertices, bbox2_vertices]+obstacles_poly, 1,
-                                grid_spacing, show_animation=show_animation)
+        path_width_raw = len(ports1) * trace_width + (len(ports1)+1) * trace_space
+        path_width_grid = math.ceil(path_width_raw / grid_spacing)
+
+        if orientations1[0] == 0:
+            ports1_center_grid[0] += path_width_grid
+            start_direction = (1, 0)
+        elif orientations1[0] == 90:
+            ports1_center_grid[1] += path_width_grid
+            start_direction = (0, 1)
+        elif orientations1[0] == 180:
+            ports1_center_grid[0] -= path_width_grid
+            start_direction = (-1, 0)
+        elif orientations1[0] == 270:
+            ports1_center_grid[1] -= path_width_grid
+            start_direction = (0, -1)
+
+        if orientations2[0] == 0:
+            ports2_center_grid[0] += path_width_grid
+            end_direction = (1, 0)
+        elif orientations2[0] == 90:
+            ports2_center_grid[1] += path_width_grid
+            end_direction = (0, 1)
+        elif orientations2[0] == 180:
+            ports2_center_grid[0] -= path_width_grid
+            end_direction = (-1, 0)
+        elif orientations2[0] == 270:
+            ports2_center_grid[1] -= path_width_grid
+            end_direction = (0, -1)
+
+        a_star_path_grid = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), obstacles, path_width_grid,
+                                grid_spacing, show_animation=show_animation, start_direction=start_direction, end_direction=end_direction)
         if a_star_path_grid is None:
             raise ValueError("No path found between ports")
         a_star_path = (np.array(a_star_path_grid) * grid_spacing).astype(float)
@@ -3968,22 +3973,19 @@ class GDSDesign:
                 multiplier = i - int(len(ports1)/2) + 0.5
             else:
                 multiplier = i - int(len(ports1)/2)
-            X.add(width=trace_width, offset=multiplier*req_trace_pitch, layer=layer_number)
+            X.add(width=trace_width, offset=multiplier*trace_pitch, layer=layer_number)
 
         u, ind = np.unique(a_star_path, axis=0, return_index=True)
         a_star_path = u[np.argsort(ind)]
 
         P = Path(a_star_path)
         path = P.extrude(X)
+        path_obstacles = []
         for poly in path.get_polygons():
             self.add_polygon(cell_name, poly, layer_name)
+            path_obstacles.append(poly.tolist())
         D.add_ref(path)
 
-        path_polygons = gdspy.FlexPath(a_star_path, grid_spacing).to_polygonset()
-        path_obstacles = []
-        for poly in path_polygons.polygons:
-            path_obstacles.append(poly.tolist())
-        
         return path_obstacles
 
     def route_ports_combined(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
