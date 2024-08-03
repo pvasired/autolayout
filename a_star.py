@@ -80,7 +80,7 @@ def boundary_and_obstacles(start, goal, lower_left, upper_right, user_polygons, 
     return bound_obs, obstacle
 
 
-def find_neighbor(node, ob, closed):
+def find_neighbor(node, ob, closed, initial_direction=None):
     # generate neighbors in certain condition
     ob_list = ob.tolist()
     neighbor: list = []
@@ -91,20 +91,24 @@ def find_neighbor(node, ob, closed):
         (0, -1), (-1, -1), (-1, 0), (-1, 1)
     ]
 
-    if node.parent is not None:
-        # Calculate the direction of the current movement
-        current_direction = (
-            node.coordinate[0] - node.parent.coordinate[0],
-            node.coordinate[1] - node.parent.coordinate[1]
-        )
-
-        # Define allowed moves based on the current direction
-        allowed_moves = [
-            move for move in possible_moves
-            if abs(math.atan2(move[1], move[0]) - math.atan2(current_direction[1], current_direction[0])) <= math.pi / 4
-        ]
+    if initial_direction and node.parent is None:
+        # Restrict to the initial direction for the first step
+        allowed_moves = [initial_direction]
     else:
-        allowed_moves = possible_moves
+        if node.parent is not None:
+            # Calculate the direction of the current movement
+            current_direction = (
+                node.coordinate[0] - node.parent.coordinate[0],
+                node.coordinate[1] - node.parent.coordinate[1]
+            )
+
+            # Define allowed moves based on the current direction
+            allowed_moves = [
+                move for move in possible_moves
+                if abs(math.atan2(move[1], move[0]) - math.atan2(current_direction[1], current_direction[0])) <= math.pi / 4
+            ]
+        else:
+            allowed_moves = possible_moves
 
     for move in allowed_moves:
         x, y = node.coordinate[0] + move[0], node.coordinate[1] + move[1]
@@ -124,7 +128,7 @@ def find_node_index(coordinate, node_list):
     return ind
 
 
-def find_path(open_list, closed_list, goal, obstacle):
+def find_path(open_list, closed_list, goal, obstacle, initial_direction=None):
     # searching for the path, update open and closed list
     # obstacle = obstacle and boundary
     flag = len(open_list)
@@ -132,7 +136,7 @@ def find_path(open_list, closed_list, goal, obstacle):
         node = open_list[0]
         open_coordinate_list = [node.coordinate for node in open_list]
         closed_coordinate_list = [node.coordinate for node in closed_list]
-        temp = find_neighbor(node, obstacle, closed_coordinate_list)
+        temp = find_neighbor(node, obstacle, closed_coordinate_list, initial_direction)
         for element in temp:
             if element in closed_list:
                 continue
@@ -297,7 +301,7 @@ def draw_control(org_closed, goal_closed, flag, start, end, bound, obstacle,
     return stop_loop, path
 
 
-def searching_control(start, end, bound, obstacle, show_animation=False):
+def searching_control(start, end, bound, obstacle, start_direction=None, end_direction=None, show_animation=False):
     """manage the searching process, start searching from two side"""
     # initial origin node and end node
     origin = Node(coordinate=start, H=hcost(start, end))
@@ -316,7 +320,7 @@ def searching_control(start, end, bound, obstacle, show_animation=False):
     while True:
         # searching from start to end
         origin_open, origin_close = \
-            find_path(origin_open, origin_close, target_goal, bound)
+            find_path(origin_open, origin_close, target_goal, bound, start_direction)
         if not origin_open:  # no path condition
             flag = 1  # origin node is blocked
             draw_control(origin_close, goal_close, flag, start, end, bound,
@@ -327,7 +331,7 @@ def searching_control(start, end, bound, obstacle, show_animation=False):
 
         # searching from end to start
         goal_open, goal_close = \
-            find_path(goal_open, goal_close, target_origin, bound)
+            find_path(goal_open, goal_close, target_origin, bound, end_direction)
         if not goal_open:  # no path condition
             flag = 2  # goal is blocked
             draw_control(origin_close, goal_close, flag, start, end, bound,
@@ -359,24 +363,26 @@ def convert_polygons_to_obstacles(polygons, path_width, spacing):
     
     return np.array(list(obstacles)).tolist()
 
-def main(start, end, user_polygons, path_width, spacing, lower_left_bound=None, upper_right_bound=None,
+def main(start, end, user_polygons, path_width, spacing, start_direction=None, end_direction=None, lower_left_bound=None, upper_right_bound=None,
          show_animation=False):
     # generate boundary and obstacles
     bound, obstacle = boundary_and_obstacles(start, end, lower_left_bound,
                                              upper_right_bound,
                                              user_polygons, path_width, spacing)
     
-    path = searching_control(start, end, bound, obstacle, show_animation=show_animation)
+    path = searching_control(start, end, bound, obstacle, start_direction=start_direction, end_direction=end_direction, show_animation=show_animation)
     return path
 
 
 if __name__ == '__main__':
     start = [10, 8]
     end = [103, 107]
+    start_direction = (1, 0)  # Start moving right
+    end_direction = (0, -1)  # End moving down
     user_polygons = [
         [(10, 10), (15, 10), (15, 15), (10, 15)],  # Square polygon
         [(100, 100), (105, 100), (105, 105), (100, 105)]  # Another square polygon
     ]
     path_width = 4
-    path = main(start, end, user_polygons, path_width, show_animation=True)
+    path = main(start, end, user_polygons, path_width, 1, start_direction=start_direction, end_direction=end_direction, show_animation=True)
     print(path)
