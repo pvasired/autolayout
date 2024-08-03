@@ -80,7 +80,7 @@ def boundary_and_obstacles(start, goal, lower_left, upper_right, user_polygons, 
     return bound_obs, obstacle
 
 
-def find_neighbor(node, ob, closed, initial_direction=None):
+def find_neighbor(node, ob, closed, initial_direction=None, initial_step=False):
     # generate neighbors in certain condition
     ob_list = ob.tolist()
     neighbor: list = []
@@ -91,7 +91,7 @@ def find_neighbor(node, ob, closed, initial_direction=None):
         (0, -1), (-1, -1), (-1, 0), (-1, 1)
     ]
 
-    if initial_direction and node.parent is None:
+    if initial_direction and initial_step:
         # Restrict to the initial direction for the first step
         allowed_moves = [initial_direction]
     else:
@@ -128,7 +128,7 @@ def find_node_index(coordinate, node_list):
     return ind
 
 
-def find_path(open_list, closed_list, goal, obstacle, initial_direction=None):
+def find_path(open_list, closed_list, goal, obstacle, initial_direction=None, initial_step=False):
     # searching for the path, update open and closed list
     # obstacle = obstacle and boundary
     flag = len(open_list)
@@ -136,7 +136,7 @@ def find_path(open_list, closed_list, goal, obstacle, initial_direction=None):
         node = open_list[0]
         open_coordinate_list = [node.coordinate for node in open_list]
         closed_coordinate_list = [node.coordinate for node in closed_list]
-        temp = find_neighbor(node, obstacle, closed_coordinate_list, initial_direction)
+        temp = find_neighbor(node, obstacle, closed_coordinate_list, initial_direction, initial_step)
         for element in temp:
             if element in closed_list:
                 continue
@@ -237,7 +237,7 @@ def draw(close_origin, close_goal, start, end, bound):
         # in order to plot the map, add the end coordinate to array
         close_goal = np.array([end])
     plt.cla()
-    plt.gcf().set_size_inches(11, 9, forward=True)
+    plt.gcf().set_size_inches(8,6, forward=True)
     plt.axis('equal')
     plt.plot(close_origin[:, 0], close_origin[:, 1], 'oy')
     plt.plot(close_goal[:, 0], close_goal[:, 1], 'og')
@@ -317,10 +317,13 @@ def searching_control(start, end, bound, obstacle, start_direction=None, end_dir
     # flag = 0 (not blocked) 1 (start point blocked) 2 (end point blocked)
     flag = 0  # init flag
     path = None
+    initial_step_start = True
+    initial_step_end = True
     while True:
         # searching from start to end
         origin_open, origin_close = \
-            find_path(origin_open, origin_close, target_goal, bound, start_direction)
+            find_path(origin_open, origin_close, target_goal, bound, start_direction, initial_step_start)
+        initial_step_start = False  # Only apply the initial direction for the first step
         if not origin_open:  # no path condition
             flag = 1  # origin node is blocked
             draw_control(origin_close, goal_close, flag, start, end, bound,
@@ -331,7 +334,8 @@ def searching_control(start, end, bound, obstacle, start_direction=None, end_dir
 
         # searching from end to start
         goal_open, goal_close = \
-            find_path(goal_open, goal_close, target_origin, bound, end_direction)
+            find_path(goal_open, goal_close, target_origin, bound, end_direction, initial_step_end)
+        initial_step_end = False  # Only apply the initial direction for the first step
         if not goal_open:  # no path condition
             flag = 2  # goal is blocked
             draw_control(origin_close, goal_close, flag, start, end, bound,
