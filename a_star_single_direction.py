@@ -1,5 +1,4 @@
 """
-
 A* grid planning
 
 author: Atsushi Sakai(@Atsushi_twi)
@@ -10,7 +9,6 @@ See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 """
 
 import math
-
 import matplotlib.pyplot as plt
 
 show_animation = True
@@ -20,12 +18,12 @@ class AStarPlanner:
 
     def __init__(self, ox, oy, resolution, rr):
         """
-        Initialize grid map for a star planning
+        Initialize grid map for A* planning
 
         ox: x position list of Obstacles [m]
         oy: y position list of Obstacles [m]
         resolution: grid resolution [m]
-        rr: robot radius[m]
+        rr: robot radius [m]
         """
 
         self.resolution = resolution
@@ -38,11 +36,12 @@ class AStarPlanner:
         self.calc_obstacle_map(ox, oy)
 
     class Node:
-        def __init__(self, x, y, cost, parent_index):
+        def __init__(self, x, y, cost, parent_index, direction=None):
             self.x = x  # index of grid
             self.y = y  # index of grid
             self.cost = cost
             self.parent_index = parent_index
+            self.direction = direction  # direction of the last movement
 
         def __str__(self):
             return str(self.x) + "," + str(self.y) + "," + str(
@@ -50,11 +49,11 @@ class AStarPlanner:
 
     def planning(self, sx, sy, gx, gy):
         """
-        A star path search
+        A* path search
 
         input:
-            s_x: start x position [m]
-            s_y: start y position [m]
+            sx: start x position [m]
+            sy: start y position [m]
             gx: goal x position [m]
             gy: goal y position [m]
 
@@ -64,9 +63,9 @@ class AStarPlanner:
         """
 
         start_node = self.Node(self.calc_xy_index(sx, self.min_x),
-                               self.calc_xy_index(sy, self.min_y), 0.0, -1)
+                               self.calc_xy_index(sy, self.min_y), 0.0, -1, None)
         goal_node = self.Node(self.calc_xy_index(gx, self.min_x),
-                              self.calc_xy_index(gy, self.min_y), 0.0, -1)
+                              self.calc_xy_index(gy, self.min_y), 0.0, -1, None)
 
         open_set, closed_set = dict(), dict()
         open_set[self.calc_grid_index(start_node)] = start_node
@@ -79,8 +78,7 @@ class AStarPlanner:
             c_id = min(
                 open_set,
                 key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,
-                                                                     open_set[
-                                                                         o]))
+                                                                     open_set[o]))
             current = open_set[c_id]
 
             # show graph
@@ -95,7 +93,7 @@ class AStarPlanner:
                     plt.pause(0.001)
 
             if current.x == goal_node.x and current.y == goal_node.y:
-                print("Find goal")
+                print("Found goal")
                 goal_node.parent_index = current.parent_index
                 goal_node.cost = current.cost
                 break
@@ -108,9 +106,13 @@ class AStarPlanner:
 
             # expand_grid search grid based on motion model
             for i, _ in enumerate(self.motion):
-                node = self.Node(current.x + self.motion[i][0],
-                                 current.y + self.motion[i][1],
-                                 current.cost + self.motion[i][2], c_id)
+                new_x = current.x + self.motion[i][0]
+                new_y = current.y + self.motion[i][1]
+                direction = (self.motion[i][0], self.motion[i][1])
+                if current.direction and not self.is_valid_direction(current.direction, direction):
+                    continue
+
+                node = self.Node(new_x, new_y, current.cost + self.motion[i][2], c_id, direction)
                 n_id = self.calc_grid_index(node)
 
                 # If the node is not safe, do nothing
@@ -219,15 +221,30 @@ class AStarPlanner:
     def get_motion_model():
         # dx, dy, cost
         motion = [[1, 0, 1],
-                  [0, 1, 1],
-                  [-1, 0, 1],
-                  [0, -1, 1],
-                  [-1, -1, math.sqrt(2)],
-                  [-1, 1, math.sqrt(2)],
+                  [1, 1, math.sqrt(2)],
                   [1, -1, math.sqrt(2)],
-                  [1, 1, math.sqrt(2)]]
-
+                  [0, 1, 1],
+                  [0, -1, 1],
+                  [-1, 0, 1],
+                  [-1, 1, math.sqrt(2)],
+                  [-1, -1, math.sqrt(2)]]
         return motion
+
+    @staticmethod
+    def is_valid_direction(last_direction, new_direction):
+        valid_directions = {
+            (1, 0): [(1, 0), (1, 1), (1, -1)],
+            (1, 1): [(1, 1), (1, 0), (0, 1)],
+            (1, -1): [(1, -1), (1, 0), (0, -1)],
+            (0, 1): [(0, 1), (1, 1), (-1, 1)],
+            (0, -1): [(0, -1), (1, -1), (-1, -1)],
+            (-1, 0): [(-1, 0), (-1, 1), (-1, -1)],
+            (-1, 1): [(-1, 1), (-1, 0), (0, 1)],
+            (-1, -1): [(-1, -1), (-1, 0), (0, -1)]
+        }
+        if last_direction in valid_directions:
+            return new_direction in valid_directions[last_direction]
+        return True
 
 
 def main():
