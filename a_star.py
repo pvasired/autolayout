@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from shapely.geometry import Polygon, Point
+from shapely.prepared import prep
 
 class Node:
     """node with properties of g, h, coordinate and parent node"""
@@ -343,25 +344,20 @@ def searching_control(start, end, bound, obstacle, show_animation=False):
     return path
 
 def convert_polygons_to_obstacles(polygons, path_width, spacing):
-    obstacles = []
-    buffer = math.ceil(path_width / 2)
+    obstacles = set()
     
-    for poly_coords in polygons:
+    for i, poly_coords in enumerate(polygons):
         raw_poly = np.array(poly_coords)/spacing
         polygon = Polygon(raw_poly)
-        buffered_polygon = polygon.buffer(buffer)  # Buffer the polygon
-        buffered_bounds = buffered_polygon.bounds
-        minx = math.floor(buffered_bounds[0])
-        miny = math.floor(buffered_bounds[1])
-        maxx = math.ceil(buffered_bounds[2])
-        maxy = math.ceil(buffered_bounds[3])
-        for x in range(minx, maxx + 1):
-            for y in range(miny, maxy + 1):
+        buffered_polygon = polygon.buffer(path_width)  # Buffer the polygon
+        xmin, ymin, xmax, ymax = buffered_polygon.bounds
+        for x in range(math.floor(xmin), math.ceil(xmax)+1):
+            for y in range(math.floor(ymin), math.ceil(ymax)+1):
                 point = Point(x, y)
-                if buffered_polygon.contains(point) and [x, y] not in obstacles:
-                    obstacles.append([x, y])
+                if prep(buffered_polygon).contains(point):
+                    obstacles.add((x, y))
     
-    return obstacles
+    return np.array(list(obstacles)).tolist()
 
 def main(start, end, user_polygons, path_width, spacing, lower_left_bound=None, upper_right_bound=None,
          show_animation=False):
