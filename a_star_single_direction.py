@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import math
 from shapely.geometry import Polygon, Point
 from shapely.prepared import prep
+import random
 
 class Node:
     """node with properties of g, h, coordinate and parent node"""
@@ -86,29 +87,24 @@ def find_neighbor(node, ob, closed, initial_direction=None, initial_step=False):
     neighbor: list = []
 
     # Define all possible moves including diagonals
-    possible_moves = [
-        (0, 1), (1, 1), (1, 0), (1, -1),
-        (0, -1), (-1, -1), (-1, 0), (-1, 1)
-    ]
+    moves_dict = {(-1, 0): [(-1, 0), (-1, 1), (-1, -1)],
+                    (0, 1): [(0, 1), (1, 1), (-1, 1)],
+                    (1, 0): [(1, 0), (1, 1), (1, -1)],
+                    (0, -1): [(0, -1), (1, -1), (-1, -1)],
+                    (-1, 1): [(-1, 1), (-1, 0), (0, 1)],
+                    (1, 1): [(1, 1), (0, 1), (1, 0)],
+                    (1, -1): [(1, -1), (1, 0), (0, -1)],
+                    (-1, -1): [(-1, -1), (0, -1), (-1, 0)]}
 
     if initial_direction and initial_step:
         # Restrict to the initial direction for the first step
         allowed_moves = [initial_direction]
     else:
-        if node.parent is not None:
-            # Calculate the direction of the current movement
-            current_direction = (
+        current_direction = (
                 node.coordinate[0] - node.parent.coordinate[0],
                 node.coordinate[1] - node.parent.coordinate[1]
             )
-
-            # Define allowed moves based on the current direction
-            allowed_moves = [
-                move for move in possible_moves
-                if abs(math.atan2(move[1], move[0]) - math.atan2(current_direction[1], current_direction[0])) <= math.pi / 4
-            ]
-        else:
-            allowed_moves = possible_moves
+        allowed_moves = moves_dict[current_direction]
 
     for move in allowed_moves:
         x, y = node.coordinate[0] + move[0], node.coordinate[1] + move[1]
@@ -196,14 +192,6 @@ def get_path(org_list, coordinate):
     path_org.reverse()
     path = np.array(path_org)
     return path
-
-
-def random_coordinate(bottom_vertex, top_vertex):
-    # generate random coordinates inside maze
-    coordinate = [np.random.randint(bottom_vertex[0] + 1, top_vertex[0]),
-                  np.random.randint(bottom_vertex[1] + 1, top_vertex[1])]
-    return coordinate
-
 
 def draw(close_origin, start, end, bound):
     # plot the map

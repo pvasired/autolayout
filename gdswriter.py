@@ -14,6 +14,7 @@ import phidl.geometry as pg
 from copy import deepcopy
 import math
 import a_star_single_direction
+import a_star
 
 TEXT_SPACING_FACTOR = 0.3
 
@@ -3918,11 +3919,17 @@ class GDSDesign:
                                 grid_spacing, show_animation=show_animation, start_direction=start_direction)
         
         if tuple(-(a_star_path_grid_start[-1]-a_star_path_grid_start[-2])) != end_direction:
-            a_star_path_grid_end = a_star_single_direction.main(ports2_center_grid.tolist(), a_star_path_grid_start[1].tolist(), obstacles, path_width_grid,
-                                    grid_spacing, show_animation=show_animation, start_direction=end_direction)
-            a_star_path_grid = merge_paths([tuple(coord) for coord in a_star_path_grid_start], [tuple(coord) for coord in a_star_path_grid_end])
+            for i in range(len(a_star_path_grid_start)-1):
+                a_star_path_grid_end = a_star_single_direction.main(ports2_center_grid.tolist(), a_star_path_grid_start[i+1].tolist(), obstacles, path_width_grid,
+                                        grid_spacing, show_animation=show_animation, start_direction=end_direction)
+                a_star_path_grid = merge_paths([tuple(coord) for coord in a_star_path_grid_start], [tuple(coord) for coord in a_star_path_grid_end])
+                if a_star_path_grid is not None:
+                    break
         else:
             a_star_path_grid = a_star_path_grid_start
+
+        u, ind = np.unique(a_star_path_grid, axis=0, return_index=True)
+        a_star_path_grid = u[np.argsort(ind)]
 
         if a_star_path_grid is None:
             raise ValueError("No path found between ports")
@@ -3934,10 +3941,7 @@ class GDSDesign:
                 multiplier = i - int(len(ports1)/2) + 0.5
             else:
                 multiplier = i - int(len(ports1)/2)
-            X.add(width=trace_width, offset=multiplier*trace_pitch, layer=layer_number)
-
-        u, ind = np.unique(a_star_path, axis=0, return_index=True)
-        a_star_path = u[np.argsort(ind)]
+            X.add(width=trace_width, offset=multiplier*trace_pitch, layer=layer_number)   
 
         P = Path(a_star_path)
         path = P.extrude(X)
