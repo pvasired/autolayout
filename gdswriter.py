@@ -13,7 +13,7 @@ import phidl.routing as pr
 import phidl.geometry as pg
 from copy import deepcopy
 import math
-import a_star
+import a_star_single_direction
 
 TEXT_SPACING_FACTOR = 0.3
 
@@ -3859,7 +3859,8 @@ class GDSDesign:
         return path_obstacles
     
     def route_ports_a_star(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
-                           show_animation=True, obstacles=[], routing_angle=45, trace_space=None, autorouting_angle=90):
+                           show_animation=True, obstacles=[], routing_angle=45, trace_space=None, autorouting_angle=90,
+                           initial_steps=1):
         assert len(ports1) == len(ports2)
         assert np.all(orientations1 == orientations1[0])
         assert np.all(orientations2 == orientations2[0])
@@ -3889,83 +3890,43 @@ class GDSDesign:
 
         if orientations1[0] == 0:
             ports1_center_grid[0] += path_width_grid
-            start_direction = (1, 0)
+            start_direction = (initial_steps, 0)
         elif orientations1[0] == 90:
             ports1_center_grid[1] += path_width_grid
-            start_direction = (0, 1)
+            start_direction = (0, initial_steps)
         elif orientations1[0] == 180:
             ports1_center_grid[0] -= path_width_grid
-            start_direction = (-1, 0)
+            start_direction = (-initial_steps, 0)
         elif orientations1[0] == 270:
             ports1_center_grid[1] -= path_width_grid
-            start_direction = (0, -1)
+            start_direction = (0, -initial_steps)
 
         if orientations2[0] == 0:
             ports2_center_grid[0] += path_width_grid
-            end_direction = (1, 0)
+            end_direction = (initial_steps, 0)
         elif orientations2[0] == 90:
             ports2_center_grid[1] += path_width_grid
-            end_direction = (0, 1)
+            end_direction = (0, initial_steps)
         elif orientations2[0] == 180:
             ports2_center_grid[0] -= path_width_grid
-            end_direction = (-1, 0)
+            end_direction = (-initial_steps, 0)
         elif orientations2[0] == 270:
             ports2_center_grid[1] -= path_width_grid
-            end_direction = (0, -1)
+            end_direction = (0, -initial_steps)
 
-        a_star_path_grid = a_star.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), obstacles, path_width_grid,
-                                grid_spacing, show_animation=show_animation, start_direction=start_direction, end_direction=end_direction)
+        a_star_path_grid_start = a_star_single_direction.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), obstacles, path_width_grid,
+                                grid_spacing, show_animation=show_animation, start_direction=start_direction)
+        
+        if tuple(-(a_star_path_grid_start[-1]-a_star_path_grid_start[-2])) != end_direction:
+            a_star_path_grid_end = a_star_single_direction.main(ports2_center_grid.tolist(), a_star_path_grid_start[1].tolist(), obstacles, path_width_grid,
+                                    grid_spacing, show_animation=show_animation, start_direction=end_direction)
+            a_star_path_grid = merge_paths([tuple(coord) for coord in a_star_path_grid_start], [tuple(coord) for coord in a_star_path_grid_end])
+        else:
+            a_star_path_grid = a_star_path_grid_start
+
         if a_star_path_grid is None:
             raise ValueError("No path found between ports")
         a_star_path = (np.array(a_star_path_grid) * grid_spacing).astype(float)
-
-        # if orientations1[0] == 0 or orientations1[0] == 180:
-        #     starting_y = a_star_path[0][1]
-        #     for coord in a_star_path:
-        #         if coord[1] == starting_y:
-        #             coord[1] = ports1_center[1]
-        #         else:
-        #             if abs(coord[1] - ports1_center[1]) < grid_spacing:
-        #                 coord[1] = ports1_center[1]
-        #             else:
-        #                 break
-        #     a_star_path = np.vstack((np.expand_dims(ports1_center, axis=0), a_star_path))
-        
-        # elif orientations1[0] == 270 or orientations1[0] == 90:
-        #     starting_x = a_star_path[0][0]
-        #     for coord in a_star_path:
-        #         if coord[0] == starting_x:
-        #             coord[0] = ports1_center[0]
-        #         else:
-        #             if abs(coord[0] - ports1_center[0]) < grid_spacing:
-        #                 coord[0] = ports1_center[0]
-        #             else:
-        #                 break
-        #     a_star_path = np.vstack((np.expand_dims(ports1_center, axis=0), a_star_path))
-
-        # if orientations2[0] == 180 or orientations2[0] == 0:
-        #     ending_y = a_star_path[-1][1]
-        #     for coord in a_star_path[::-1]:
-        #         if coord[1] == ending_y:
-        #             coord[1] = ports2_center[1]
-        #         else:
-        #             if abs(coord[1] - ports2_center[1]) < grid_spacing:
-        #                 coord[1] = ports2_center[1]
-        #             else:
-        #                 break
-        #     a_star_path = np.vstack((a_star_path, np.expand_dims(ports2_center, axis=0)))
-        
-        # elif orientations2[0] == 270 or orientations2[0] == 90:
-        #     ending_x = a_star_path[-1][0]
-        #     for coord in a_star_path[::-1]:
-        #         if coord[0] == ending_x:
-        #             coord[0] = ports2_center[0]
-        #         else:
-        #             if abs(coord[0] - ports2_center[0]) < grid_spacing:
-        #                 coord[0] = ports2_center[0]
-        #             else:
-        #                 break
-        #     a_star_path = np.vstack((a_star_path, np.expand_dims(ports2_center, axis=0)))
 
         X = CrossSection()
         for i in range(len(ports1)):
@@ -4089,3 +4050,59 @@ def max_value_before_jump(arr):
         if arr[i] - arr[i-1] > 1:
             return arr[i-1]
     return arr[-1]
+
+def merge_paths(start_path, end_path):
+    """
+    Merge two paths ensuring that the intersection point doesn't create turns larger than 45 degrees
+    :param path1: List of coordinates from start to midpoint
+    :param path2: List of coordinates from end to midpoint (needs to be reversed)
+    :param obstacles: List of obstacles
+    :param path_width: Width of the path
+    :param grid_spacing: Spacing of the grid
+    :return: Merged path
+    """    
+    # Find potential intersection points
+    intersection_points = set(start_path) & set(end_path)
+    
+    # If no intersection point is found, return None
+    if not intersection_points:
+        return None
+    
+    # Evaluate each intersection point for the best merge
+    best_merge_point = None
+    best_merge_cost = float('inf')
+    for point in intersection_points:
+        # Check if merging at this point creates any turns larger than 45 degrees
+        index1 = start_path.index(point)
+        index2 = end_path.index(point)
+        
+        if index1 > 0 and index2 > 0 and index1 < len(start_path) - 1:
+            prev1 = start_path[index1 - 1]
+            next2 = end_path[index2 - 1]
+            if is_valid_turn(prev1, point, next2):
+                cost = index1 + index2  # Total cost as the sum of path lengths
+                if cost < best_merge_cost:
+                    best_merge_cost = cost
+                    best_merge_point = point
+    
+    # Merge the paths at the best merge point
+    if best_merge_point:
+        index1 = start_path.index(best_merge_point)
+        index2 = end_path.index(best_merge_point)
+        merged_path = start_path[:index1 + 1] + end_path[:index2][::-1]
+        return np.array(merged_path)
+    else:
+        return None
+
+def is_valid_turn(prev1, current, next2):
+    """
+    Check if the turn between three points is less than or equal to 45 degrees
+    :param prev: Previous point
+    :param current: Current point (turning point)
+    :param next: Next point
+    :return: True if the turn is valid, False otherwise
+    """
+    vec1 = (current[0] - prev1[0], current[1] - prev1[1])
+    vec2 = (next2[0] - current[0], next2[1] - current[1])
+    angle = abs(math.atan2(vec2[1], vec2[0]) - math.atan2(vec1[1], vec1[0]))
+    return angle <= math.pi / 4
