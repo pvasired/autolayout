@@ -370,7 +370,10 @@ class MyApp(QWidget):
 
     def initUI(self):
         # Main Layout
-        mainLayout = QVBoxLayout()
+        mainLayout = QHBoxLayout()  # Changed to QHBoxLayout
+
+        # Left Layout (contains all the menus)
+        leftLayout = QVBoxLayout()
 
         # File selection layout
         fileLayout = QHBoxLayout()
@@ -383,7 +386,7 @@ class MyApp(QWidget):
         self.outFileField.setToolTip('Enter the name of the output GDS file.')
         fileLayout.addWidget(self.initFileButton)
         fileLayout.addWidget(self.outFileField)
-        mainLayout.addLayout(fileLayout)
+        leftLayout.addLayout(fileLayout)
 
         # Undo and Redo buttons
         undoRedoLayout = QHBoxLayout()
@@ -395,7 +398,7 @@ class MyApp(QWidget):
         self.redoButton.setToolTip('Redo the previously undone action.')
         undoRedoLayout.addWidget(self.undoButton)
         undoRedoLayout.addWidget(self.redoButton)
-        mainLayout.addLayout(undoRedoLayout)
+        leftLayout.addLayout(undoRedoLayout)
 
         # Add cell dropdown and Matplotlib Button
         plotLayout = QHBoxLayout()
@@ -412,7 +415,7 @@ class MyApp(QWidget):
         self.matplotlibButton.setToolTip('Click to show an interactive plot of the selected cell for routing.')
         plotLayout.addWidget(self.matplotlibButton)
 
-        mainLayout.addLayout(plotLayout)
+        leftLayout.addLayout(plotLayout)
 
         # Test Structures layout
         testLayout = QVBoxLayout()
@@ -478,7 +481,7 @@ class MyApp(QWidget):
             self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams, addButton))
 
         testLayout.addLayout(gridLayout)
-        mainLayout.addLayout(testLayout)
+        leftLayout.addLayout(testLayout)
 
         # Layers layout
         layersHBoxLayout = QHBoxLayout()  # Change from QVBoxLayout to QHBoxLayout
@@ -534,8 +537,12 @@ class MyApp(QWidget):
         layersVBoxLayout.addLayout(layersHBoxLayout)
         layersVBoxLayout.addLayout(defineLayerHBoxLayout)
 
+        leftLayout.addLayout(layersVBoxLayout)
+
+        mainLayout.addLayout(leftLayout)  # Add the left layout to the main layout
+
+        # Plot Area Layout
         plotAreaLayout = QVBoxLayout()
-        # Create a new figure with a larger size
         self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
@@ -547,19 +554,18 @@ class MyApp(QWidget):
         # Add the navigation toolbar to the layout
         self.toolbar = NavigationToolbar(self.canvas, self)
         plotAreaLayout.addWidget(self.toolbar)
-        mainLayout.addLayout(plotAreaLayout)
 
-        mainLayout.addLayout(layersVBoxLayout)
+        mainLayout.addLayout(plotAreaLayout)  # Add the plot area layout to the main layout
 
         # Write to GDS button
         writeButton = QPushButton('Write to GDS')
         writeButton.clicked.connect(self.writeToGDS)
         writeButton.setToolTip('Click to write the current design to a GDS file.')
-        mainLayout.addWidget(writeButton)
+        leftLayout.addWidget(writeButton)  # Add the write button to the left layout
 
         self.setLayout(mainLayout)
         self.setWindowTitle('Test Structure Automation GUI')
-        self.resize(1400, 800)  # Set the initial size of the window
+        self.resize(2800, 800)  # Set the initial size of the window
         self.show()
     
     def showMatplotlibWindow(self):
@@ -681,7 +687,7 @@ class MyApp(QWidget):
 
                 self.gds_design.route_ports_a_star(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
                                             ports2, orientations2, trace_width1, trace_space1, layer_name,
-                                            show_animation=True, obstacles=obstacles)
+                                            show_animation=False, obstacles=obstacles)
 
                 # Remove the routed ports from the corresponding escapeDicts
                 for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
