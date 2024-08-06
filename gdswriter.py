@@ -471,8 +471,15 @@ class GDSDesign:
                 for poly in polys:
                     self.cells[cell_name]['polygons'].append(poly)
                     self.cells[cell_name]['netIDs'].append((lay, netID))
+        elif isinstance(component, gdspy.FlexPath):
+            assert layer_number is not None, "Layer number must be specified for FlexPath."
+            cell.add(component)
+            polygons = component.get_polygons()
+            for poly in polygons:
+                self.cells[cell_name]['polygons'].append(poly)
+                self.cells[cell_name]['netIDs'].append((layer_number, netID))
         else:
-            raise ValueError(f"Error: Unsupported component type '{type(component)}'. Please use gdspy.Polygon or gdspy.CellReference.")
+            raise ValueError(f"Error: Unsupported component type '{type(component)}'. Please use gdspy.Polygon, gdspy.CellReference, or gdspy.FlexPath.")
 
     def define_layer(self, layer_name, layer_number, description=None, min_feature_size=None, min_spacing=None):
         """
@@ -617,7 +624,7 @@ class GDSDesign:
         polygon = gdspy.Polygon(points, layer=layer_number, datatype=datatype)
         self.add_component(cell, cell_name, polygon, netID, layer_number)
 
-    def add_path_as_polygon(self, cell_name, points, width, layer_name, datatype=0, netID=0):
+    def add_path_as_polygon(self, cell_name, points, width, layer_name, datatype=0, netID=0, as_path=True):
         """
         Convert a path defined by a series of points and a width into a polygon and add it to the specified cell and layer.
 
@@ -635,13 +642,17 @@ class GDSDesign:
         cell = self.check_cell_exists(cell_name)
 
         # Create the path as a polygon
-        path = gdspy.FlexPath(points, width, layer=layer_number, datatype=datatype)
-        path_polygons = path.to_polygonset()  # Corrected method call here
+        path = gdspy.FlexPath(points, width, layer=layer_number, datatype=datatype, gdsii_path=as_path)
 
-        # Add the generated polygons to the cell
-        for poly in path_polygons.polygons:
-            path_polygon = gdspy.Polygon(poly, layer=layer_number, datatype=datatype)
-            self.add_component(cell, cell_name, path_polygon, netID, layer_number)
+        if not as_path:
+            path_polygons = path.to_polygonset()  # Corrected method call here
+
+            # Add the generated polygons to the cell
+            for poly in path_polygons.polygons:
+                path_polygon = gdspy.Polygon(poly, layer=layer_number, datatype=datatype)
+                self.add_component(cell, cell_name, path_polygon, netID, layer_number)
+        else:
+            self.add_component(cell, cell_name, path, netID, layer_number)
 
     def add_circle_as_polygon(self, cell_name, center, radius, layer_name, num_points=500, datatype=0, netID=0):
         """
@@ -2635,6 +2646,9 @@ class GDSDesign:
                           (port[0]+ending_trace_width/2, port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)),
                           (port[0]-ending_trace_width/2, port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180))]
                 self.add_polygon(cell_name, points, layer_name)
+                path_points = [(port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)),
+                               (port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)+escape_extent)]
+                self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
                 wire_ports.append((port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)))
 
@@ -2696,6 +2710,9 @@ class GDSDesign:
                           (port[0]+ending_trace_width/2, port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)),
                           (port[0]-ending_trace_width/2, port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180))]
                 self.add_polygon(cell_name, points, layer_name)
+                path_points = [(port[0], port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)),
+                               (port[0], port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)-escape_extent)]
+                self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
                 wire_ports.append((port[0], port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)))
 
@@ -2757,6 +2774,9 @@ class GDSDesign:
                           (port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]-ending_trace_width/2),
                           (port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]+ending_trace_width/2)]
                 self.add_polygon(cell_name, points, layer_name)
+                path_points = [(port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]),
+                               (port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)+escape_extent, port[1])]
+                self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
                 wire_ports.append((port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]))
 
@@ -2818,6 +2838,9 @@ class GDSDesign:
                           (port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]-ending_trace_width/2),
                           (port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]+ending_trace_width/2)]
                 self.add_polygon(cell_name, points, layer_name)
+                path_points = [(port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]),
+                               (port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)-escape_extent, port[1])]
+                self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
                 wire_ports.append((port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]))
 
