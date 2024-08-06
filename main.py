@@ -3,7 +3,7 @@ import argparse
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from gdswriter import GDSDesign  # Import the GDSDesign class
 from copy import deepcopy
 import math
@@ -20,6 +20,22 @@ matplotlib.use('Qt5Agg')
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
 TEMP_CELL_NAME = "SIZE CHECK TEMP"
+
+class CycleLineEdit(QLineEdit):
+    def __init__(self, comboBox, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.comboBox = comboBox
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Tab:
+            self.editingFinished.emit()
+            
+            currentIndex = self.comboBox.currentIndex()
+            nextIndex = (currentIndex + 1) % self.comboBox.count()
+            self.comboBox.setCurrentIndex(nextIndex)
+            return True  # Event handled
+        return super().eventFilter(obj, event)
 
 class TooltipComboBox(QComboBox):
     def __init__(self, tooltips=None, *args, **kwargs):
@@ -436,7 +452,7 @@ class MyApp(QWidget):
             paramComboBox.setItemTooltips([self.paramTooltips[name].get(param, '') for param in self.parameters[name]])
             paramComboBox.currentTextChanged.connect(self.createParamChangeHandler)
             paramComboBox.setToolTip(f'Select parameters for {name}.') 
-            paramValueEdit = QLineEdit()
+            paramValueEdit = CycleLineEdit(paramComboBox)  # Use CycleLineEdit instead of QLineEdit
             paramName = paramComboBox.currentText()
             if paramName in self.defaultParams[name]:
                 paramValueEdit.setText(str(self.defaultParams[name][paramName]))

@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import klayout.db as kdb
 import geopandas as gpd
 from phidl import Device, Path, CrossSection
-import phidl.routing as pr
 import phidl.geometry as pg
 from copy import deepcopy
 import math

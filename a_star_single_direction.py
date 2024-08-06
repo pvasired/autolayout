@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import math
 from shapely.geometry import Polygon, Point
 from shapely.prepared import prep
-import random
 import time
 
 class Node:
