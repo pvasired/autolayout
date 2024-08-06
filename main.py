@@ -70,7 +70,7 @@ class MyApp(QWidget):
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
-            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Trace Width", "Pad Diameter", "Orientation", "Escape Extent"],
+            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Automatic Placement"]
         }
         self.paramTooltips = {
@@ -197,6 +197,7 @@ class MyApp(QWidget):
                 "Spacing X": "Enter the spacing between copies in the x direction.",
                 "Spacing Y": "Enter the spacing between copies in the y direction.",
                 "Trace Width": "Enter the width of the traces.",
+                "Trace Space": "Enter the spacing between traces.",
                 "Pad Diameter": "Enter the diameter of the pads.",
                 "Orientation": "Enter the orientation of the escape routing.",
                 "Escape Extent": "Enter the extent of the escape routing."
@@ -338,6 +339,7 @@ class MyApp(QWidget):
                 "Spacing X": '',
                 "Spacing Y": '',
                 "Trace Width": '',
+                "Trace Space": '',
                 "Pad Diameter": '',
                 "Orientation": '',
                 "Escape Extent": 100
@@ -637,28 +639,14 @@ class MyApp(QWidget):
         min_dist = np.inf
         route_ports = None
         route_orientations = None
-        route_bbox = None
         route_trace_width = None
+        route_trace_space = None
 
         cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
         layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
         layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
         for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
             # Calculate the distance from the click to the escape routing
-            xmin = np.inf
-            xmax = -np.inf
-            ymin = np.inf
-            ymax = -np.inf
-            for orientation in escapeDict:
-                orientation_trace_width = escapeDict[orientation][3]
-                orientation_bbox = escapeDict[orientation][4]
-                xmin = min(xmin, orientation_bbox[0][0]-orientation_trace_width/2)
-                xmax = max(xmax, orientation_bbox[1][0]+orientation_trace_width/2)
-                ymin = min(ymin, orientation_bbox[0][1]-orientation_trace_width/2)
-                ymax = max(ymax, orientation_bbox[1][1]+orientation_trace_width/2)
-            
-            bbox = np.around(np.array([[xmin, ymin], [xmax, ymax]]), 3)
-            
             for orientation in escapeDict:
                 layer = escapeDict[orientation][2]
                 if layer == layer_number:
@@ -667,8 +655,8 @@ class MyApp(QWidget):
                         min_dist = dist
                         route_ports = escapeDict[orientation][0]
                         route_orientations = escapeDict[orientation][1]  
-                        route_bbox = bbox
                         route_trace_width = escapeDict[orientation][3]
+                        route_trace_space = escapeDict[orientation][4]
         
         if route_ports is None:
             QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
@@ -678,17 +666,17 @@ class MyApp(QWidget):
         reply = QMessageBox.question(self, "Confirm Ports", f"You have selected {len(route_ports)} ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.routing.append((route_ports, route_orientations, route_bbox, route_trace_width))
+            self.routing.append((route_ports, route_orientations, route_trace_width, route_trace_space))
         else:
             return
         
         if len(self.routing) == 2:
-            ports1, orientations1, bbox1, trace_width1 = self.routing[0]
-            ports2, orientations2, bbox2, trace_width2 = self.routing[1]
+            ports1, orientations1, trace_width1, trace_space1 = self.routing[0]
+            ports2, orientations2, trace_width2, trace_space2 = self.routing[1]
 
-            if trace_width1 != trace_width2:
-                QMessageBox.critical(self, "Design Error", "Trace widths do not match.", QMessageBox.Ok)
-                self.log("Trace widths do not match.")
+            if trace_width1 + trace_space1 != trace_width2 + trace_space2:
+                QMessageBox.critical(self, "Design Error", "Trace pitches do not match.", QMessageBox.Ok)
+                self.log("Trace pitches do not match.")
                 self.routing = []
                 return
             
@@ -698,11 +686,6 @@ class MyApp(QWidget):
                 if lay == layer_number:
                     for poly in polys:
                         poly = np.around(poly, 3)
-                        # Check if poly is in bbox1 or bbox2:
-                        if np.all(poly[:, 0] >= bbox1[0][0]) and np.all(poly[:, 0] <= bbox1[1][0]) and np.all(poly[:, 1] >= bbox1[0][1]) and np.all(poly[:, 1] <= bbox1[1][1]):
-                            continue
-                        if np.all(poly[:, 0] >= bbox2[0][0]) and np.all(poly[:, 0] <= bbox2[1][0]) and np.all(poly[:, 1] >= bbox2[0][1]) and np.all(poly[:, 1] <= bbox2[1][1]):
-                            continue
                         obstacles.append(poly.tolist())
 
             self.addSnapshot()  # Store snapshot before adding new design
@@ -715,8 +698,8 @@ class MyApp(QWidget):
                         ports1 = ports1[:len(ports2)]
                         orientations1 = orientations1[:len(orientations2)]
 
-                self.gds_design.route_ports_combined(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
-                                            ports2, orientations2, trace_width1, layer_name, bbox1, bbox2,
+                self.gds_design.route_ports_a_star(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
+                                            ports2, orientations2, trace_width1, trace_space1, layer_name,
                                             show_animation=True, obstacles=obstacles)
 
                 # Remove the routed ports from the corresponding escapeDicts
@@ -890,9 +873,10 @@ class MyApp(QWidget):
             self.writeToGDS()
 
             # Update plot if open
-            if hasattr(self, 'plotWindow') and self.plotWindow.isVisible():
-                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                self.update_plot()
+            if hasattr(self, 'plotWindow') and self.plotWindow is not None:
+                if self.plotWindow.isVisible():
+                    self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                    self.update_plot()
         else:
             QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
 
@@ -905,9 +889,10 @@ class MyApp(QWidget):
             self.writeToGDS()
 
             # Update plot if open
-            if hasattr(self, 'plotWindow') and self.plotWindow.isVisible():
-                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                self.update_plot()
+            if hasattr(self, 'plotWindow') and self.plotWindow is not None:
+                if self.plotWindow.isVisible():
+                    self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                    self.update_plot()
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
 
@@ -1162,9 +1147,10 @@ class MyApp(QWidget):
                 self.updateAvailableSpace()
 
                 # Update plot if open
-                if hasattr(self, 'plotWindow') and self.plotWindow.isVisible():
-                    self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                    self.update_plot()
+                if hasattr(self, 'plotWindow') and self.plotWindow is not None:
+                    if self.plotWindow.isVisible():
+                        self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                        self.update_plot()
             
             else:
                 self.undo()
@@ -1228,7 +1214,7 @@ class MyApp(QWidget):
                     params[param.replace(" ", "_")] = value
         return params
 
-    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Trace_Width, Pad_Diameter, Orientation, Escape_Extent):
+    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Trace_Width, Trace_Space, Pad_Diameter, Orientation, Escape_Extent):
         if Orientation is None:
             QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the escape routing.", QMessageBox.Ok)
             return False
@@ -1264,7 +1250,8 @@ class MyApp(QWidget):
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
                     escape_negative=escape_negative,
-                    escape_extent=float(Escape_Extent)
+                    escape_extent=float(Escape_Extent),
+                    trace_space=float(Trace_Space) if Trace_Space else None
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1297,7 +1284,8 @@ class MyApp(QWidget):
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
-                    escape_extent=float(Escape_Extent)
+                    escape_extent=float(Escape_Extent),
+                    trace_space=float(Trace_Space) if Trace_Space else None
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1338,7 +1326,8 @@ class MyApp(QWidget):
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
                     escape_negative=escape_negative,
-                    escape_extent=float(Escape_Extent)
+                    escape_extent=float(Escape_Extent),
+                    trace_space=float(Trace_Space) if Trace_Space else None
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1361,7 +1350,8 @@ class MyApp(QWidget):
                     array_size_y=int(Copies_Y),
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
-                    escape_extent=float(Escape_Extent)
+                    escape_extent=float(Escape_Extent),
+                    trace_space=float(Trace_Space) if Trace_Space else None
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []

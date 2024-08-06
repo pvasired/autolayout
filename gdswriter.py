@@ -706,7 +706,7 @@ class GDSDesign:
         assert round(trace_width*num_traces+trace_space*(num_traces+1), 3) <= effective_pitch, f"Not enough space for {num_traces} traces with trace width {trace_width}, trace spacing {trace_space} and effective pitch {effective_pitch}."
     
     def add_regular_array_escape_two_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                           escape_y=False, trace_space=None, autorouting_angle=90):
+                                           escape_y=False, trace_space=None, autorouting_angle=45):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -848,12 +848,12 @@ class GDSDesign:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=routing_angle,
                                                                  escape_extent=escape_extent)
-            return_dict[val] = wire_ports, wire_orientations
+            return_dict[val] = wire_ports, wire_orientations, self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
     def add_regular_array_escape_three_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                             escape_y=True, escape_negative=False, trace_space=None, autorouting_angle=90):
+                                             escape_y=True, escape_negative=False, trace_space=None, autorouting_angle=45):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -1102,11 +1102,11 @@ class GDSDesign:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=routing_angle,
                                                                  escape_extent=escape_extent)
-            return_dict[val] = wire_ports, wire_orientations
+            return_dict[val] = wire_ports, wire_orientations, self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                           escape_y=False, escape_negative=True, trace_space=None, autorouting_angle=90):
+                                           escape_y=False, escape_negative=True, trace_space=None, autorouting_angle=45):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -1227,12 +1227,12 @@ class GDSDesign:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=routing_angle,
                                                                  escape_extent=escape_extent)
-            return_dict[val] = wire_ports, wire_orientations
+            return_dict[val] = wire_ports, wire_orientations, self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
 
     # The traces escape from all four sides of the array
     def add_regular_array_escape_four_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
-                                            trace_space=None, autorouting_angle=90):
+                                            trace_space=None, autorouting_angle=45):
         self.check_cell_exists(trace_cell_name)
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(pitch_x, (int, float)), "Error: Pitch in the x-direction must be a number."
@@ -1979,7 +1979,7 @@ class GDSDesign:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=routing_angle,
                                                                  escape_extent=escape_extent)
-            return_dict[val] = wire_ports, wire_orientations
+            return_dict[val] = wire_ports, wire_orientations, self.get_layer_number(layer_name), trace_width, trace_space
         return return_dict
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
@@ -3870,9 +3870,8 @@ class GDSDesign:
             
         return path_obstacles
     
-    def route_ports_a_star(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
-                           show_animation=True, obstacles=[], routing_angle=45, trace_space=None, autorouting_angle=90,
-                           initial_steps=1):
+    def route_ports_a_star(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, trace_space,
+                           layer_name, show_animation=True, obstacles=[], routing_angle=45, initial_steps=1):
         """
         Route ports using single-sided A* routing. The routing is done in two steps: first, the path is routed from the
         center of the first set of ports to the center of the second set of ports. Then, the path is routed from the center
@@ -3886,14 +3885,8 @@ class GDSDesign:
         assert np.all(orientations1 == orientations1[0])
         assert np.all(orientations2 == orientations2[0])
         assert isinstance(trace_width, (int, float))
-
-        # If trace_space is not defined, it is set to the trace_width
-        if trace_space is None:
-            trace_space = trace_width
         assert isinstance(trace_space, (int, float))
 
-        # The trace space is adjusted to account for the autorouting angle
-        trace_space = math.ceil(trace_space/np.sin(autorouting_angle*np.pi/180))
         trace_pitch = trace_width + trace_space
 
         D = pg.import_gds(filename, cellname=cell_name)
