@@ -14,7 +14,6 @@ import phidl.geometry as pg
 from copy import deepcopy
 import math
 import a_star_single_direction
-import a_star
 
 TEXT_SPACING_FACTOR = 0.3
 
@@ -52,6 +51,7 @@ class GDSDesign:
                     self.cells[cell_name]['polygons'] = []
                     self.cells[cell_name]['netIDs'] = []
                     polygons_by_spec = self.lib.cells[cell_name].get_polygons(by_spec=True)
+                    # Add polygons to the backend by layer
                     for (lay, dat), polys in polygons_by_spec.items():
                         unique_layers.add(lay)
                         for poly in polys:
@@ -62,10 +62,12 @@ class GDSDesign:
             self.top_cell_names = [cell.name for cell in top_cells if cell.name != '$$$CONTEXT_INFO$$$']
             self.layers = {}  # Layer properties by layer name
             self.drc_rules = {}  # DRC rules for each layer
+            # Define layers based on the present polygons in the design
             for layer in unique_layers:
                 self.define_layer(f"{layer}", layer, min_feature_size=default_feature_size, 
                                   min_spacing=default_spacing)
 
+            # Calculate the design bounds
             max_x, min_x, max_y, min_y = -np.inf, np.inf, -np.inf, np.inf
             for cell in top_cells:
                 for poly in cell.get_polygons():
@@ -2282,6 +2284,10 @@ class GDSDesign:
         raise ValueError("No available space found.")
     
     def cable_tie_ports(self, cell_name, layer_name, ports_, orientations, trace_width, trace_space, routing_angle=45, escape_extent=50):
+        """
+        Cable tie routing for a set of ports. Combines the ports into a bus of minimum width defined by the trace width and trace space.
+        All ports must have the same orientation. Updates the GDS design with the cable tie routing.
+        """
         ports = deepcopy(ports_)
         assert np.all(orientations == orientations[0])
         assert isinstance(trace_width, (int, float))
@@ -2561,6 +2567,10 @@ class GDSDesign:
 
     def flare_ports(self, cell_name, layer_name, ports_, orientations, starting_trace_width, starting_trace_space, 
                     ending_trace_width, ending_trace_space, routing_angle=45, escape_extent=50):
+        """
+        Flare routing for a set of ports. Flares the ports outwards to a wider pitch. All ports must have the same orientation.
+        Updates the GDS design with the flared routing.
+        """
         ports = deepcopy(ports_)
         assert np.all(orientations == orientations[0])
         assert isinstance(starting_trace_width, (int, float))
@@ -2818,6 +2828,7 @@ class GDSDesign:
 
         return wire_ports, wire_orientations
     
+    # Deprecated
     def route_port_to_port(self, filename, cell_name, ports1_, orientations1_, ports2_, orientations2_, trace_width, layer_name,
                            bbox1_, bbox2_, obstacles=[], trace_space=None):
         orientations1 = deepcopy(orientations1_)
@@ -3862,22 +3873,36 @@ class GDSDesign:
     def route_ports_a_star(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
                            show_animation=True, obstacles=[], routing_angle=45, trace_space=None, autorouting_angle=90,
                            initial_steps=1):
+        """
+        Route ports using single-sided A* routing. The routing is done in two steps: first, the path is routed from the
+        center of the first set of ports to the center of the second set of ports. Then, the path is routed from the center
+        of the second set of ports to the last point of the first path. The final path is the concatenation of the two paths.
+        The routing is done in the grid defined by the grid_spacing parameter. The grid_spacing is calculated based on the
+        trace_width, trace_space, and autorouting_angle parameters.
+
+        The GDS design is updated with the new path and the ports are matched to the path.
+        """
         assert len(ports1) == len(ports2)
         assert np.all(orientations1 == orientations1[0])
         assert np.all(orientations2 == orientations2[0])
         assert isinstance(trace_width, (int, float))
 
+        # If trace_space is not defined, it is set to the trace_width
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float))
+
+        # The trace space is adjusted to account for the autorouting angle
         trace_space = math.ceil(trace_space/np.sin(autorouting_angle*np.pi/180))
         trace_pitch = trace_width + trace_space
 
         D = pg.import_gds(filename, cellname=cell_name)
         layer_number = self.get_layer_number(layer_name)
 
+        # This spacing ensures that turns will not cause traces to overlap
         grid_spacing = float(math.ceil((trace_pitch/np.sin(routing_angle*np.pi/180)-trace_pitch/np.tan(routing_angle*np.pi/180))*len(ports1)))
 
+        # Snap the center of the ports to the grid
         ports1_center = np.mean(ports1, axis=0)
         ports1_center_raw = ports1_center / grid_spacing
         ports1_center_grid = np.where(ports1_center_raw > 0, np.ceil(ports1_center_raw), np.floor(ports1_center_raw)).astype(int)
@@ -3886,9 +3911,12 @@ class GDSDesign:
         ports2_center_raw = ports2_center / grid_spacing
         ports2_center_grid = np.where(ports2_center_raw > 0, np.ceil(ports2_center_raw), np.floor(ports2_center_raw)).astype(int)
 
+        # Calculate the width of the path in the grid
         path_width_raw = len(ports1) * trace_width + (len(ports1)+1) * trace_space
         path_width_grid = math.ceil(path_width_raw / grid_spacing)
 
+        # Based on the starting port orientation, start direction is defined and the center of the ports is adjusted
+        # to extend beyond the buffer zone based on the path width
         if orientations1[0] == 0:
             ports1_center_grid[0] += path_width_grid
             start_direction = (initial_steps, 0)
@@ -3902,6 +3930,7 @@ class GDSDesign:
             ports1_center_grid[1] -= path_width_grid
             start_direction = (0, -initial_steps)
 
+        # Same as above but for the end direction
         if orientations2[0] == 0:
             ports2_center_grid[0] += path_width_grid
             end_direction = (initial_steps, 0)
@@ -3915,10 +3944,13 @@ class GDSDesign:
             ports2_center_grid[1] -= path_width_grid
             end_direction = (0, -initial_steps)
 
+        # First route from start to end
         a_star_path_grid_start = a_star_single_direction.main(ports1_center_grid.tolist(), ports2_center_grid.tolist(), obstacles, path_width_grid,
                                 grid_spacing, show_animation=show_animation, start_direction=start_direction)
         
+        # If the routing does not have the correct end behavior, try to route from the end to the start and merge the paths
         if tuple(-(a_star_path_grid_start[-1]-a_star_path_grid_start[-2])) != end_direction:
+            # Try to route from the end to various points in the start path
             for i in range(len(a_star_path_grid_start)-1):
                 a_star_path_grid_end = a_star_single_direction.main(ports2_center_grid.tolist(), a_star_path_grid_start[i+1].tolist(), obstacles, path_width_grid,
                                         grid_spacing, show_animation=show_animation, start_direction=end_direction)
@@ -3928,13 +3960,14 @@ class GDSDesign:
         else:
             a_star_path_grid = a_star_path_grid_start
 
-        u, ind = np.unique(a_star_path_grid, axis=0, return_index=True)
-        a_star_path_grid = u[np.argsort(ind)]
-
         if a_star_path_grid is None:
             raise ValueError("No path found between ports")
+        
+        u, ind = np.unique(a_star_path_grid, axis=0, return_index=True)
+        a_star_path_grid = u[np.argsort(ind)]
         a_star_path = (np.array(a_star_path_grid) * grid_spacing).astype(float)
 
+        # Create a cross section for the multiple traces in the path
         X = CrossSection()
         for i in range(len(ports1)):
             if len(ports1) % 2 == 0:
@@ -3943,6 +3976,7 @@ class GDSDesign:
                 multiplier = i - int(len(ports1)/2)
             X.add(width=trace_width, offset=multiplier*trace_pitch, layer=layer_number)   
 
+        # Extrude the path and add it to the design
         P = Path(a_star_path)
         path = P.extrude(X)
         path_obstacles = []
@@ -3951,12 +3985,16 @@ class GDSDesign:
             path_obstacles.append(poly.tolist())
         D.add_ref(path)
 
+        # Match the end points to the discretized path
         self.match_ports(cell_name, ports1, orientations1, a_star_path[0], trace_width, layer_name, routing_angle=routing_angle)
         self.match_ports(cell_name, ports2, orientations2, a_star_path[-1], trace_width, layer_name, routing_angle=routing_angle)
 
         return a_star_path, path_obstacles
     
     def match_ports(self, cell_name, ports1, orientations1, center2, trace_width, layer_name, routing_angle=45):
+        """
+        Match a set of ports to an opposing set of ports.
+        """
         assert np.all(orientations1 == orientations1[0])
         assert isinstance(trace_width, (int, float))
 
@@ -4068,6 +4106,7 @@ class GDSDesign:
 
                     y_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
 
+    # Deprecated
     def route_ports_combined(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
                            bbox1, bbox2, show_animation=False, obstacles=[]):
         assert len(ports1) == len(ports2)
