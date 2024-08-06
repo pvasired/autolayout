@@ -366,6 +366,8 @@ class MyApp(QWidget):
         self.redoStack = []  # Initialize redo stack
         self.escapeDicts = {}  # To store escape routing dictionaries
         self.routing = []
+        self.routingMode = False
+        self.flareMode = False
         self.initUI()
 
     def initUI(self):
@@ -555,6 +557,33 @@ class MyApp(QWidget):
         self.toolbar = NavigationToolbar(self.canvas, self)
         plotAreaLayout.addWidget(self.toolbar)
 
+        # Add Routing Mode and Flare Mode buttons
+        modeButtonLayout = QHBoxLayout()
+        self.routingModeButton = QPushButton('Routing Mode')
+        self.routingModeButton.clicked.connect(self.setRoutingMode)
+        self.routingModeButton.setToolTip('Click to enter routing mode.')
+        self.flareModeButton = QPushButton('Flare Mode')
+        self.flareModeButton.clicked.connect(self.setFlareMode)
+        self.flareModeButton.setToolTip('Click to enter flare (fan out) mode.')
+        modeButtonLayout.addWidget(self.routingModeButton)
+        modeButtonLayout.addWidget(self.flareModeButton)
+        plotAreaLayout.addLayout(modeButtonLayout)
+
+        # Add text fields for Flare Mode
+        flareModeLayout = QHBoxLayout()
+        self.endingTraceWidthEdit = QLineEdit()
+        self.endingTraceWidthEdit.setPlaceholderText('Ending Trace Width')
+        self.endingTraceWidthEdit.setToolTip('Enter the ending trace width of the fan out.')
+        self.endingTraceSpaceEdit = QLineEdit()
+        self.endingTraceSpaceEdit.setPlaceholderText('Ending Trace Space')
+        self.endingTraceSpaceEdit.setToolTip('Enter the ending trace space of the fan out.')
+        flareModeLayout.addWidget(self.endingTraceWidthEdit)
+        flareModeLayout.addWidget(self.endingTraceSpaceEdit)
+        plotAreaLayout.addLayout(flareModeLayout)
+
+        self.endingTraceWidthEdit.hide()
+        self.endingTraceSpaceEdit.hide()
+
         mainLayout.addLayout(plotAreaLayout)  # Add the plot area layout to the main layout
 
         # Write to GDS button
@@ -567,6 +596,28 @@ class MyApp(QWidget):
         self.setWindowTitle('Test Structure Automation GUI')
         self.resize(2800, 800)  # Set the initial size of the window
         self.show()
+
+    def setRoutingMode(self):
+        self.routingMode = True
+        self.flareMode = False
+        self.updateModeButtons()
+        self.endingTraceWidthEdit.hide()
+        self.endingTraceSpaceEdit.hide()
+
+    def setFlareMode(self):
+        self.routingMode = False
+        self.flareMode = True
+        self.updateModeButtons()
+        self.endingTraceWidthEdit.show()
+        self.endingTraceSpaceEdit.show()
+
+    def updateModeButtons(self):
+        if self.routingMode:
+            self.routingModeButton.setStyleSheet("background-color: lightgreen")
+            self.flareModeButton.setStyleSheet("")
+        else:
+            self.routingModeButton.setStyleSheet("")
+            self.flareModeButton.setStyleSheet("background-color: lightgreen")
     
     def showMatplotlibWindow(self):
         if self.gds_design is None:
@@ -622,98 +673,165 @@ class MyApp(QWidget):
     def process_click(self, x, y):
         # Implement your processing logic here
         self.log(f"Processing click at: ({x}, {y})")
-        
-        min_dist = np.inf
-        route_ports = None
-        route_orientations = None
-        route_trace_width = None
-        route_trace_space = None
 
-        cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
-        layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
-        layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
-        for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
-            # Calculate the distance from the click to the escape routing
-            for orientation in escapeDict:
-                layer = escapeDict[orientation][2]
-                if layer == layer_number:
-                    dist = np.linalg.norm(np.mean(escapeDict[orientation][0], axis=0)-np.array([x, y]))
-                    if dist < min_dist:
-                        min_dist = dist
-                        route_ports = escapeDict[orientation][0]
-                        route_orientations = escapeDict[orientation][1]  
-                        route_trace_width = escapeDict[orientation][3]
-                        route_trace_space = escapeDict[orientation][4]
-        
-        if route_ports is None:
-            QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
-            self.log("No valid ports found in cell.")
-            return
-        # Query the user to confirm the choice of ports and orientations
-        reply = QMessageBox.question(self, "Confirm Ports", f"You have selected {len(route_ports)} ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            self.routing.append((route_ports, route_orientations, route_trace_width, route_trace_space))
-        else:
-            return
-        
-        if len(self.routing) == 2:
-            ports1, orientations1, trace_width1, trace_space1 = self.routing[0]
-            ports2, orientations2, trace_width2, trace_space2 = self.routing[1]
+        if self.routingMode:
+            self.log("Routing mode is active")
+            min_dist = np.inf
+            route_ports = None
+            route_orientations = None
+            route_trace_width = None
+            route_trace_space = None
 
-            if trace_width1 != trace_width2 or trace_space1 != trace_space2:
-                QMessageBox.critical(self, "Design Error", "Trace pitches do not match.", QMessageBox.Ok)
-                self.log("Trace pitches do not match.")
-                self.routing = []
+            cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
+            layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+            layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
+            for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
+                # Calculate the distance from the click to the escape routing
+                for orientation in escapeDict:
+                    layer = escapeDict[orientation][2]
+                    if layer == layer_number:
+                        dist = np.linalg.norm(np.mean(escapeDict[orientation][0], axis=0)-np.array([x, y]))
+                        if dist < min_dist:
+                            min_dist = dist
+                            route_ports = escapeDict[orientation][0]
+                            route_orientations = escapeDict[orientation][1]  
+                            route_trace_width = escapeDict[orientation][3]
+                            route_trace_space = escapeDict[orientation][4]
+            
+            if route_ports is None:
+                QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
+                self.log("No valid ports found in cell.")
+                return
+            # Query the user to confirm the choice of ports and orientations
+            reply = QMessageBox.question(self, "Confirm Ports", f"You have selected {len(route_ports)} ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
+                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.routing.append((route_ports, route_orientations, route_trace_width, route_trace_space))
+            else:
                 return
             
-            obstacles = []
-            polygons_by_spec = cell.get_polygons(by_spec=True)
-            for (lay, dat), polys in polygons_by_spec.items():
-                if lay == layer_number:
-                    for poly in polys:
-                        poly = np.around(poly, 3)
-                        obstacles.append(poly.tolist())
+            if len(self.routing) == 2:
+                ports1, orientations1, trace_width1, trace_space1 = self.routing[0]
+                ports2, orientations2, trace_width2, trace_space2 = self.routing[1]
 
-            self.addSnapshot()  # Store snapshot before adding new design
+                if trace_width1 != trace_width2 or trace_space1 != trace_space2:
+                    QMessageBox.critical(self, "Design Error", "Trace pitches do not match.", QMessageBox.Ok)
+                    self.log("Trace pitches do not match.")
+                    self.routing = []
+                    return
+                
+                obstacles = []
+                polygons_by_spec = cell.get_polygons(by_spec=True)
+                for (lay, dat), polys in polygons_by_spec.items():
+                    if lay == layer_number:
+                        for poly in polys:
+                            poly = np.around(poly, 3)
+                            obstacles.append(poly.tolist())
+
+                self.addSnapshot()  # Store snapshot before adding new design
+                try:
+                    if len(ports1) != len(ports2):
+                        if len(ports1) < len(ports2):
+                            ports2 = ports2[:len(ports1)]
+                            orientations2 = orientations2[:len(orientations1)]
+                        else:
+                            ports1 = ports1[:len(ports2)]
+                            orientations1 = orientations1[:len(orientations2)]
+
+                    self.gds_design.route_ports_a_star(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
+                                                ports2, orientations2, trace_width1, trace_space1, layer_name,
+                                                show_animation=False, obstacles=obstacles)
+
+                    # Remove the routed ports from the corresponding escapeDicts
+                    for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
+                        for orientation in escapeDict:
+                            ports = escapeDict[orientation][0]
+                            
+                            idx1 = np.where(~np.any(np.all(ports[:, None] == ports1, axis=2), axis=1))[0]
+                            idx2 = np.where(~np.any(np.all(ports[:, None] == ports2, axis=2), axis=1))[0]
+
+                            idx = np.intersect1d(idx1, idx2)
+                            escapeDict[orientation] = (escapeDict[orientation][0][idx], escapeDict[orientation][1][idx], escapeDict[orientation][2], escapeDict[orientation][3], escapeDict[orientation][4])              
+                    
+                    # Write the design
+                    self.writeToGDS()
+                    # Update the available space
+                    self.updateAvailableSpace()
+                    
+                    self.update_plot_data(cell)
+                    self.update_plot()
+                except (Exception, AssertionError, ValueError) as e:
+                    QMessageBox.critical(self, "Design Error", f"Error routing ports: {str(e)}", QMessageBox.Ok)
+                    self.log(f"Error routing ports: {str(e)}")
+
+                    self.undo()
+
+                self.routing = []
+
+        elif self.flareMode:
+            self.log("Flare mode is active")
             try:
-                if len(ports1) != len(ports2):
-                    if len(ports1) < len(ports2):
-                        ports2 = ports2[:len(ports1)]
-                        orientations2 = orientations2[:len(orientations1)]
-                    else:
-                        ports1 = ports1[:len(ports2)]
-                        orientations1 = orientations1[:len(orientations2)]
+                ending_trace_width = float(self.endingTraceWidthEdit.text())
+                ending_trace_space = float(self.endingTraceSpaceEdit.text())
+            except ValueError:
+                QMessageBox.critical(self, "Design Error", "Invalid ending trace width or space.", QMessageBox.Ok)
+                self.log("Invalid ending trace width or space.")
+                return
+            
+            min_dist = np.inf
+            min_orientation = None
+            route_ports = None
+            route_orientations = None
+            route_trace_width = None
+            route_trace_space = None
 
-                self.gds_design.route_ports_a_star(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
-                                            ports2, orientations2, trace_width1, trace_space1, layer_name,
-                                            show_animation=False, obstacles=obstacles)
+            cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
+            layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+            layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
+            for i, escapeDict in enumerate(self.escapeDicts[self.cellComboBox.currentText()]):
+                # Calculate the distance from the click to the escape routing
+                for orientation in escapeDict:
+                    layer = escapeDict[orientation][2]
+                    if layer == layer_number:
+                        dist = np.linalg.norm(np.mean(escapeDict[orientation][0], axis=0)-np.array([x, y]))
+                        if dist < min_dist:
+                            min_dist = dist
+                            min_orientation = i, orientation
+                            route_ports = escapeDict[orientation][0]
+                            route_orientations = escapeDict[orientation][1]  
+                            route_trace_width = escapeDict[orientation][3]
+                            route_trace_space = escapeDict[orientation][4]
+            
+            if route_ports is None:
+                QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
+                self.log("No valid ports found in cell.")
+                return
+            
+            # Query the user to confirm the choice of ports and orientations
+            reply = QMessageBox.question(self, "Confirm Ports", f"You have selected {len(route_ports)} ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
+                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            
+            if reply == QMessageBox.Yes:
+                self.addSnapshot()  # Store snapshot before adding new design
+                try:
+                    self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]] = self.gds_design.flare_ports(self.cellComboBox.currentText(), layer_name, route_ports, 
+                                                                                                                     route_orientations, route_trace_width, route_trace_space, 
+                                                                                                                     ending_trace_width, ending_trace_space)
+                    # Write the design
+                    self.writeToGDS()
+                    # Update the available space
+                    self.updateAvailableSpace()
+                    
+                    self.update_plot_data(cell)
+                    self.update_plot()
+                except (Exception, AssertionError, ValueError) as e:
+                    QMessageBox.critical(self, "Design Error", f"Error flaring ports: {str(e)}", QMessageBox.Ok)
+                    self.log(f"Error flaring ports: {str(e)}")
 
-                # Remove the routed ports from the corresponding escapeDicts
-                for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
-                    for orientation in escapeDict:
-                        ports = escapeDict[orientation][0]
-                        
-                        idx1 = np.where(~np.any(np.all(ports[:, None] == ports1, axis=2), axis=1))[0]
-                        idx2 = np.where(~np.any(np.all(ports[:, None] == ports2, axis=2), axis=1))[0]
-
-                        idx = np.intersect1d(idx1, idx2)
-                        escapeDict[orientation] = (escapeDict[orientation][0][idx], escapeDict[orientation][1][idx], escapeDict[orientation][2], escapeDict[orientation][3], escapeDict[orientation][4])              
-                
-                # Write the design
-                self.writeToGDS()
-                # Update the available space
-                self.updateAvailableSpace()
-                
-                self.update_plot_data(cell)
-                self.update_plot()
-            except (Exception, AssertionError, ValueError) as e:
-                QMessageBox.critical(self, "Design Error", f"Error routing ports: {str(e)}", QMessageBox.Ok)
-                self.log(f"Error routing ports: {str(e)}")
-
-                self.undo()
-
-            self.routing = []
+                    self.undo()
+                    return
+            else:
+                return
     
     def updateExcludedLayers(self):
         # Output: sets self.excludedLayers and updates available space and all other polygons

@@ -4,6 +4,7 @@ import math
 from shapely.geometry import Polygon, Point
 from shapely.prepared import prep
 import random
+import time
 
 class Node:
     """node with properties of g, h, coordinate and parent node"""
@@ -245,7 +246,7 @@ def draw_control(org_closed, flag, start, end, bound, obstacle, show_animation=F
     return stop_loop, path
 
 
-def searching_control(start, end, bound, obstacle, start_direction=None, show_animation=False):
+def searching_control(start, end, bound, obstacle, start_direction=None, show_animation=False, timeout=20):
     """manage the searching process, start searching from one side"""
     # initial origin node and end node
     origin = Node(coordinate=start, H=hcost(start, end))
@@ -258,7 +259,10 @@ def searching_control(start, end, bound, obstacle, start_direction=None, show_an
     flag = 0  # init flag
     path = None
     initial_step_start = True
+    start_time = time.time()
     while True:
+        if time.time() - start_time > timeout:
+            raise Exception('Timeout: No path found')
         # searching from start to end
         origin_open, origin_close = \
             find_path(origin_open, origin_close, target_goal, bound, start_direction, initial_step_start)

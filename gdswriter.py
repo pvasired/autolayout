@@ -2826,7 +2826,7 @@ class GDSDesign:
             wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
             wire_orientations = np.full(len(wire_ports), 180)
 
-        return wire_ports, wire_orientations
+        return wire_ports, wire_orientations, self.get_layer_number(layer_name), ending_trace_width, ending_trace_space
     
     def route_ports_a_star(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, trace_space,
                            layer_name, show_animation=True, obstacles=[], routing_angle=45, initial_steps=1):
