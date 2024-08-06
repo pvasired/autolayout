@@ -284,9 +284,10 @@ def convert_polygons_to_obstacles(polygons, path_width, spacing):
         xmin, ymin, xmax, ymax = buffered_polygon.bounds
         for x in range(math.floor(xmin), math.ceil(xmax)+1):
             for y in range(math.floor(ymin), math.ceil(ymax)+1):
-                point = Point(x, y)
-                if prep(buffered_polygon).contains(point):
-                    obstacles.add((x, y))
+                if (x, y) not in obstacles:
+                    point = Point(x, y)
+                    if prep(buffered_polygon).contains(point):
+                        obstacles.add((x, y))
     
     return np.array(list(obstacles)).tolist()
 

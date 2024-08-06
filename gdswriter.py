@@ -720,7 +720,7 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
+        trace_space = math.ceil(trace_space/np.sin(autorouting_angle*np.pi/180))
         
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -868,7 +868,7 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
+        trace_space = math.ceil(trace_space/np.sin(autorouting_angle*np.pi/180))
 
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1121,7 +1121,7 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
+        trace_space = math.ceil(trace_space/np.sin(autorouting_angle*np.pi/180))
 
         effective_pitch_y = pitch_y - pad_diameter
         effective_pitch_x = pitch_x - pad_diameter
@@ -1245,7 +1245,7 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float)), "Error: Trace space must be a number."
-        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
+        trace_space = math.ceil(trace_space/np.sin(autorouting_angle*np.pi/180))
 
         effective_pitch_x = pitch_x - pad_diameter
         effective_pitch_y = pitch_y - pad_diameter
@@ -3870,7 +3870,7 @@ class GDSDesign:
         if trace_space is None:
             trace_space = trace_width
         assert isinstance(trace_space, (int, float))
-        trace_space = trace_space/np.sin(autorouting_angle*np.pi/180)
+        trace_space = math.ceil(trace_space/np.sin(autorouting_angle*np.pi/180))
         trace_pitch = trace_width + trace_space
 
         D = pg.import_gds(filename, cellname=cell_name)
@@ -3951,7 +3951,122 @@ class GDSDesign:
             path_obstacles.append(poly.tolist())
         D.add_ref(path)
 
-        return path_obstacles
+        self.match_ports(cell_name, ports1, orientations1, a_star_path[0], trace_width, layer_name, routing_angle=routing_angle)
+        self.match_ports(cell_name, ports2, orientations2, a_star_path[-1], trace_width, layer_name, routing_angle=routing_angle)
+
+        return a_star_path, path_obstacles
+    
+    def match_ports(self, cell_name, ports1, orientations1, center2, trace_width, layer_name, routing_angle=45):
+        assert np.all(orientations1 == orientations1[0])
+        assert isinstance(trace_width, (int, float))
+
+        if orientations1[0] == 90:
+            ports1 = ports1[np.argsort(ports1[:, 0])]
+            assert len(np.unique(np.around(np.diff(ports1[:, 0]), 3))) == 1, "Ports must be evenly spaced"
+            spacing = np.unique(np.around(np.diff(ports1[:, 0]), 3))[0]
+            center_diff = center2[0] - np.mean(ports1, axis=0)[0] 
+            if center_diff > 0:
+                ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
+                y_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]+y_accumulated)], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0], port[1]+y_accumulated), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0], port[1]+y_accumulated), routing_angle, center_diff, center2[1]-port[1]-y_accumulated, post_rotation=-90, post_reflection=True)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    y_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+            else:
+                y_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]+y_accumulated)], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0], port[1]+y_accumulated), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0], port[1]+y_accumulated), routing_angle, -center_diff, center2[1]-port[1]-y_accumulated, post_rotation=90, post_reflection=False)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    y_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+
+        elif orientations1[0] == 0:
+            ports1 = ports1[np.argsort(ports1[:, 1])]
+            assert len(np.unique(np.around(np.diff(ports1[:, 1]), 3))) == 1, "Ports must be evenly spaced"
+            spacing = np.unique(np.around(np.diff(ports1[:, 1]), 3))[0]
+            center_diff = center2[1] - np.mean(ports1, axis=0)[1] 
+            if center_diff > 0:
+                ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
+                x_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0]+x_accumulated, port[1])], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0]+x_accumulated, port[1]), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0]+x_accumulated, port[1]), routing_angle, center_diff, center2[0]-port[0]-x_accumulated, post_rotation=0, post_reflection=False)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    x_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+            else:
+                x_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0]+x_accumulated, port[1])], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0]+x_accumulated, port[1]), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0]+x_accumulated, port[1]), routing_angle, -center_diff, center2[0]-port[0]-x_accumulated, post_rotation=180, post_reflection=True)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    x_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+
+        elif orientations1[0] == 180:
+            ports1 = ports1[np.argsort(ports1[:, 1])]
+            assert len(np.unique(np.around(np.diff(ports1[:, 1]), 3))) == 1, "Ports must be evenly spaced"
+            spacing = np.unique(np.around(np.diff(ports1[:, 1]), 3))[0]
+            center_diff = center2[1] - np.mean(ports1, axis=0)[1]
+            if center_diff > 0:
+                ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
+                x_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0]-x_accumulated, port[1])], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0]-x_accumulated, port[1]), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0]-x_accumulated, port[1]), routing_angle, center_diff, port[0]-center2[0]-x_accumulated, post_rotation=0, post_reflection=True)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    x_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+            else:
+                x_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0]-x_accumulated, port[1])], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0]-x_accumulated, port[1]), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0]-x_accumulated, port[1]), routing_angle, -center_diff, port[0]-center2[0]-x_accumulated, post_rotation=180, post_reflection=False)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    x_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+        
+        elif orientations1[0] == 270:
+            ports1 = ports1[np.argsort(ports1[:, 0])]
+            assert len(np.unique(np.around(np.diff(ports1[:, 0]), 3))) == 1, "Ports must be evenly spaced"
+            spacing = np.unique(np.around(np.diff(ports1[:, 0]), 3))[0]
+            center_diff = center2[0] - np.mean(ports1, axis=0)[0]
+            if center_diff > 0:
+                ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
+                y_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]-y_accumulated)], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0], port[1]-y_accumulated), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0], port[1]-y_accumulated), routing_angle, center_diff, port[1]-center2[1]-y_accumulated, post_rotation=-90, post_reflection=False)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    y_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+            else:
+                y_accumulated = 0
+                for i, port in enumerate(ports1):
+                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]-y_accumulated)], trace_width, layer_name)
+                    self.add_circle_as_polygon(cell_name, (port[0], port[1]-y_accumulated), trace_width/2, layer_name)
+                    
+                    hinged_path = create_hinged_path((port[0], port[1]-y_accumulated), routing_angle, -center_diff, port[1]-center2[1]-y_accumulated, post_rotation=90, post_reflection=True)
+                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+
+                    y_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
 
     def route_ports_combined(self, filename, cell_name, ports1, orientations1, ports2, orientations2, trace_width, layer_name, 
                            bbox1, bbox2, show_animation=False, obstacles=[]):
