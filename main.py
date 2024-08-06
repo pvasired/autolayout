@@ -534,6 +534,21 @@ class MyApp(QWidget):
         layersVBoxLayout.addLayout(layersHBoxLayout)
         layersVBoxLayout.addLayout(defineLayerHBoxLayout)
 
+        plotAreaLayout = QVBoxLayout()
+        # Create a new figure with a larger size
+        self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
+        self.canvas = FigureCanvas(self.fig)
+        self.ax = self.fig.add_subplot(111)
+        
+        # Connect the click event to the handler
+        self.canvas.mpl_connect('button_press_event', self.on_click)
+        plotAreaLayout.addWidget(self.canvas)
+
+        # Add the navigation toolbar to the layout
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        plotAreaLayout.addWidget(self.toolbar)
+        mainLayout.addLayout(plotAreaLayout)
+
         mainLayout.addLayout(layersVBoxLayout)
 
         # Write to GDS button
@@ -564,41 +579,7 @@ class MyApp(QWidget):
         cell = self.gds_design.check_cell_exists(selected_cell)
         self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
         self.update_plot_data(cell)
-
-        if hasattr(self, 'plotWindow') and self.plotWindow is not None:
-            self.plotWindow.close()
-
-        # Create a new figure with a larger size
-        self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
-        self.canvas = FigureCanvas(self.fig)
-        self.ax = self.fig.add_subplot(111)
-
-        # Create a new window for the plot
-        self.plotWindow = QWidget()
-        self.plotWindow.closeEvent = self.closeEvent  # Set the custom close event
-        layout = QVBoxLayout()
-
-        # Add the Matplotlib canvas to the layout
-        layout.addWidget(self.canvas)
-
-        # Add the navigation toolbar to the layout
-        self.toolbar = NavigationToolbar(self.canvas, self.plotWindow)
-        layout.addWidget(self.toolbar)
-
-        self.plotWindow.setLayout(layout)
-        self.plotWindow.setWindowTitle("Interactive Matplotlib Plot")
-        self.plotWindow.setGeometry(100, 100, 2000, 1500)  # Adjust the window size to be larger
-        self.plotWindow.show()
-
-        # Connect the click event to the handler
-        self.canvas.mpl_connect('button_press_event', self.on_click)
-
         self.update_plot()
-
-    def closeEvent(self, event):
-        self.log("Plot window closed")
-        self.plotWindow = None
-        event.accept()
 
     def update_plot_data(self, cell):
         polygons_by_spec = cell.get_polygons(by_spec=True)
@@ -674,7 +655,7 @@ class MyApp(QWidget):
             ports1, orientations1, trace_width1, trace_space1 = self.routing[0]
             ports2, orientations2, trace_width2, trace_space2 = self.routing[1]
 
-            if trace_width1 + trace_space1 != trace_width2 + trace_space2:
+            if trace_width1 != trace_width2 or trace_space1 != trace_space2:
                 QMessageBox.critical(self, "Design Error", "Trace pitches do not match.", QMessageBox.Ok)
                 self.log("Trace pitches do not match.")
                 self.routing = []
@@ -872,11 +853,8 @@ class MyApp(QWidget):
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
-            # Update plot if open
-            if hasattr(self, 'plotWindow') and self.plotWindow is not None:
-                if self.plotWindow.isVisible():
-                    self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                    self.update_plot()
+            self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+            self.update_plot()
         else:
             QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
 
@@ -888,11 +866,8 @@ class MyApp(QWidget):
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
-            # Update plot if open
-            if hasattr(self, 'plotWindow') and self.plotWindow is not None:
-                if self.plotWindow.isVisible():
-                    self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                    self.update_plot()
+            self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+            self.update_plot()
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
 
@@ -929,6 +904,8 @@ class MyApp(QWidget):
                 self.cellComboBox.clear()
                 self.cellComboBox.addItems(self.gds_design.cells.keys())
                 self.log(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+                self.showMatplotlibWindow()
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -1146,11 +1123,8 @@ class MyApp(QWidget):
                 # Update the available space
                 self.updateAvailableSpace()
 
-                # Update plot if open
-                if hasattr(self, 'plotWindow') and self.plotWindow is not None:
-                    if self.plotWindow.isVisible():
-                        self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                        self.update_plot()
+                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+                self.update_plot()
             
             else:
                 self.undo()
