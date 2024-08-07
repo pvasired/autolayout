@@ -95,8 +95,8 @@ class MyApp(QWidget):
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
-            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent"],
-            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Spacing X", "Spacing Y", "Automatic Placement"]
+            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent"],
+            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Automatic Placement"]
         }
         self.paramTooltips = {
             "MLA Alignment Mark": {
@@ -219,8 +219,8 @@ class MyApp(QWidget):
                 "Center": "Enter the center (x, y) coordinate of the escape routing.",
                 "Copies X": "Enter the number of copies in the x direction.",
                 "Copies Y": "Enter the number of copies in the y direction.",
-                "Spacing X": "Enter the spacing between copies in the x direction.",
-                "Spacing Y": "Enter the spacing between copies in the y direction.",
+                "Pitch X": "Enter the center-to-center pitch between copies in the x direction.",
+                "Pitch Y": "Enter the center-to-center pitch between copies in the y direction.",
                 "Trace Width": "Enter the width of the traces.",
                 "Trace Space": "Enter the spacing between traces.",
                 "Pad Diameter": "Enter the diameter of the pads.",
@@ -235,8 +235,8 @@ class MyApp(QWidget):
                 "Array": "Check to create an array of the structure.",
                 "Copies X": "Enter the number of copies in the x direction.",
                 "Copies Y": "Enter the number of copies in the y direction.",
-                "Spacing X": "Enter the spacing between copies in the x direction.",
-                "Spacing Y": "Enter the spacing between copies in the y direction.",
+                "Pitch X": "Enter the center-to-center pitch between copies in the x direction.",
+                "Pitch Y": "Enter the center-to-center pitch between copies in the y direction.",
                 "Automatic Placement": "Check to automatically place the custom test structure."
             }
         }
@@ -361,8 +361,8 @@ class MyApp(QWidget):
                 "Center": '',
                 "Copies X": '',
                 "Copies Y": '',
-                "Spacing X": '',
-                "Spacing Y": '',
+                "Pitch X": '',
+                "Pitch Y": '',
                 "Trace Width": '',
                 "Trace Space": '',
                 "Pad Diameter": '',
@@ -377,8 +377,8 @@ class MyApp(QWidget):
                 "Array": False,
                 "Copies X": 1,
                 "Copies Y": 1,
-                "Spacing X": 0,
-                "Spacing Y": 0,
+                "Pitch X": 0,
+                "Pitch Y": 0,
                 "Automatic Placement": True
             }
         }
@@ -1337,7 +1337,7 @@ class MyApp(QWidget):
                     params[param.replace(" ", "_")] = value
         return params
 
-    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Trace_Width, Trace_Space, Pad_Diameter, Orientation, Escape_Extent):
+    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Trace_Width, Trace_Space, Pad_Diameter, Orientation, Escape_Extent):
         if Orientation is None:
             QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the escape routing.", QMessageBox.Ok)
             return False
@@ -1365,8 +1365,8 @@ class MyApp(QWidget):
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
-                    pitch_x=float(Spacing_X),
-                    pitch_y=float(Spacing_Y),
+                    pitch_x=float(Pitch_X),
+                    pitch_y=float(Pitch_Y),
                     array_size_x=int(Copies_X),
                     array_size_y=int(Copies_Y),
                     trace_width=float(Trace_Width),
@@ -1400,8 +1400,8 @@ class MyApp(QWidget):
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
-                    pitch_x=float(Spacing_X),
-                    pitch_y=float(Spacing_Y),
+                    pitch_x=float(Pitch_X),
+                    pitch_y=float(Pitch_Y),
                     array_size_x=int(Copies_X),
                     array_size_y=int(Copies_Y),
                     trace_width=float(Trace_Width),
@@ -1441,8 +1441,8 @@ class MyApp(QWidget):
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
-                    pitch_x=float(Spacing_X),
-                    pitch_y=float(Spacing_Y),
+                    pitch_x=float(Pitch_X),
+                    pitch_y=float(Pitch_Y),
                     array_size_x=int(Copies_X),
                     array_size_y=int(Copies_Y),
                     trace_width=float(Trace_Width),
@@ -1467,8 +1467,8 @@ class MyApp(QWidget):
                     trace_cell_name=Cell_Name,
                     center=Center,
                     layer_name=Layer,
-                    pitch_x=float(Spacing_X),
-                    pitch_y=float(Spacing_Y),
+                    pitch_x=float(Pitch_X),
+                    pitch_y=float(Pitch_Y),
                     array_size_x=int(Copies_X),
                     array_size_y=int(Copies_Y),
                     trace_width=float(Trace_Width),
@@ -2267,7 +2267,7 @@ class MyApp(QWidget):
         self.log(f"Short Test added to {top_cell_name} on layer {Layer} at center {Center}")
         return True
 
-    def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Spacing_X, Spacing_Y, Automatic_Placement):
+    def addCustomTestStructure(self, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Automatic_Placement):
         top_cell_name = self.gds_design.top_cell_names[0]
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
@@ -2388,8 +2388,8 @@ class MyApp(QWidget):
                             cell_name_to_array=self.customTestCellName,
                             copies_x=int(Copies_X),
                             copies_y=int(Copies_Y),
-                            spacing_x=float(Spacing_X),
-                            spacing_y=float(Spacing_Y),
+                            spacing_x=float(Pitch_X),
+                            spacing_y=float(Pitch_Y),
                             origin=Center,
                             magnification=float(Magnification),
                             rotation=float(Rotation),
@@ -2412,8 +2412,8 @@ class MyApp(QWidget):
                             cell_name_to_array=self.customTestCellName,
                             copies_x=int(Copies_X),
                             copies_y=int(Copies_Y),
-                            spacing_x=float(Spacing_X),
-                            spacing_y=float(Spacing_Y),
+                            spacing_x=float(Pitch_X),
+                            spacing_y=float(Pitch_Y),
                             origin=(0,0),
                             magnification=float(Magnification),
                             rotation=float(Rotation),
@@ -2446,8 +2446,8 @@ class MyApp(QWidget):
                         cell_name_to_array=self.customTestCellName,
                         copies_x=int(Copies_X),
                         copies_y=int(Copies_Y),
-                        spacing_x=float(Spacing_X),
-                        spacing_y=float(Spacing_Y),
+                        spacing_x=float(Pitch_X),
+                        spacing_y=float(Pitch_Y),
                         origin=Center,
                         magnification=float(Magnification),
                         rotation=float(Rotation),
@@ -2465,11 +2465,11 @@ class MyApp(QWidget):
                     "X Reflection": X_Reflection,
                     "Copies X": Copies_X,
                     "Copies Y": Copies_Y,
-                    "Spacing X": Spacing_X,
-                    "Spacing Y": Spacing_Y
+                    "Pitch X": Pitch_X,
+                    "Pitch Y": Pitch_Y
                 }
                 self.logTestStructure("Custom Test Structure Array", params)  # Log the test structure details
-                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Spacing_X}, spacing y {Spacing_Y}")
+                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Pitch_X}, spacing y {Pitch_Y}")
                 return True
             
     def handleCustomTestCellName(self):
