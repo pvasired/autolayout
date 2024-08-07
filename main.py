@@ -22,6 +22,14 @@ TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
 TEMP_CELL_NAME = "SIZE CHECK TEMP"
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 class CycleLineEdit(QLineEdit):
     def __init__(self, comboBox, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -2535,6 +2543,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon('./favicon.ico'))  # Set the application icon here
+    app.setWindowIcon(QIcon(resource_path('favicon.ico')))  # Set the application icon here
     ex = MyApp(verbose=True)
     sys.exit(app.exec_())
