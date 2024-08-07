@@ -2469,7 +2469,7 @@ class MyApp(QWidget):
                     "Pitch Y": Pitch_Y
                 }
                 self.logTestStructure("Custom Test Structure Array", params)  # Log the test structure details
-                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, spacing x {Pitch_X}, spacing y {Pitch_Y}")
+                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {top_cell_name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, pitch x {Pitch_X}, pitch y {Pitch_Y}")
                 return True
             
     def handleCustomTestCellName(self):
