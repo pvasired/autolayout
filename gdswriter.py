@@ -2650,7 +2650,7 @@ class GDSDesign:
                                (port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)+escape_extent)]
                 self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
-                wire_ports.append((port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)))
+                wire_ports.append((port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)+escape_extent))
 
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
@@ -2714,7 +2714,7 @@ class GDSDesign:
                                (port[0], port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)-escape_extent)]
                 self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
-                wire_ports.append((port[0], port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)))
+                wire_ports.append((port[0], port[1]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)-escape_extent))
 
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
@@ -2778,7 +2778,7 @@ class GDSDesign:
                                (port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)+escape_extent, port[1])]
                 self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
-                wire_ports.append((port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]))
+                wire_ports.append((port[0]+(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)+escape_extent, port[1]))
 
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
@@ -2842,7 +2842,7 @@ class GDSDesign:
                                (port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)-escape_extent, port[1])]
                 self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
-                wire_ports.append((port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180), port[1]))
+                wire_ports.append((port[0]-(ending_trace_width-starting_trace_width)/2*np.tan(routing_angle*np.pi/180)-escape_extent, port[1]))
 
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 1])]
