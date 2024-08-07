@@ -3,6 +3,7 @@ import argparse
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip
 )
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QEvent
 from gdswriter import GDSDesign  # Import the GDSDesign class
 from copy import deepcopy
@@ -609,7 +610,7 @@ class MyApp(QWidget):
         leftLayout.addWidget(writeButton)  # Add the write button to the left layout
 
         self.setLayout(mainLayout)
-        self.setWindowTitle('Test Structure Automation GUI')
+        self.setWindowTitle('GDS Automation GUI')
         self.resize(2800, 800)  # Set the initial size of the window
         self.show()
 
@@ -2534,5 +2535,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon('./favicon.ico'))  # Set the application icon here
     ex = MyApp(verbose=True)
     sys.exit(app.exec_())
