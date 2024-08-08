@@ -21,6 +21,7 @@ matplotlib.use('Qt5Agg')
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
 TEMP_CELL_NAME = "SIZE CHECK TEMP"
+TILDE_KEY = 96
 
 def resource_path(relative_path):
     try:
@@ -42,6 +43,13 @@ class CycleLineEdit(QLineEdit):
             
             currentIndex = self.comboBox.currentIndex()
             nextIndex = (currentIndex + 1) % self.comboBox.count()
+            self.comboBox.setCurrentIndex(nextIndex)
+            return True  # Event handled
+        elif event.type() == QEvent.KeyPress and event.key() == TILDE_KEY:
+            self.editingFinished.emit()
+            
+            currentIndex = self.comboBox.currentIndex()
+            nextIndex = (currentIndex - 1) % self.comboBox.count()
             self.comboBox.setCurrentIndex(nextIndex)
             return True  # Event handled
         return super().eventFilter(obj, event)
