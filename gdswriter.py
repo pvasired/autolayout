@@ -624,7 +624,7 @@ class GDSDesign:
         polygon = gdspy.Polygon(points, layer=layer_number, datatype=datatype)
         self.add_component(cell, cell_name, polygon, netID, layer_number)
 
-    def add_path_as_polygon(self, cell_name, points, width, layer_name, datatype=0, netID=0, as_path=True):
+    def add_path_as_polygon(self, cell_name, points, width, layer_name, datatype=0, netID=0, as_path=True, ends='flush'):
         """
         Convert a path defined by a series of points and a width into a polygon and add it to the specified cell and layer.
 
@@ -642,7 +642,7 @@ class GDSDesign:
         cell = self.check_cell_exists(cell_name)
 
         # Create the path as a polygon
-        path = gdspy.FlexPath(points, width, layer=layer_number, datatype=datatype, gdsii_path=as_path)
+        path = gdspy.FlexPath(points, width, layer=layer_number, datatype=datatype, gdsii_path=as_path, ends=ends)
 
         if not as_path:
             path_polygons = path.to_polygonset()  # Corrected method call here
