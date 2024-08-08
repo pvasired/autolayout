@@ -602,12 +602,27 @@ class MyApp(QWidget):
         self.endingTraceSpaceEdit = QLineEdit()
         self.endingTraceSpaceEdit.setPlaceholderText('Ending Trace Space')
         self.endingTraceSpaceEdit.setToolTip('Enter the ending trace space of the fan out.')
+        self.flareRoutingAngleEdit = QLineEdit()
+        self.flareRoutingAngleEdit.setText('90')
+        self.flareRoutingAngleEdit.setToolTip('Enter the flare routing angle in degrees: 90 degrees is handled with smooth turns.')
+        self.flareEscapeExtentEdit = QLineEdit()
+        self.flareEscapeExtentEdit.setText('100')
+        self.flareEscapeExtentEdit.setToolTip('Enter the extent of the escape in um: increasing this can help avoid collisions.')
+        self.flareFinalLengthEdit = QLineEdit()
+        self.flareFinalLengthEdit.setText('100')
+        self.flareFinalLengthEdit.setToolTip('Enter the final length of the traces in the flare.')
         flareModeLayout.addWidget(self.endingTraceWidthEdit)
         flareModeLayout.addWidget(self.endingTraceSpaceEdit)
+        flareModeLayout.addWidget(self.flareRoutingAngleEdit)
+        flareModeLayout.addWidget(self.flareEscapeExtentEdit)
+        flareModeLayout.addWidget(self.flareFinalLengthEdit)
         plotAreaLayout.addLayout(flareModeLayout)
 
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
+        self.flareRoutingAngleEdit.hide()
+        self.flareEscapeExtentEdit.hide()
+        self.flareFinalLengthEdit.hide()
 
         mainLayout.addLayout(plotAreaLayout)  # Add the plot area layout to the main layout
 
@@ -628,6 +643,9 @@ class MyApp(QWidget):
         self.updateModeButtons()
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
+        self.flareRoutingAngleEdit.hide()
+        self.flareEscapeExtentEdit.hide()
+        self.flareFinalLengthEdit.hide()
 
     def setFlareMode(self):
         self.routingMode = False
@@ -635,6 +653,9 @@ class MyApp(QWidget):
         self.updateModeButtons()
         self.endingTraceWidthEdit.show()
         self.endingTraceSpaceEdit.show()
+        self.flareRoutingAngleEdit.show()
+        self.flareEscapeExtentEdit.show()
+        self.flareFinalLengthEdit.show()
 
     def updateModeButtons(self):
         if self.routingMode:
@@ -798,9 +819,12 @@ class MyApp(QWidget):
             try:
                 ending_trace_width = float(self.endingTraceWidthEdit.text())
                 ending_trace_space = float(self.endingTraceSpaceEdit.text())
+                flare_routing_angle = float(self.flareRoutingAngleEdit.text())
+                flare_escape_extent = float(self.flareEscapeExtentEdit.text())
+                flare_final_length = float(self.flareFinalLengthEdit.text())
             except ValueError:
-                QMessageBox.critical(self, "Design Error", "Invalid ending trace width or space.", QMessageBox.Ok)
-                self.log("Invalid ending trace width or space.")
+                QMessageBox.critical(self, "Design Error", "Invalid flare parameters.", QMessageBox.Ok)
+                self.log("Invalid flare parameters.")
                 return
             
             min_dist = np.inf
@@ -841,7 +865,8 @@ class MyApp(QWidget):
                 try:
                     self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]] = self.gds_design.flare_ports(self.cellComboBox.currentText(), layer_name, route_ports, 
                                                                                                                      route_orientations, route_trace_width, route_trace_space, 
-                                                                                                                     ending_trace_width, ending_trace_space)
+                                                                                                                     ending_trace_width, ending_trace_space, routing_angle=flare_routing_angle,
+                                                                                                                     escape_extent=flare_escape_extent, final_length=flare_final_length)
                     # Write the design
                     self.writeToGDS()
                     # Update the available space

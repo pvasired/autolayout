@@ -2846,7 +2846,7 @@ class GDSDesign:
                 self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                 if routing_angle == 90:
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0]+x_accumulated+escape_extent, ports[idx][1]), width=starting_trace_width, orientation=0)
-                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[idx][0]+max_x, ports[center_ind][1]+(i+1)*ending_trace_pitch), width=starting_trace_width, orientation=180)
+                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[idx][0]+max_x, ports[center_ind][1]+(len(iter_inds_T)-i)*ending_trace_pitch), width=starting_trace_width, orientation=180)
                     route = pr.route_smooth(port1, port2, width=starting_trace_width, layer=self.get_layer_number(layer_name), radius=starting_trace_width)
                     for poly in route.get_polygons():
                         self.add_polygon(cell_name, poly, layer_name)
@@ -2936,7 +2936,7 @@ class GDSDesign:
                 self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                 if routing_angle == 90:
                     port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0]-x_accumulated-escape_extent, ports[idx][1]), width=starting_trace_width, orientation=180)
-                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[idx][0]-max_x, ports[center_ind][1]+(i+1)*ending_trace_pitch), width=starting_trace_width, orientation=0)
+                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[idx][0]-max_x, ports[center_ind][1]+(len(iter_inds_T)-i)*ending_trace_pitch), width=starting_trace_width, orientation=0)
                     route = pr.route_smooth(port1, port2, width=starting_trace_width, layer=self.get_layer_number(layer_name), radius=starting_trace_width)
                     for poly in route.get_polygons():
                         self.add_polygon(cell_name, poly, layer_name)
