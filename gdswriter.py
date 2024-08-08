@@ -2340,8 +2340,9 @@ class GDSDesign:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if y_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                     routing_angle, ports[center_ind][0]-i*trace_pitch-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
@@ -2363,8 +2364,9 @@ class GDSDesign:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if y_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                         routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
@@ -2407,8 +2409,9 @@ class GDSDesign:
                     p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if y_accumulated > 0:
+                            path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                            self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                     routing_angle, ports[center_ind][0]-i*trace_pitch-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=False)
@@ -2430,8 +2433,9 @@ class GDSDesign:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if y_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                         routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=True)
@@ -2474,8 +2478,9 @@ class GDSDesign:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if x_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[center_ind][1]-i*trace_pitch-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=False)
@@ -2497,8 +2502,9 @@ class GDSDesign:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if x_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                         routing_angle, ports[idx][1]-(ports[center_ind][1]+(i+1)*trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=True)
@@ -2541,8 +2547,9 @@ class GDSDesign:
                     p = ports[iter_inds_B[i-1]][1] - ports[iter_inds_B[i]][1]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if x_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[center_ind][1]-i*trace_pitch-ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=True)
@@ -2564,8 +2571,9 @@ class GDSDesign:
                     p = ports[iter_inds_T[i]][1] - ports[iter_inds_T[i]-1][1]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     x_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
-                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if x_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                         routing_angle, ports[idx][1]-(ports[center_ind][1]+(i+1)*trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=False)
@@ -2616,8 +2624,9 @@ class GDSDesign:
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_L):
                 if i < len(iter_inds_L)-1:
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    if y_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                        self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                     routing_angle, ports[idx][0]-(ports[center_ind][0]-(len(iter_inds_L)-1-i)*ending_trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2630,8 +2639,9 @@ class GDSDesign:
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
-                path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                if y_accumulated > 0:
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                 hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
                                                 routing_angle, ports[center_ind][0]+(len(iter_inds_R)-i)*ending_trace_pitch - ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
                 self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2680,8 +2690,9 @@ class GDSDesign:
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_L):
                 if i < len(iter_inds_L)-1:
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
-                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    if y_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                        self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                     hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                     routing_angle, ports[idx][0]-(ports[center_ind][0]-(len(iter_inds_L)-1-i)*ending_trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2694,8 +2705,9 @@ class GDSDesign:
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
-                path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
-                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                if y_accumulated > 0:
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]-y_accumulated)]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                 hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]-y_accumulated), 
                                                 routing_angle, ports[center_ind][0]+(len(iter_inds_R)-i)*ending_trace_pitch - ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=False)
                 self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2744,8 +2756,9 @@ class GDSDesign:
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_B):
                 if i < len(iter_inds_B)-1:
-                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
-                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    if x_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                        self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                     hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[idx][1]-(ports[center_ind][1]-(len(iter_inds_B)-1-i)*ending_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2758,8 +2771,9 @@ class GDSDesign:
             
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
-                path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
-                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                if x_accumulated > 0:
+                    path_points = [ports[idx], (ports[idx][0]+x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                 hinged_path = create_hinged_path((ports[idx][0]+x_accumulated, ports[idx][1]), 
                                                 routing_angle, ports[center_ind][1]+(len(iter_inds_T)-i)*ending_trace_pitch - ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=False)
                 self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2808,8 +2822,9 @@ class GDSDesign:
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_B):
                 if i < len(iter_inds_B)-1:
-                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
-                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    if x_accumulated > 0:
+                        path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                        self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                     hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                     routing_angle, ports[idx][1]-(ports[center_ind][1]-(len(iter_inds_B)-1-i)*ending_trace_pitch), max_x+escape_extent-x_accumulated, post_rotation=180, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2822,8 +2837,9 @@ class GDSDesign:
             
             x_accumulated = 0
             for i, idx in enumerate(iter_inds_T):
-                path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
-                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                if x_accumulated > 0:
+                    path_points = [ports[idx], (ports[idx][0]-x_accumulated, ports[idx][1])]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                 hinged_path = create_hinged_path((ports[idx][0]-x_accumulated, ports[idx][1]), 
                                                 routing_angle, ports[center_ind][1]+(len(iter_inds_T)-i)*ending_trace_pitch - ports[idx][1], max_x+escape_extent-x_accumulated, post_rotation=0, post_reflection=True)
                 self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
@@ -2980,7 +2996,8 @@ class GDSDesign:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
                 y_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]+y_accumulated)], trace_width, layer_name)
+                    if y_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0], port[1]+y_accumulated)], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0], port[1]+y_accumulated), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0], port[1]+y_accumulated), routing_angle, center_diff, center2[1]-port[1]-y_accumulated, post_rotation=-90, post_reflection=True)
@@ -2990,7 +3007,8 @@ class GDSDesign:
             else:
                 y_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]+y_accumulated)], trace_width, layer_name)
+                    if y_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0], port[1]+y_accumulated)], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0], port[1]+y_accumulated), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0], port[1]+y_accumulated), routing_angle, -center_diff, center2[1]-port[1]-y_accumulated, post_rotation=90, post_reflection=False)
@@ -3007,7 +3025,8 @@ class GDSDesign:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
                 x_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0]+x_accumulated, port[1])], trace_width, layer_name)
+                    if x_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0]+x_accumulated, port[1])], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0]+x_accumulated, port[1]), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0]+x_accumulated, port[1]), routing_angle, center_diff, center2[0]-port[0]-x_accumulated, post_rotation=0, post_reflection=False)
@@ -3017,7 +3036,8 @@ class GDSDesign:
             else:
                 x_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0]+x_accumulated, port[1])], trace_width, layer_name)
+                    if x_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0]+x_accumulated, port[1])], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0]+x_accumulated, port[1]), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0]+x_accumulated, port[1]), routing_angle, -center_diff, center2[0]-port[0]-x_accumulated, post_rotation=180, post_reflection=True)
@@ -3034,7 +3054,8 @@ class GDSDesign:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
                 x_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0]-x_accumulated, port[1])], trace_width, layer_name)
+                    if x_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0]-x_accumulated, port[1])], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0]-x_accumulated, port[1]), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0]-x_accumulated, port[1]), routing_angle, center_diff, port[0]-center2[0]-x_accumulated, post_rotation=0, post_reflection=True)
@@ -3044,7 +3065,8 @@ class GDSDesign:
             else:
                 x_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0]-x_accumulated, port[1])], trace_width, layer_name)
+                    if x_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0]-x_accumulated, port[1])], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0]-x_accumulated, port[1]), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0]-x_accumulated, port[1]), routing_angle, -center_diff, port[0]-center2[0]-x_accumulated, post_rotation=180, post_reflection=False)
@@ -3061,7 +3083,8 @@ class GDSDesign:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
                 y_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]-y_accumulated)], trace_width, layer_name)
+                    if y_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0], port[1]-y_accumulated)], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0], port[1]-y_accumulated), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0], port[1]-y_accumulated), routing_angle, center_diff, port[1]-center2[1]-y_accumulated, post_rotation=-90, post_reflection=False)
@@ -3071,7 +3094,8 @@ class GDSDesign:
             else:
                 y_accumulated = 0
                 for i, port in enumerate(ports1):
-                    self.add_path_as_polygon(cell_name, [port, (port[0], port[1]-y_accumulated)], trace_width, layer_name)
+                    if y_accumulated > 0:
+                        self.add_path_as_polygon(cell_name, [port, (port[0], port[1]-y_accumulated)], trace_width, layer_name)
                     self.add_circle_as_polygon(cell_name, (port[0], port[1]-y_accumulated), trace_width/2, layer_name)
                     
                     hinged_path = create_hinged_path((port[0], port[1]-y_accumulated), routing_angle, -center_diff, port[1]-center2[1]-y_accumulated, post_rotation=90, post_reflection=True)
