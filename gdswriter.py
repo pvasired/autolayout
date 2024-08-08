@@ -2584,7 +2584,7 @@ class GDSDesign:
         return wire_ports, wire_orientations
 
     def flare_ports(self, cell_name, layer_name, ports_, orientations, starting_trace_width, starting_trace_space, 
-                    ending_trace_width, ending_trace_space, routing_angle=45, escape_extent=50, flare_angle=45):
+                    ending_trace_width, ending_trace_space, routing_angle=45, escape_extent=50, flare_angle=45, final_length=100, hinge_extra=100):
         """
         Flare routing for a set of ports. Flares the ports outwards to a wider pitch. All ports must have the same orientation.
         Updates the GDS design with the flared routing.
@@ -2614,22 +2614,22 @@ class GDSDesign:
             if routing_angle != 90:
                 max_y_L = (ports[iter_inds_L[0]][0]-(ports[center_ind][0] - (len(iter_inds_L)-1)*ending_trace_pitch)) * np.tan(routing_angle*np.pi/180)
                 max_y_R = (ports[center_ind][0] + len(iter_inds_R)*ending_trace_pitch - ports[iter_inds_R[0]][0]) * np.tan(routing_angle*np.pi/180)
-                max_y = max(max_y_L, max_y_R)
+                max_y = max(max_y_L, max_y_R) + escape_extent + hinge_extra
 
                 y_increment = starting_trace_pitch/np.sin(routing_angle*np.pi/180) - starting_trace_pitch/np.tan(routing_angle*np.pi/180)
 
             else:
                 max_y_L = (len(iter_inds_L)-1)*starting_trace_pitch
                 max_y_R = len(iter_inds_R)*starting_trace_pitch
-                max_y = max(max_y_L, max_y_R)
+                max_y = max(max_y_L, max_y_R) + escape_extent
 
                 y_increment = starting_trace_pitch
 
             intermediate_ports = []
             for i in range(len(iter_inds_L)):
-                intermediate_ports.append((ports[center_ind][0]-i*ending_trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+                intermediate_ports.append((ports[center_ind][0]-i*ending_trace_pitch, ports[:, 1].max()+max_y))
             for i in range(len(iter_inds_R)):
-                intermediate_ports.append((ports[center_ind][0]+(i+1)*ending_trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+                intermediate_ports.append((ports[center_ind][0]+(i+1)*ending_trace_pitch, ports[:, 1].max()+max_y))
             intermediate_ports = np.array(intermediate_ports)
             intermediate_ports = intermediate_ports[np.argsort(intermediate_ports[:, 0])]
 
@@ -2637,47 +2637,45 @@ class GDSDesign:
             cnt = 0
             for i, idx in enumerate(iter_inds_L):
                 if i < len(iter_inds_L)-1:
-                    if y_accumulated > 0:
-                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                        self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent)]
+                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                     if routing_angle == 90:
-                        port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0], ports[idx][1]+y_accumulated), width=starting_trace_width, orientation=90)
-                        port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[center_ind][0]-(len(iter_inds_L)-1-i)*ending_trace_pitch, ports[idx][1]+max_y+escape_extent), width=starting_trace_width, orientation=270)
+                        port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), width=starting_trace_width, orientation=90)
+                        port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[center_ind][0]-(len(iter_inds_L)-1-i)*ending_trace_pitch, ports[idx][1]+max_y), width=starting_trace_width, orientation=270)
                         route = pr.route_smooth(port1, port2, width=starting_trace_width, layer=self.get_layer_number(layer_name), radius=starting_trace_width)
                         for poly in route.get_polygons():
                             self.add_polygon(cell_name, poly, layer_name)
                         y_accumulated += y_increment
                         cnt += 1
                     else:
-                        hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]-(len(iter_inds_L)-1-i)*ending_trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
+                        hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), 
+                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]-(len(iter_inds_L)-1-i)*ending_trace_pitch), max_y-escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
                         self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
 
-                        self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), starting_trace_width/2, layer_name)
+                        self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), starting_trace_width/2, layer_name)
                         y_accumulated += y_increment
                 else:
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y+escape_extent)]
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y)]
                     self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
-                if y_accumulated > 0:
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                    self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
+                path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent)]
+                self.add_path_as_polygon(cell_name, path_points, starting_trace_width, layer_name)
                 if routing_angle == 90:
-                    port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0], ports[idx][1]+y_accumulated), width=starting_trace_width, orientation=90)
-                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[center_ind][0]+(len(iter_inds_R)-i)*ending_trace_pitch, ports[idx][1]+max_y+escape_extent), width=starting_trace_width, orientation=270)
+                    port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), width=starting_trace_width, orientation=90)
+                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[center_ind][0]+(len(iter_inds_R)-i)*ending_trace_pitch, ports[idx][1]+max_y), width=starting_trace_width, orientation=270)
                     route = pr.route_smooth(port1, port2, width=starting_trace_width, layer=self.get_layer_number(layer_name), radius=starting_trace_width)
                     for poly in route.get_polygons():
                         self.add_polygon(cell_name, poly, layer_name)
                     y_accumulated += y_increment
                     cnt += 1
                 else:
-                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                    routing_angle, ports[center_ind][0]+(len(iter_inds_R)-i)*ending_trace_pitch - ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
+                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), 
+                                                    routing_angle, ports[center_ind][0]+(len(iter_inds_R)-i)*ending_trace_pitch - ports[idx][0], max_y-escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
                     self.add_path_as_polygon(cell_name, hinged_path, starting_trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), starting_trace_width/2, layer_name)
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), starting_trace_width/2, layer_name)
                     y_accumulated += y_increment
             
             wire_ports = []
@@ -2688,10 +2686,10 @@ class GDSDesign:
                           (port[0]-ending_trace_width/2, port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(flare_angle*np.pi/180))]
                 self.add_polygon(cell_name, points, layer_name)
                 path_points = [(port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(flare_angle*np.pi/180)),
-                               (port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(flare_angle*np.pi/180)+escape_extent)]
+                               (port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(flare_angle*np.pi/180)+final_length)]
                 self.add_path_as_polygon(cell_name, path_points, ending_trace_width, layer_name)
 
-                wire_ports.append((port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(flare_angle*np.pi/180)+escape_extent))
+                wire_ports.append((port[0], port[1]+(ending_trace_width-starting_trace_width)/2*np.tan(flare_angle*np.pi/180)+final_length))
 
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
