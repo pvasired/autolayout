@@ -763,7 +763,7 @@ class MyApp(QWidget):
                             ports1 = ports1[:len(ports2)]
                             orientations1 = orientations1[:len(orientations2)]
 
-                    self.gds_design.route_ports_a_star(self.outputFileName, self.cellComboBox.currentText(), ports1, orientations1,
+                    self.gds_design.route_ports_a_star(self.cellComboBox.currentText(), ports1, orientations1,
                                                 ports2, orientations2, trace_width1, trace_space1, layer_name,
                                                 show_animation=False, obstacles=obstacles)
 
