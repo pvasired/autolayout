@@ -103,7 +103,7 @@ class MyApp(QWidget):
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
-            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent"],
+            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent", "Cable Tie Routing Angle", "Autorouting Angle"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Automatic Placement"]
         }
         self.paramTooltips = {
@@ -233,7 +233,9 @@ class MyApp(QWidget):
                 "Trace Space": "Enter the spacing between traces.",
                 "Pad Diameter": "Enter the diameter of the pads.",
                 "Orientation": "Enter the orientation of the escape routing.",
-                "Escape Extent": "Enter the extent of the escape routing."
+                "Escape Extent": "Enter the extent of the escape routing.",
+                "Cable Tie Routing Angle": "Enter the angle of the cable tie routing in degrees.",
+                "Autorouting Angle": "Enter the angle for autorouting in degrees."
             },
             "Custom Test Structure": {
                 "Center": "Enter the center (x, y) coordinate of the custom test structure.",
@@ -375,7 +377,9 @@ class MyApp(QWidget):
                 "Trace Space": '',
                 "Pad Diameter": '',
                 "Orientation": '',
-                "Escape Extent": 100
+                "Escape Extent": 100,
+                "Cable Tie Routing Angle": 45,
+                "Autorouting Angle": 45
             },
             "Custom Test Structure": {
                 "Center": '',
@@ -1370,7 +1374,7 @@ class MyApp(QWidget):
                     params[param.replace(" ", "_")] = value
         return params
 
-    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Trace_Width, Trace_Space, Pad_Diameter, Orientation, Escape_Extent):
+    def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Trace_Width, Trace_Space, Pad_Diameter, Orientation, Escape_Extent, Cable_Tie_Routing_Angle, Autorouting_Angle):
         if Orientation is None:
             QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the escape routing.", QMessageBox.Ok)
             return False
@@ -1407,7 +1411,9 @@ class MyApp(QWidget):
                     escape_y=escape_y,
                     escape_negative=escape_negative,
                     escape_extent=float(Escape_Extent),
-                    trace_space=float(Trace_Space) if Trace_Space else None
+                    trace_space=float(Trace_Space) if Trace_Space else None,
+                    cable_tie_routing_angle=float(Cable_Tie_Routing_Angle),
+                    autorouting_angle=float(Autorouting_Angle)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1441,7 +1447,9 @@ class MyApp(QWidget):
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
                     escape_extent=float(Escape_Extent),
-                    trace_space=float(Trace_Space) if Trace_Space else None
+                    trace_space=float(Trace_Space) if Trace_Space else None,
+                    cable_tie_routing_angle=float(Cable_Tie_Routing_Angle),
+                    autorouting_angle=float(Autorouting_Angle)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1483,7 +1491,9 @@ class MyApp(QWidget):
                     escape_y=escape_y,
                     escape_negative=escape_negative,
                     escape_extent=float(Escape_Extent),
-                    trace_space=float(Trace_Space) if Trace_Space else None
+                    trace_space=float(Trace_Space) if Trace_Space else None,
+                    cable_tie_routing_angle=float(Cable_Tie_Routing_Angle),
+                    autorouting_angle=float(Autorouting_Angle)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
@@ -1507,7 +1517,9 @@ class MyApp(QWidget):
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_extent=float(Escape_Extent),
-                    trace_space=float(Trace_Space) if Trace_Space else None
+                    trace_space=float(Trace_Space) if Trace_Space else None,
+                    cable_tie_routing_angle=float(Cable_Tie_Routing_Angle),
+                    autorouting_angle=float(Autorouting_Angle)
                 )
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
