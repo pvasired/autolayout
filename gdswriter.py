@@ -3274,6 +3274,62 @@ class GDSDesign:
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
                     y_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
+    
+    def connect_rows(self, cell_name, layer_name, start1, end1, spacing1, const1, 
+                      start2, end2, spacing2, const2, center, trace_width, escape_extent=100,
+                      rotation_angle=0):
+        """
+        Connect two regularly spaced rows.
+        """
+        if spacing2 > spacing1:
+            start1, start2 = start2, start1
+            end1, end2 = end2, end1
+            spacing1, spacing2 = spacing2, spacing1
+            const1, const2 = const2, const1
+
+        array_size1 = int(abs(end1-start1)/spacing1)+1
+        array_size2 = int(abs(end2-start2)/spacing2)+1
+        assert array_size1 == array_size2, "Array sizes must be equal"
+
+        height_difference = abs(const1-const2)
+        assert height_difference > escape_extent, "Height difference must be greater than escape extent"
+        array1_x = np.linspace(-spacing1*(array_size1-1)/2, spacing1*(array_size1-1)/2, array_size1)
+        array1_y = np.zeros(array_size1)
+        ports1 = np.column_stack((array1_x, array1_y))
+
+        array2_x = np.linspace(-spacing2*(array_size2-1)/2, spacing2*(array_size2-1)/2, array_size2)
+        array2_y = np.full(array_size2, height_difference)
+        ports2 = np.column_stack((array2_x, array2_y))
+
+        rotation_angle = np.pi*rotation_angle/180
+        rotation_matrix = np.array([[np.cos(rotation_angle), -np.sin(rotation_angle)], [np.sin(rotation_angle), np.cos(rotation_angle)]])
+
+        for idx in range(int(len(ports1)/2)+1):
+            angle = np.arctan2((ports2[idx][0]-ports1[idx][0]), height_difference-escape_extent)*180/np.pi
+            if angle > 0:
+                hinged_path = create_hinged_path(ports1[idx], angle, ports2[idx][0]-ports1[idx][0], height_difference, post_rotation=-90, post_reflection=True)
+                hinged_path = np.dot(rotation_matrix, hinged_path.T).T
+                hinged_path += center
+                self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+            else:
+                path_points = [ports1[idx], (ports2[idx][0], height_difference)]
+                path_points = np.dot(rotation_matrix, np.array(path_points).T).T
+                path_points += center
+                self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+
+        iter_inds = np.flip(np.arange(int(len(ports1)/2)+1, len(ports1)))
+        for idx in iter_inds:
+            angle = np.arctan2((ports1[idx][0]-ports2[idx][0]), height_difference-escape_extent)*180/np.pi
+            if angle > 0:
+                hinged_path = create_hinged_path(ports1[idx], angle, ports1[idx][0]-ports2[idx][0], height_difference, post_rotation=90, post_reflection=False)
+                hinged_path = np.dot(rotation_matrix, hinged_path.T).T
+                hinged_path += center
+                self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+            else:
+                path_points = [ports1[idx], (ports2[idx][0], height_difference)]
+                path_points = np.dot(rotation_matrix, np.array(path_points).T).T
+                path_points += center
+                self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
 def cluster_intersecting_polygons(polygons):
     """Groups intersecting polygons into clusters using an R-tree for efficient spatial indexing,
