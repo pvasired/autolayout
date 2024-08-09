@@ -2333,7 +2333,7 @@ class GDSDesign:
                 max_y = max(max_y_L, max_y_R) + escape_extent + hinge_extra
             else:
                 max_y_L = (len(iter_inds_L)-1)*trace_pitch
-                max_y_R = (len(iter_inds_R)-1)*trace_pitch
+                max_y_R = len(iter_inds_R)*trace_pitch
                 max_y = max(max_y_L, max_y_R) + escape_extent
 
             wire_ports = []
