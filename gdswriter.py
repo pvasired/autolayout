@@ -2316,69 +2316,86 @@ class GDSDesign:
 
             iter_inds_L = np.flip(np.arange(center_ind+1))
             iter_inds_R = np.arange(center_ind+1, len(ports))
-            y_acc_L = 0
-            for i, idx in enumerate(iter_inds_L):
-                if i > 1:
-                    p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    y_acc_L += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            y_acc_R = 0
-            for i, idx in enumerate(iter_inds_R):
-                if i > 0:
-                    p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
-                    y_acc_R += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-            max_y_L = (ports[center_ind][0] - trace_pitch*(len(iter_inds_L)-1) - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
-            max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + trace_pitch*len(iter_inds_R))) * np.tan(routing_angle*np.pi/180) + y_acc_R
-            max_y = max(max_y_L, max_y_R)
+
+            if routing_angle != 90:
+                y_acc_L = 0
+                for i, idx in enumerate(iter_inds_L):
+                    if i > 1:
+                        p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
+                        y_acc_L += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                y_acc_R = 0
+                for i, idx in enumerate(iter_inds_R):
+                    if i > 0:
+                        p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
+                        y_acc_R += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
+                max_y_L = (ports[center_ind][0] - trace_pitch*(len(iter_inds_L)-1) - ports[iter_inds_L[-1]][0]) * np.tan(routing_angle*np.pi/180) + y_acc_L
+                max_y_R = (ports[iter_inds_R[-1]][0] - (ports[center_ind][0] + trace_pitch*len(iter_inds_R))) * np.tan(routing_angle*np.pi/180) + y_acc_R
+                max_y = max(max_y_L, max_y_R) + escape_extent + hinge_extra
+            else:
+                max_y_L = (len(iter_inds_L)-1)*trace_pitch
+                max_y_R = (len(iter_inds_R)-1)*trace_pitch
+                max_y = max(max_y_L, max_y_R) + escape_extent
 
             wire_ports = []
             for i in range(len(iter_inds_L)):
-                wire_ports.append((ports[center_ind][0]-i*trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+                wire_ports.append((ports[center_ind][0]-i*trace_pitch, ports[:, 1].max()+max_y))
             for i in range(len(iter_inds_R)):
-                wire_ports.append((ports[center_ind][0]+(i+1)*trace_pitch, ports[:, 1].max()+max_y+escape_extent))
+                wire_ports.append((ports[center_ind][0]+(i+1)*trace_pitch, ports[:, 1].max()+max_y))
             wire_ports = np.array(wire_ports)
             wire_ports = wire_ports[np.argsort(wire_ports[:, 0])]
             wire_orientations = np.full(len(wire_ports), 90)
 
             y_accumulated = 0
+            cnt = 0
             for i, idx in enumerate(iter_inds_L):
                 if i > 0:
-                    p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
-                    assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
-                    y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    if y_accumulated > 0:
-                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent)]
+                    self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                    if routing_angle == 90:
+                        port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), width=trace_width, orientation=90)
+                        port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[center_ind][0]-i*trace_pitch, ports[idx][1]+max_y), width=trace_width, orientation=270)
+                        route = pr.route_smooth(port1, port2, width=trace_width, layer=self.get_layer_number(layer_name), radius=trace_width)
+                        for poly in route.get_polygons():
+                            self.add_polygon(cell_name, poly, layer_name)
+                        y_accumulated += trace_pitch
+                        cnt += 1
+                    else:
+                        p = ports[iter_inds_L[i-1]][0] - ports[iter_inds_L[i]][0]
+                        assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
+                        y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
 
-                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                    routing_angle, ports[center_ind][0]-i*trace_pitch-ports[idx][0], max_y+escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
+                        hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), 
+                                                        routing_angle, ports[center_ind][0]-i*trace_pitch-ports[idx][0], max_y-escape_extent-y_accumulated, post_rotation=-90, post_reflection=True)
+                        self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
+                        self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), trace_width/2, layer_name)
                 else:
-                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y+escape_extent)]
+                    path_points = [ports[idx], (ports[idx][0], ports[idx][1]+max_y)]
                     self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
             
             y_accumulated = 0
             for i, idx in enumerate(iter_inds_R):
-                if i == 0:
-                    hinged_path = create_hinged_path(ports[idx], routing_angle, abs(ports[idx][0]-(ports[center_ind][0]+(i+1)*trace_pitch)), max_y+escape_extent, post_rotation=90, post_reflection=False)
-                    self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
-
-                    self.add_circle_as_polygon(cell_name, ports[idx], trace_width/2, layer_name)
+                path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent)]
+                self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
+                if routing_angle == 90:
+                    port1 = D.add_port(name=f"Electrode {cnt}", midpoint=(ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), width=trace_width, orientation=90)
+                    port2 = D.add_port(name=f"Pad {cnt}", midpoint=(ports[center_ind][0]+(i+1)*trace_pitch, ports[idx][1]+max_y), width=trace_width, orientation=270)
+                    route = pr.route_smooth(port1, port2, width=trace_width, layer=self.get_layer_number(layer_name), radius=trace_width)
+                    for poly in route.get_polygons():
+                        self.add_polygon(cell_name, poly, layer_name)
+                    y_accumulated += trace_pitch
+                    cnt += 1
                 else:
                     p = ports[iter_inds_R[i]][0] - ports[iter_inds_R[i]-1][0]
                     assert round(p, 3) >= trace_pitch, f"Trace pitch violation. The port spacing {p} is smaller than the trace pitch {trace_pitch}."
                     y_accumulated += math.ceil(max(0, trace_pitch/np.sin(routing_angle*np.pi/180) - p/np.tan(routing_angle*np.pi/180)))
-                    if y_accumulated > 0:
-                        path_points = [ports[idx], (ports[idx][0], ports[idx][1]+y_accumulated)]
-                        self.add_path_as_polygon(cell_name, path_points, trace_width, layer_name)
 
-                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated), 
-                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*trace_pitch), max_y+escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
+                    hinged_path = create_hinged_path((ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), 
+                                                        routing_angle, ports[idx][0]-(ports[center_ind][0]+(i+1)*trace_pitch), max_y-escape_extent-y_accumulated, post_rotation=90, post_reflection=False)
                     self.add_path_as_polygon(cell_name, hinged_path, trace_width, layer_name)
 
-                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated), trace_width/2, layer_name)
-        
+                    self.add_circle_as_polygon(cell_name, (ports[idx][0], ports[idx][1]+y_accumulated+escape_extent), trace_width/2, layer_name)
+    
         elif orientations[0] == 270:
             ports = ports[np.argsort(ports[:, 0])]
             center_ind = math.ceil(len(ports)/2)-1
