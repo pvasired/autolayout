@@ -623,11 +623,15 @@ class MyApp(QWidget):
         self.flareFinalLengthEdit = QLineEdit()
         self.flareFinalLengthEdit.setText('100')
         self.flareFinalLengthEdit.setToolTip('Enter the final length of the traces in the flare.')
+        self.flareAutoroutingAngleEdit = QLineEdit()
+        self.flareAutoroutingAngleEdit.setText('45')
+        self.flareAutoroutingAngleEdit.setToolTip('Enter the angle for autorouting in degrees.')
         flareModeLayout.addWidget(self.endingTraceWidthEdit)
         flareModeLayout.addWidget(self.endingTraceSpaceEdit)
         flareModeLayout.addWidget(self.flareRoutingAngleEdit)
         flareModeLayout.addWidget(self.flareEscapeExtentEdit)
         flareModeLayout.addWidget(self.flareFinalLengthEdit)
+        flareModeLayout.addWidget(self.flareAutoroutingAngleEdit)
         plotAreaLayout.addLayout(flareModeLayout)
 
         self.endingTraceWidthEdit.hide()
@@ -635,6 +639,7 @@ class MyApp(QWidget):
         self.flareRoutingAngleEdit.hide()
         self.flareEscapeExtentEdit.hide()
         self.flareFinalLengthEdit.hide()
+        self.flareAutoroutingAngleEdit.hide()
 
         mainLayout.addLayout(plotAreaLayout)  # Add the plot area layout to the main layout
 
@@ -658,6 +663,7 @@ class MyApp(QWidget):
         self.flareRoutingAngleEdit.hide()
         self.flareEscapeExtentEdit.hide()
         self.flareFinalLengthEdit.hide()
+        self.flareAutoroutingAngleEdit.hide()
 
     def setFlareMode(self):
         self.routingMode = False
@@ -668,6 +674,7 @@ class MyApp(QWidget):
         self.flareRoutingAngleEdit.show()
         self.flareEscapeExtentEdit.show()
         self.flareFinalLengthEdit.show()
+        self.flareAutoroutingAngleEdit.show()
 
     def updateModeButtons(self):
         if self.routingMode:
@@ -834,6 +841,7 @@ class MyApp(QWidget):
                 flare_routing_angle = float(self.flareRoutingAngleEdit.text())
                 flare_escape_extent = float(self.flareEscapeExtentEdit.text())
                 flare_final_length = float(self.flareFinalLengthEdit.text())
+                flare_autorouting_angle = float(self.flareAutoroutingAngleEdit.text())
             except ValueError:
                 QMessageBox.critical(self, "Design Error", "Invalid flare parameters.", QMessageBox.Ok)
                 self.log("Invalid flare parameters.")
@@ -878,7 +886,8 @@ class MyApp(QWidget):
                     self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]] = self.gds_design.flare_ports(self.cellComboBox.currentText(), layer_name, route_ports, 
                                                                                                                      route_orientations, route_trace_width, route_trace_space, 
                                                                                                                      ending_trace_width, ending_trace_space, routing_angle=flare_routing_angle,
-                                                                                                                     escape_extent=flare_escape_extent, final_length=flare_final_length)
+                                                                                                                     escape_extent=flare_escape_extent, final_length=flare_final_length,
+                                                                                                                     autorouting_angle=flare_autorouting_angle)
                     # Write the design
                     self.writeToGDS()
                     # Update the available space
