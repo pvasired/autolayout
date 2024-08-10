@@ -3276,8 +3276,8 @@ class GDSDesign:
                     y_accumulated += spacing/np.sin(routing_angle*np.pi/180) - spacing/np.tan(routing_angle*np.pi/180)
     
     def connect_rows(self, cell_name, layer_name, start1, end1, spacing1, const1, 
-                      start2, end2, spacing2, const2, center, trace_width, escape_extent=100,
-                      rotation_angle=0):
+                      start2, end2, spacing2, const2, trace_width, escape_extent=100,
+                      connect_y=True, connect_negative=False):
         """
         Connect two regularly spaced rows.
         """
@@ -3286,6 +3286,23 @@ class GDSDesign:
             end1, end2 = end2, end1
             spacing1, spacing2 = spacing2, spacing1
             const1, const2 = const2, const1
+
+        if connect_y:
+            center_x = (start1+end1)/2
+            center_y = const1
+            center = (center_x, center_y)
+            if connect_negative:
+                rotation_angle = 180
+            else:
+                rotation_angle = 0
+        else:
+            center_x = const1
+            center_y = (start1+end1)/2
+            center = (center_x, center_y)
+            if connect_negative:
+                rotation_angle = 90
+            else:
+                rotation_angle = 270
 
         array_size1 = int(abs(end1-start1)/spacing1)+1
         array_size2 = int(abs(end2-start2)/spacing2)+1
