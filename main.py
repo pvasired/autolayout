@@ -89,7 +89,7 @@ class MyApp(QWidget):
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
             "Interlayer Via Test", "Electronics Via Test", "Short Test", 
-            "Rectangle", "Circle", "Text", "Polygon", "Path", "Escape Routing", "Custom Test Structure"
+            "Rectangle", "Circle", "Text", "Polygon", "Path", "Escape Routing", "Connect Rows", "Custom Test Structure"
         ]
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent", "Automatic Placement"],
@@ -104,6 +104,7 @@ class MyApp(QWidget):
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
             "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent", "Cable Tie Routing Angle", "Autorouting Angle"],
+            "Connect Rows": ["Cell Name", "Layer", "Row 1 Start", "Row 1 End", "Row 1 Spacing", "Row 1 Constant", "Row 2 Start", "Row 2 End", "Row 2 Spacing", "Row 2 Constant", "Orientation", "Trace Width", "Escape Extent"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Automatic Placement"]
         }
         self.paramTooltips = {
@@ -236,6 +237,21 @@ class MyApp(QWidget):
                 "Escape Extent": "Enter the extent of the escape routing.",
                 "Cable Tie Routing Angle": "Enter the angle of the cable tie routing in degrees.",
                 "Autorouting Angle": "Enter the angle for autorouting in degrees."
+            },
+            "Connect Rows": {
+                "Cell Name": "Select the cell name for the connect rows.",
+                "Layer": "Select the layer for the connect rows.",
+                "Row 1 Start": "Enter the start of the first row.",
+                "Row 1 End": "Enter the end of the first row.",
+                "Row 1 Spacing": "Enter the spacing between elements in the first row.",
+                "Row 1 Constant": "Enter the constant value for the first row.",
+                "Row 2 Start": "Enter the start of the second row.",
+                "Row 2 End": "Enter the end of the second row.",
+                "Row 2 Spacing": "Enter the spacing between elements in the second row.",
+                "Row 2 Constant": "Enter the constant value for the second row.",
+                "Orientation": "Enter the orientation of the connect rows.",
+                "Trace Width": "Enter the width of the traces.",
+                "Escape Extent": "Enter the extent of the escape segment.",
             },
             "Custom Test Structure": {
                 "Center": "Enter the center (x, y) coordinate of the custom test structure.",
@@ -380,6 +396,21 @@ class MyApp(QWidget):
                 "Escape Extent": 100,
                 "Cable Tie Routing Angle": 45,
                 "Autorouting Angle": 45
+            },
+            "Connect Rows": {
+                "Cell Name": '',
+                "Layer": '',
+                "Row 1 Start": '',
+                "Row 1 End": '',
+                "Row 1 Spacing": '',
+                "Row 1 Constant": '',
+                "Row 2 Start": '',
+                "Row 2 End": '',
+                "Row 2 Spacing": '',
+                "Row 2 Constant": '',
+                "Orientation": '',
+                "Trace Width": '',
+                "Escape Extent": 100,
             },
             "Custom Test Structure": {
                 "Center": '',
@@ -1311,6 +1342,8 @@ class MyApp(QWidget):
                 retval = self.addPath(**params)
             elif testStructureName == "Escape Routing":
                 retval = self.addEscapeRouting(**params)
+            elif testStructureName == "Connect Rows":
+                retval = self.addConnectRows(**params)
             
             if retval:
                 # Write the design
@@ -1382,6 +1415,50 @@ class MyApp(QWidget):
                             value = None
                     params[param.replace(" ", "_")] = value
         return params
+    
+    def addConnectRows(self, Cell_Name, Layer, Row_1_Start, Row_1_End, Row_1_Spacing, Row_1_Constant, Row_2_Start, Row_2_End, Row_2_Spacing, Row_2_Constant, Orientation, Trace_Width, Escape_Extent):
+        if Orientation is None:
+            QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the connect rows.", QMessageBox.Ok)
+            return False
+        Orientation = Orientation.lower().strip()
+        if Orientation == '-x':
+            connect_negative = True
+            connect_y = False
+        elif Orientation == '+x':
+            connect_negative = False
+            connect_y = False
+        elif Orientation == '-y':
+            connect_negative = True
+            connect_y = True
+        elif Orientation == '+y':
+            connect_negative = False
+            connect_y = True
+        else:
+            QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+            return False
+        try:
+            self.gds_design.connect_rows(
+                cell_name=Cell_Name,
+                layer_name=Layer,
+                start1=float(Row_1_Start),
+                end1=float(Row_1_End),
+                spacing1=float(Row_1_Spacing),
+                const1=float(Row_1_Constant),
+                start2=float(Row_2_Start),
+                end2=float(Row_2_End),
+                spacing2=float(Row_2_Spacing),
+                const2=float(Row_2_Constant),
+                trace_width=float(Trace_Width),
+                escape_extent=float(Escape_Extent),
+                connect_y=connect_y,
+                connect_negative=connect_negative
+            )
+            self.log(f"Rows connected in {Cell_Name} on layer {Layer}")
+            return True
+        except Exception as e:
+            QMessageBox.critical(self, "Placement Error", f"Error connecting rows: {str(e)}", QMessageBox.Ok)
+            self.log(f"Error connecting rows: {str(e)}")
+            return False
 
     def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Trace_Width, Trace_Space, Pad_Diameter, Orientation, Escape_Extent, Cable_Tie_Routing_Angle, Autorouting_Angle):
         if Orientation is None:
