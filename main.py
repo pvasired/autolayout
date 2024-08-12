@@ -605,6 +605,12 @@ class MyApp(QWidget):
         self.calculateLayerAreaButton.setToolTip('Click to calculate the area for the selected layer.')
         layersHBoxLayout.addWidget(self.calculateLayerAreaButton)
 
+        self.layerCellComboBox = QComboBox()
+        self.layerCellComboBox.setPlaceholderText("Select cell on which to calculate area")
+        self.layerCellComboBox.setToolTip("Select cell on which to calculate area (optional, will default to the first top cell in design if not provided)")
+        self.layerCellComboBox.currentTextChanged.connect(self.calculateLayerArea)
+        layersHBoxLayout.addWidget(self.layerCellComboBox)
+
         self.layerAreaEdit = QLineEdit()
         self.layerAreaEdit.setPlaceholderText('Layer Area (mm^2)')
         self.layerAreaEdit.setReadOnly(True)
@@ -1003,7 +1009,11 @@ class MyApp(QWidget):
         if currentLayer:
             layerName = currentLayer.split(':')[1].strip()
             try:
-                area = self.gds_design.calculate_area_for_layer(layerName)
+                if self.layerCellComboBox.currentText() != "":
+                    cell_name = self.layerCellComboBox.currentText()
+                else:
+                    cell_name = None
+                area = round(self.gds_design.calculate_area_for_layer(layerName, cell_name=cell_name), 6)
                 self.layerAreaEdit.setText(f"{area} mm^2")
                 self.log(f"Layer Area for {layerName}: {area} mm^2")
             except Exception as e:
@@ -1148,7 +1158,11 @@ class MyApp(QWidget):
                 # Populate the custom test cell combo box with cell names
                 self.customTestCellComboBox.clear()
                 self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
-                self.log(f"Custom Test Structure cell names: {list(self.gds_design.cells.keys())}")
+                self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+                self.layerCellComboBox.clear()
+                self.layerCellComboBox.addItems(self.gds_design.cells.keys())
+                self.log(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
                 # Populate the cell combo box with cell names
                 self.cellComboBox.clear()

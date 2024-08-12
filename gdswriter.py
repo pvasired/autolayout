@@ -2014,7 +2014,7 @@ class GDSDesign:
                     if width < min_size or height < min_size:
                         raise ValueError(f"Feature on layer '{layer_name}' in cell '{cell_name}' is smaller than the minimum size {min_size}.")
     
-    def calculate_area_for_layer(self, layer_name):
+    def calculate_area_for_layer(self, layer_name, cell_name=None):
         """
         Calculate the total area of all polygons on a specified layer in the top cell.
         Returns the total area in mm^2.
@@ -2022,7 +2022,10 @@ class GDSDesign:
         Args:
         - layer_name (str): Name of the layer to calculate the area for.
         """
-        cell = self.check_cell_exists(self.top_cell_names[0])
+        if cell_name is not None:
+            cell = self.check_cell_exists(cell_name)
+        else:
+            cell = self.check_cell_exists(self.top_cell_names[0])
         layer_number = self.get_layer_number(layer_name)
 
         # Get polygons by specification (layer and datatype)
