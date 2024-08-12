@@ -58,6 +58,19 @@ class CycleLineEdit(QLineEdit):
             self.addButton.clicked.emit()
             return True  
         return super().eventFilter(obj, event)
+    
+class PushButtonEdit(QLineEdit):
+    def __init__(self, addButton, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.addButton = addButton
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress and event.key() == Qt.Key_A and event.modifiers() == (Qt.ShiftModifier | Qt.AltModifier):
+            self.editingFinished.emit()
+            self.addButton.clicked.emit()
+            return True  
+        return super().eventFilter(obj, event)
 
 class TooltipComboBox(QComboBox):
     def __init__(self, tooltips=None, *args, **kwargs):
@@ -641,15 +654,15 @@ class MyApp(QWidget):
 
         # Define Layer layout
         defineLayerHBoxLayout = QHBoxLayout()
-        self.newLayerNumberEdit = QLineEdit()
-        self.newLayerNumberEdit.setPlaceholderText('Layer Number')
-        self.newLayerNumberEdit.setToolTip('Enter the number of the new layer.')
-        self.newLayerNameEdit = QLineEdit()
-        self.newLayerNameEdit.setPlaceholderText('Layer Name')
-        self.newLayerNameEdit.setToolTip('Enter the name of the new layer.')
         defineLayerButton = QPushButton('Define New Layer')
         defineLayerButton.clicked.connect(self.defineNewLayer)
         defineLayerButton.setToolTip('Click to define a new layer.')
+        self.newLayerNumberEdit = PushButtonEdit(defineLayerButton)
+        self.newLayerNumberEdit.setPlaceholderText('Layer Number')
+        self.newLayerNumberEdit.setToolTip('Enter the number of the new layer.')
+        self.newLayerNameEdit = PushButtonEdit(defineLayerButton)
+        self.newLayerNameEdit.setPlaceholderText('Layer Name')
+        self.newLayerNameEdit.setToolTip('Enter the name of the new layer.')
         defineLayerHBoxLayout.addWidget(self.newLayerNumberEdit)
         defineLayerHBoxLayout.addWidget(self.newLayerNameEdit)
         defineLayerHBoxLayout.addWidget(defineLayerButton)
@@ -728,12 +741,12 @@ class MyApp(QWidget):
 
         # Define Cell layout
         defineCellHBoxLayout = QHBoxLayout()
-        self.newCellNameEdit = QLineEdit()
-        self.newCellNameEdit.setPlaceholderText('Cell Name')
-        self.newCellNameEdit.setToolTip('Enter the name of the new cell.')
         defineCellButton = QPushButton('Define New Cell')
         defineCellButton.clicked.connect(self.defineNewCell)
         defineCellButton.setToolTip('Click to define a new cell.')
+        self.newCellNameEdit = PushButtonEdit(defineCellButton)
+        self.newCellNameEdit.setPlaceholderText('Cell Name')
+        self.newCellNameEdit.setToolTip('Enter the name of the new cell.')
         defineCellHBoxLayout.addWidget(self.newCellNameEdit)
         defineCellHBoxLayout.addWidget(defineCellButton)
         leftLayout.addLayout(defineCellHBoxLayout)
@@ -757,6 +770,10 @@ class MyApp(QWidget):
         if self.newCellNameEdit.text() == "":
             QMessageBox.critical(self, "Input Error", "No cell name provided.", QMessageBox.Ok)
             self.log("No cell name provided.")
+            return
+        if self.outputFileName == "":
+            QMessageBox.critical(self, "Output Error", "No output file name provided.", QMessageBox.Ok)
+            self.log("No output file name provided.")
             return
         self.gds_design.add_cell(self.newCellNameEdit.text().strip())
         self.updateCellComboBox()
