@@ -32,9 +32,10 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 class CycleLineEdit(QLineEdit):
-    def __init__(self, comboBox, *args, **kwargs):
+    def __init__(self, comboBox, addButton, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.comboBox = comboBox
+        self.addButton = addButton
         self.installEventFilter(self)
 
     def eventFilter(self, obj, event):
@@ -52,6 +53,9 @@ class CycleLineEdit(QLineEdit):
             nextIndex = (currentIndex - 1) % self.comboBox.count()
             self.comboBox.setCurrentIndex(nextIndex)
             return True  # Event handled
+        elif event.type() == QEvent.KeyPress and event.key() == Qt.Key_A and event.modifiers() == (Qt.ShiftModifier | Qt.AltModifier):
+            self.addButton.clicked.emit()
+            return True  
         return super().eventFilter(obj, event)
 
 class TooltipComboBox(QComboBox):
@@ -528,15 +532,17 @@ class MyApp(QWidget):
             paramComboBox.setItemTooltips([self.paramTooltips[name].get(param, '') for param in self.parameters[name]])
             paramComboBox.currentTextChanged.connect(self.createParamChangeHandler)
             paramComboBox.setToolTip(f'Select parameters for {name}.') 
-            paramValueEdit = CycleLineEdit(paramComboBox)  # Use CycleLineEdit instead of QLineEdit
+
+            addButton = QPushButton("Add to Design")
+            addButton.clicked.connect(self.createAddToDesignHandler)
+            addButton.setToolTip(f'Click to add {name} to the design.')
+
+            paramValueEdit = CycleLineEdit(paramComboBox, addButton)  # Use CycleLineEdit instead of QLineEdit
             paramName = paramComboBox.currentText()
             if paramName in self.defaultParams[name]:
                 paramValueEdit.setText(str(self.defaultParams[name][paramName]))
             paramValueEdit.editingFinished.connect(self.createParamStoreHandler)
             paramValueEdit.setToolTip(f'Enter value for the selected parameter of {name}.')
-            addButton = QPushButton("Add to Design")
-            addButton.clicked.connect(self.createAddToDesignHandler)
-            addButton.setToolTip(f'Click to add {name} to the design.')
 
             gridLayout.addWidget(testCheckBox, row, 0)
             gridLayout.addWidget(paramLabel, row, 1)
