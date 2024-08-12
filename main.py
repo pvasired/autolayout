@@ -54,6 +54,7 @@ class CycleLineEdit(QLineEdit):
             self.comboBox.setCurrentIndex(nextIndex)
             return True  # Event handled
         elif event.type() == QEvent.KeyPress and event.key() == Qt.Key_A and event.modifiers() == (Qt.ShiftModifier | Qt.AltModifier):
+            self.editingFinished.emit()
             self.addButton.clicked.emit()
             return True  
         return super().eventFilter(obj, event)
@@ -478,11 +479,15 @@ class MyApp(QWidget):
         self.initFileButton = QPushButton('Select Input File')
         self.initFileButton.clicked.connect(self.selectInputFile)
         self.initFileButton.setToolTip('Click to select the input GDS file.')
+        self.blankFileButton = QPushButton('Create Blank Design')
+        self.blankFileButton.clicked.connect(self.createBlankDesign)
+        self.blankFileButton.setToolTip('Click to create a blank design.')
         self.outFileField = QLineEdit()
         self.outFileField.setPlaceholderText('Output File')
         self.outFileField.editingFinished.connect(self.validateOutputFileName)
         self.outFileField.setToolTip('Enter the name of the output GDS file.')
         fileLayout.addWidget(self.initFileButton)
+        fileLayout.addWidget(self.blankFileButton)
         fileLayout.addWidget(self.outFileField)
         leftLayout.addLayout(fileLayout)
 
@@ -760,13 +765,16 @@ class MyApp(QWidget):
             QMessageBox.critical(self, "Selection Error", "No cell selected from the dropdown menu.", QMessageBox.Ok)
             self.log("No cell selected from the dropdown menu.")
             return
+        if self.plotLayersComboBox.currentText() == "":
+            QMessageBox.critical(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
+            self.log("No layer selected from the dropdown menu.")
+            return
 
         # Use the selected cell from the dropdown
         selected_cell = self.cellComboBox.currentText()
         self.log(f"Selected cell for plotting: {selected_cell}")
 
         cell = self.gds_design.check_cell_exists(selected_cell)
-        self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
         self.update_plot_data(cell)
         self.update_plot()
 
@@ -775,7 +783,7 @@ class MyApp(QWidget):
         self.plot_layer_polygons = []
         for (lay, dat), polys in polygons_by_spec.items():
             for poly in polys:
-                if lay == self.plot_layer_number:
+                if lay == int(self.plotLayersComboBox.currentText().split(':')[0].strip()):
                     self.plot_layer_polygons.append(Polygon(poly))
     
     def update_plot(self):
@@ -1137,6 +1145,24 @@ class MyApp(QWidget):
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
 
+    def createBlankDesign(self):
+        self.gds_design = GDSDesign()
+        self.log("Blank GDS design created")
+
+        self.cellComboBox.clear()
+        self.cellComboBox.addItems(self.gds_design.cells.keys())
+        self.log(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+        self.layerCellComboBox.clear()
+        self.layerCellComboBox.addItems(self.gds_design.cells.keys())
+        self.log(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+        self.customTestCellComboBox.clear()
+        self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
+        self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+        QMessageBox.information(self, "Design Created", "Blank GDS design created.", QMessageBox.Ok)
+
     def selectInputFile(self):
         # Output: sets self.inputFileName, self.outputFileName, self.logFileName, self.gds_design, self.layerData, and updates layersComboBox and customTestCellComboBox
         options = QFileDialog.Options()
@@ -1285,6 +1311,8 @@ class MyApp(QWidget):
             
             if os.path.exists(oldLogFileName):
                 os.rename(oldLogFileName, self.logFileName)  # Rename the existing log file to the new log file name
+            else:
+                self.initLogFile()
             
             self.log(f"Output File set to: {self.outputFileName}")
             self.log(f"Log File renamed to: {self.logFileName}")
