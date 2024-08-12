@@ -715,6 +715,18 @@ class MyApp(QWidget):
 
         mainLayout.addLayout(plotAreaLayout)  # Add the plot area layout to the main layout
 
+        # Define Cell layout
+        defineCellHBoxLayout = QHBoxLayout()
+        self.newCellNameEdit = QLineEdit()
+        self.newCellNameEdit.setPlaceholderText('Cell Name')
+        self.newCellNameEdit.setToolTip('Enter the name of the new cell.')
+        defineCellButton = QPushButton('Define New Cell')
+        defineCellButton.clicked.connect(self.defineNewCell)
+        defineCellButton.setToolTip('Click to define a new cell.')
+        defineCellHBoxLayout.addWidget(self.newCellNameEdit)
+        defineCellHBoxLayout.addWidget(defineCellButton)
+        leftLayout.addLayout(defineCellHBoxLayout)
+
         # Write to GDS button
         writeButton = QPushButton('Write to GDS')
         writeButton.clicked.connect(self.writeToGDS)
@@ -725,6 +737,26 @@ class MyApp(QWidget):
         self.setWindowTitle('GDS Automation GUI')
         self.resize(2800, 800)  # Set the initial size of the window
         self.show()
+
+    def defineNewCell(self):
+        if self.gds_design is None:
+            QMessageBox.critical(self, "Design Error", "No GDS design loaded.", QMessageBox.Ok)
+            self.log("No GDS design loaded.")
+            return
+        if self.newCellNameEdit.text() == "":
+            QMessageBox.critical(self, "Input Error", "No cell name provided.", QMessageBox.Ok)
+            self.log("No cell name provided.")
+            return
+        self.gds_design.add_cell(self.newCellNameEdit.text().strip())
+        self.updateCellComboBox()
+
+        self.addSnapshot()
+        self.writeToGDS()
+        # Update the available space
+        self.updateAvailableSpace()
+
+        self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
+        self.update_plot()
 
     def setRoutingMode(self):
         self.routingMode = True
@@ -1149,17 +1181,7 @@ class MyApp(QWidget):
         self.gds_design = GDSDesign()
         self.log("Blank GDS design created")
 
-        self.cellComboBox.clear()
-        self.cellComboBox.addItems(self.gds_design.cells.keys())
-        self.log(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
-
-        self.layerCellComboBox.clear()
-        self.layerCellComboBox.addItems(self.gds_design.cells.keys())
-        self.log(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
-
-        self.customTestCellComboBox.clear()
-        self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
-        self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        self.updateCellComboBox()
 
         QMessageBox.information(self, "Design Created", "Blank GDS design created.", QMessageBox.Ok)
 
@@ -1187,19 +1209,7 @@ class MyApp(QWidget):
                 self.log(f"Layers read from file: {self.layerData}")
                 self.updateLayersComboBox()
 
-                # Populate the custom test cell combo box with cell names
-                self.customTestCellComboBox.clear()
-                self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
-                self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
-
-                self.layerCellComboBox.clear()
-                self.layerCellComboBox.addItems(self.gds_design.cells.keys())
-                self.log(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
-
-                # Populate the cell combo box with cell names
-                self.cellComboBox.clear()
-                self.cellComboBox.addItems(self.gds_design.cells.keys())
-                self.log(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+                self.updateCellComboBox()
 
                 self.showMatplotlibWindow()
             else:
@@ -1290,6 +1300,19 @@ class MyApp(QWidget):
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .txt or .csv file")
+    
+    def updateCellComboBox(self):
+        self.cellComboBox.clear()
+        self.cellComboBox.addItems(self.gds_design.cells.keys())
+        self.log(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+        self.layerCellComboBox.clear()
+        self.layerCellComboBox.addItems(self.gds_design.cells.keys())
+        self.log(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+        self.customTestCellComboBox.clear()
+        self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
+        self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
                 
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
