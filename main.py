@@ -465,6 +465,11 @@ class MyApp(QWidget):
         self.routing = []
         self.routingMode = False
         self.flareMode = False
+        self.pitch_x = None
+        self.pitch_y = None
+        self.copies_x = None
+        self.copies_y = None
+        self.center_escape = None
         self.initUI()
 
     def initUI(self):
@@ -566,6 +571,12 @@ class MyApp(QWidget):
                 self.pathButton.clicked.connect(self.selectPathPointsFile)
                 self.pathButton.setToolTip('Click to select a file containing path points.')
                 gridLayout.addWidget(self.pathButton, row, 5)
+            
+            if name == "Escape Routing":
+                self.escapeButton = QPushButton('Select Escape Routing File')
+                self.escapeButton.clicked.connect(self.selectEscapeRoutingFile)
+                self.escapeButton.setToolTip('Click to select a file containing pad coordinates for escape routing.')
+                gridLayout.addWidget(self.escapeButton, row, 5)
 
             if name == "Custom Test Structure":
                 self.customTestCellComboBox = QComboBox()
@@ -1300,6 +1311,41 @@ class MyApp(QWidget):
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .txt or .csv file")
+
+    def selectEscapeRoutingFile(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select Escape Routing File", "", "Text Files (*.txt);;CSV Files (*.csv);;All Files (*)", options=options)
+        if fileName:
+            if fileName.lower().endswith('.txt') or fileName.lower().endswith('.csv'):
+                self.readEscapeRoutingPointsFile(fileName)
+                self.log(f"Escape Routing Points File: {fileName}")
+            else:
+                QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
+                self.log("File selection error: Not a .txt or .csv file")
+
+    def readEscapeRoutingPointsFile(self, fileName):
+        try:
+            if fileName.lower().endswith('.txt'):
+                points = np.loadtxt(fileName, delimiter=',')
+            elif fileName.lower().endswith('.csv'):
+                points = np.loadtxt(fileName, delimiter=',')
+            if all(len(point) == 2 for point in points):
+                diff_x = np.diff(np.unique(points[:, 0]))
+                diff_y = np.diff(np.unique(points[:, 1]))
+                assert np.all(diff_x == diff_x[0]), "x coordinates are not evenly spaced"
+                assert np.all(diff_y == diff_y[0]), "y coordinates are not evenly spaced"
+                self.pitch_x = diff_x[0]
+                self.pitch_y = diff_y[0]
+                self.copies_x = len(np.unique(points[:, 0]))
+                self.copies_y = len(np.unique(points[:, 1]))
+                self.center_escape = (np.mean(np.unique(points[:, 0])), np.mean(np.unique(points[:, 1])))
+                self.log(f"Escape Routing Points read: center {self.center_escape}, pitch_x {self.pitch_x}, pitch_y {self.pitch_y}, copies_x {self.copies_x}, copies_y {self.copies_y}")
+            else:
+                raise ValueError("File does not contain valid (x, y) coordinates.")
+        except Exception as e:
+            QMessageBox.critical(self, "File Error", f"Error reading file: {str(e)}", QMessageBox.Ok)
+            self.log(f"Error reading escape routing points file: {str(e)}")
     
     def updateCellComboBox(self):
         self.cellComboBox.clear()
@@ -1355,7 +1401,7 @@ class MyApp(QWidget):
         value = valueEdit.text()
         if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer":
             value = self.validateLayer(value)
-        elif param == "Center" and name != "Rectangle":
+        elif param == "Center" and name != "Rectangle" and not(name == "Escape Routing" and self.center_escape is not None and value == ''):
             value = self.validateCenter(value)
         for i, (checkBox, cb, edit, defaultParams, addButton) in enumerate(self.testStructures):
             if cb == comboBox:
@@ -1497,7 +1543,7 @@ class MyApp(QWidget):
                         for number, name in self.layerData:
                             if int(number) == layer_number:
                                 value = name
-                    elif param == "Center" and testStructureName != "Rectangle" and not(autoplace):
+                    elif param == "Center" and testStructureName != "Rectangle" and not(autoplace) and not(testStructureName == "Escape Routing" and self.center_escape is not None and value == ''):
                         value = self.validateCenter(value)
                         if value is None:
                             return
@@ -1581,12 +1627,12 @@ class MyApp(QWidget):
             try:
                 escape_dict = self.gds_design.add_regular_array_escape_one_sided(
                     trace_cell_name=Cell_Name,
-                    center=Center,
+                    center=Center if Center else self.center_escape,
                     layer_name=Layer,
-                    pitch_x=float(Pitch_X),
-                    pitch_y=float(Pitch_Y),
-                    array_size_x=int(Copies_X),
-                    array_size_y=int(Copies_Y),
+                    pitch_x=float(Pitch_X) if Pitch_X else self.pitch_x,
+                    pitch_y=float(Pitch_Y) if Pitch_Y else self.pitch_y,
+                    array_size_x=int(Copies_X) if Copies_X else self.copies_x,
+                    array_size_y=int(Copies_Y) if Copies_Y else self.copies_y,
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
@@ -1618,12 +1664,12 @@ class MyApp(QWidget):
             try:
                 escape_dict = self.gds_design.add_regular_array_escape_two_sided(
                     trace_cell_name=Cell_Name,
-                    center=Center,
+                    center=Center if Center else self.center_escape,
                     layer_name=Layer,
-                    pitch_x=float(Pitch_X),
-                    pitch_y=float(Pitch_Y),
-                    array_size_x=int(Copies_X),
-                    array_size_y=int(Copies_Y),
+                    pitch_x=float(Pitch_X) if Pitch_X else self.pitch_x,
+                    pitch_y=float(Pitch_Y) if Pitch_Y else self.pitch_y,
+                    array_size_x=int(Copies_X) if Copies_X else self.copies_x,
+                    array_size_y=int(Copies_Y) if Copies_Y else self.copies_y,
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
@@ -1661,12 +1707,12 @@ class MyApp(QWidget):
             try:
                 escape_dict = self.gds_design.add_regular_array_escape_three_sided(
                     trace_cell_name=Cell_Name,
-                    center=Center,
+                    center=Center if Center else self.center_escape,
                     layer_name=Layer,
-                    pitch_x=float(Pitch_X),
-                    pitch_y=float(Pitch_Y),
-                    array_size_x=int(Copies_X),
-                    array_size_y=int(Copies_Y),
+                    pitch_x=float(Pitch_X) if Pitch_X else self.pitch_x,
+                    pitch_y=float(Pitch_Y) if Pitch_Y else self.pitch_y,
+                    array_size_x=int(Copies_X) if Copies_X else self.copies_x,
+                    array_size_y=int(Copies_Y) if Copies_Y else self.copies_y,
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_y=escape_y,
@@ -1689,12 +1735,12 @@ class MyApp(QWidget):
             try:
                 escape_dict = self.gds_design.add_regular_array_escape_four_sided(
                     trace_cell_name=Cell_Name,
-                    center=Center,
+                    center=Center if Center else self.center_escape,
                     layer_name=Layer,
-                    pitch_x=float(Pitch_X),
-                    pitch_y=float(Pitch_Y),
-                    array_size_x=int(Copies_X),
-                    array_size_y=int(Copies_Y),
+                    pitch_x=float(Pitch_X) if Pitch_X else self.pitch_x,
+                    pitch_y=float(Pitch_Y) if Pitch_Y else self.pitch_y,
+                    array_size_x=int(Copies_X) if Copies_X else self.copies_x,
+                    array_size_y=int(Copies_Y) if Copies_Y else self.copies_y,
                     trace_width=float(Trace_Width),
                     pad_diameter=float(Pad_Diameter),
                     escape_extent=float(Escape_Extent),
