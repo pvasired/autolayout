@@ -15,6 +15,7 @@ from shapely.geometry import Polygon
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+import matplotlib.patches as patches
 import matplotlib
 matplotlib.use('Qt5Agg')
 
@@ -751,6 +752,43 @@ class MyApp(QWidget):
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3400, 800)  # Set the initial size of the window
         self.show()
+    
+    def drawSubstrate(self, axis_buffer=5):
+        # Remove the previous wafer patch if it exists
+        if hasattr(self, 'wafer_patch'):
+            self.wafer_patch.remove()
+
+        # Draw the new wafer patch
+        self.wafer_patch = patches.Circle((0, 0), self.waferDiameter / 2, edgecolor='tab:blue', facecolor='none')
+        self.dieAx.add_patch(self.wafer_patch)
+
+        # Set the aspect ratio to be equal
+        self.dieAx.set_aspect('equal', 'box')
+
+        # Set the limits of the plot
+        self.dieAx.set_xlim(-self.waferDiameter / 2 - axis_buffer, self.waferDiameter / 2 + axis_buffer)
+        self.dieAx.set_ylim(-self.waferDiameter / 2 - axis_buffer, self.waferDiameter / 2 + axis_buffer)
+
+        # Increase the size of the tick marks
+        self.dieAx.tick_params(axis='both', which='major', labelsize=18, length=10, width=2)
+        self.dieAx.grid(True, which='both')
+
+        # Redraw the canvas
+        self.dieCanvas.draw()
+
+    def onSubstrate4InchChecked(self):
+        if self.substrate4InchCheckBox.isChecked():
+            self.substrate6InchCheckBox.setChecked(False)
+
+            self.waferDiameter = 100
+            self.drawSubstrate()
+
+    def onSubstrate6InchChecked(self):
+        if self.substrate6InchCheckBox.isChecked():
+            self.substrate4InchCheckBox.setChecked(False)
+
+            self.waferDiameter = 150
+            self.drawSubstrate()
 
     def showDiePlacementUtility(self):
         # Create a new window for the Die Placement Utility
@@ -761,7 +799,45 @@ class MyApp(QWidget):
         mainLayout = QHBoxLayout()
 
         # Left layout for file selection, cell dropdown, and text input
-        self.leftLayout = QVBoxLayout()
+        self.dieLeftLayout = QVBoxLayout()
+
+        # Substrate layout
+        substrateLayout = QHBoxLayout()
+
+        # Substrate label
+        substrateLabel = QLabel('Substrate:')
+        substrateLayout.addWidget(substrateLabel)
+
+        # Checkbox for 4" (100mm)
+        self.substrate4InchCheckBox = QCheckBox('4" (100mm)')
+        self.substrate4InchCheckBox.stateChanged.connect(self.onSubstrate4InchChecked)
+        substrateLayout.addWidget(self.substrate4InchCheckBox)
+
+        # Checkbox for 6" (150mm)
+        self.substrate6InchCheckBox = QCheckBox('6" (150mm)')
+        self.substrate6InchCheckBox.stateChanged.connect(self.onSubstrate6InchChecked)
+        substrateLayout.addWidget(self.substrate6InchCheckBox)
+
+        # Add the substrate layout to the top of the left layout
+        self.dieLeftLayout.addLayout(substrateLayout)
+
+        dieDimensionsLayout = QHBoxLayout()
+        dieWidthLabel = QLabel('Die Width:')
+        self.dieWidthEdit = QLineEdit()
+        self.dieWidthEdit.setPlaceholderText('Die Width (mm)')
+        self.dieWidthEdit.setToolTip('Enter the width of the die in mm.')
+
+        dieHeightLabel = QLabel('Die Height:')
+        self.dieHeightEdit = QLineEdit()
+        self.dieHeightEdit.setPlaceholderText('Die Height (mm)')
+        self.dieHeightEdit.setToolTip('Enter the height of the die in mm.')
+        dieDimensionsLayout.addWidget(dieWidthLabel)
+        dieDimensionsLayout.addWidget(self.dieWidthEdit)
+        dieDimensionsLayout.addWidget(dieHeightLabel)
+        dieDimensionsLayout.addWidget(self.dieHeightEdit)
+
+        self.dieLeftLayout.addLayout(dieDimensionsLayout)
+
         self.rowIndex = 0
 
         # Method to add a row
@@ -788,25 +864,38 @@ class MyApp(QWidget):
             numDiesEdit.setToolTip('Enter the number of dies to place.')
             rowLayout.addWidget(numDiesEdit)
 
+            # Text Input Field for Die Label
+            dieLabelEdit = QLineEdit()
+            dieLabelEdit.setPlaceholderText('Die Label')
+            dieLabelEdit.setToolTip('Enter the text to display for the die label.')
+            rowLayout.addWidget(dieLabelEdit)
+
             # Add the row widget (with layout and color) to the left layout
-            self.leftLayout.addWidget(rowWidget)
+            self.dieLeftLayout.addWidget(rowWidget)
             self.rowIndex += 1
 
         addRowButton = QPushButton('+ Add Row')
         addRowButton.clicked.connect(addRow)
-        self.leftLayout.addWidget(addRowButton)
+        self.dieLeftLayout.addWidget(addRowButton)
 
         # Initial row
         addRow()
 
         # Add left layout to main layout
-        mainLayout.addLayout(self.leftLayout)
+        mainLayout.addLayout(self.dieLeftLayout)
 
+        diePlotLayout = QVBoxLayout()
         # Graphical Interface using Matplotlib
-        self.fig = Figure(figsize=(12, 8))  # Adjust size as needed
-        self.canvas = FigureCanvas(self.fig)
-        self.ax = self.fig.add_subplot(111)
-        mainLayout.addWidget(self.canvas)
+        self.dieFig = Figure(figsize=(12, 8))  # Adjust size as needed
+        self.dieCanvas = FigureCanvas(self.dieFig)
+        self.dieAx = self.dieFig.add_subplot(111)
+        diePlotLayout.addWidget(self.dieCanvas)
+
+        # Add the navigation toolbar to the layout
+        self.dieToolbar = NavigationToolbar(self.dieCanvas, self)
+        diePlotLayout.addWidget(self.dieToolbar)
+
+        mainLayout.addLayout(diePlotLayout)
 
         # Set the layout for the pop-up window
         self.diePlacementWindow.setLayout(mainLayout)
