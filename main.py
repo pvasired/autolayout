@@ -11,7 +11,7 @@ import math
 import numpy as np
 import os
 import uuid
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point, box
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -781,19 +781,108 @@ class MyApp(QWidget):
             self.substrate6InchCheckBox.setChecked(False)
 
             self.waferDiameter = 100
+            self.wafer = Point(0, 0).buffer(self.waferDiameter/2)
             self.drawSubstrate()
+            self.createDiePlacement()
 
     def onSubstrate6InchChecked(self):
         if self.substrate6InchCheckBox.isChecked():
             self.substrate4InchCheckBox.setChecked(False)
 
             self.waferDiameter = 150
+            self.wafer = Point(0, 0).buffer(self.waferDiameter/2)
             self.drawSubstrate()
+            self.createDiePlacement()
+
+    def createDiePlacement(self):
+        if self.waferDiameter is None or self.dieWidthEdit.text() == '' or self.dieHeightEdit.text() == '' or self.dicingStreetEdit.text() == '' or self.edgeMarginEdit.text() == '':
+            return
+        try:
+            die_width = float(self.dieWidthEdit.text())
+            die_height = float(self.dieHeightEdit.text())
+            dicing_street_width = float(self.dicingStreetEdit.text())
+            edge_margin = float(self.edgeMarginEdit.text())
+        except ValueError:
+            QMessageBox.critical(self, 'Error', 'Please enter valid numbers for the die width, die height, and dicing street width.', QMessageBox.Ok)
+            return
+        
+        self.dieAx.clear()
+        self.drawSubstrate()
+        if self.centeredPlacementCheckBox.isChecked():
+            starting_y = 0
+            while True:
+                starting_x = 0
+                die = box(starting_x-die_width/2, starting_y-die_height/2, starting_x+die_width/2, starting_y+die_height/2)
+                if die.exterior.distance(self.wafer.exterior) < edge_margin:
+                    break
+                while True:
+                    die_patch = patches.Rectangle((starting_x-die_width/2, starting_y-die_height/2), die_width, die_height, edgecolor='k', facecolor='none')
+                    die = box(starting_x-die_width/2, starting_y-die_height/2, starting_x+die_width/2, starting_y+die_height/2)
+
+                    if die.exterior.distance(self.wafer.exterior) < edge_margin:
+                        break
+
+                    # Add the square to the plot
+                    self.dieAx.add_patch(die_patch)
+
+                    starting_x += die_width + dicing_street_width
+
+                starting_x = 0
+                while True:
+                    die_patch = patches.Rectangle((starting_x-die_width/2, starting_y-die_height/2), die_width, die_height, edgecolor='k', facecolor='none')
+                    die = box(starting_x-die_width/2, starting_y-die_height/2, starting_x+die_width/2, starting_y+die_height/2)
+
+                    if die.exterior.distance(self.wafer.exterior) < edge_margin:
+                        break
+
+                    # Add the square to the plot
+                    self.dieAx.add_patch(die_patch)
+
+                    starting_x -= die_width + dicing_street_width
+                
+                starting_y += die_height + dicing_street_width
+
+            starting_y = 0
+            while True:
+                starting_x = 0
+                die = box(starting_x-die_width/2, starting_y-die_height/2, starting_x+die_width/2, starting_y+die_height/2)
+                if die.exterior.distance(self.wafer.exterior) < edge_margin:
+                    break
+                while True:
+                    die_patch = patches.Rectangle((starting_x-die_width/2, starting_y-die_height/2), die_width, die_height, edgecolor='k', facecolor='none')
+                    die = box(starting_x-die_width/2, starting_y-die_height/2, starting_x+die_width/2, starting_y+die_height/2)
+
+                    if die.exterior.distance(self.wafer.exterior) < edge_margin:
+                        break
+
+                    # Add the square to the plot
+                    self.dieAx.add_patch(die_patch)
+
+                    starting_x += die_width + dicing_street_width
+
+                starting_x = 0
+                while True:
+                    die_patch = patches.Rectangle((starting_x-die_width/2, starting_y-die_height/2), die_width, die_height, edgecolor='k', facecolor='none')
+                    die = box(starting_x-die_width/2, starting_y-die_height/2, starting_x+die_width/2, starting_y+die_height/2)
+
+                    if die.exterior.distance(self.wafer.exterior) < edge_margin:
+                        break
+
+                    # Add the square to the plot
+                    self.dieAx.add_patch(die_patch)
+
+                    starting_x -= die_width + dicing_street_width
+                
+                starting_y -= die_height + dicing_street_width
+
+        self.dieCanvas.draw()
 
     def showDiePlacementUtility(self):
         # Create a new window for the Die Placement Utility
         self.diePlacementWindow = QDialog(self)
         self.diePlacementWindow.setWindowTitle('Die Placement Menu')
+
+        self.waferDiameter = None
 
         # Main layout
         mainLayout = QHBoxLayout()
@@ -825,16 +914,42 @@ class MyApp(QWidget):
         dieWidthLabel = QLabel('Die Width:')
         self.dieWidthEdit = QLineEdit()
         self.dieWidthEdit.setPlaceholderText('Die Width (mm)')
+        self.dieWidthEdit.editingFinished.connect(self.createDiePlacement)
         self.dieWidthEdit.setToolTip('Enter the width of the die in mm.')
 
         dieHeightLabel = QLabel('Die Height:')
         self.dieHeightEdit = QLineEdit()
         self.dieHeightEdit.setPlaceholderText('Die Height (mm)')
+        self.dieHeightEdit.editingFinished.connect(self.createDiePlacement)
         self.dieHeightEdit.setToolTip('Enter the height of the die in mm.')
+
+        dicingStreetLabel = QLabel('Dicing Street Width:')
+        self.dicingStreetEdit = QLineEdit()
+        self.dicingStreetEdit.setPlaceholderText('Dicing Street Width (mm)')
+        self.dicingStreetEdit.editingFinished.connect(self.createDiePlacement)
+        self.dicingStreetEdit.setToolTip('Enter the width of the dicing street in mm.')
+
+        edgeMarginLabel = QLabel('Edge Margin:')
+        self.edgeMarginEdit = QLineEdit()
+        self.edgeMarginEdit.setPlaceholderText('Edge Margin (mm)')
+        self.edgeMarginEdit.editingFinished.connect(self.createDiePlacement)
+        self.edgeMarginEdit.setToolTip('Enter the edge margin in mm.')
+
+        centeredPlacementLabel = QLabel('Centered Placement:')
+        self.centeredPlacementCheckBox = QCheckBox()
+        self.centeredPlacementCheckBox.stateChanged.connect(self.createDiePlacement)
+        self.centeredPlacementCheckBox.setToolTip('Check to place the dies in a centered arrangement.')
+
         dieDimensionsLayout.addWidget(dieWidthLabel)
         dieDimensionsLayout.addWidget(self.dieWidthEdit)
         dieDimensionsLayout.addWidget(dieHeightLabel)
         dieDimensionsLayout.addWidget(self.dieHeightEdit)
+        dieDimensionsLayout.addWidget(dicingStreetLabel)
+        dieDimensionsLayout.addWidget(self.dicingStreetEdit)
+        dieDimensionsLayout.addWidget(edgeMarginLabel)
+        dieDimensionsLayout.addWidget(self.edgeMarginEdit)
+        dieDimensionsLayout.addWidget(centeredPlacementLabel)
+        dieDimensionsLayout.addWidget(self.centeredPlacementCheckBox)
 
         self.dieLeftLayout.addLayout(dieDimensionsLayout)
 
@@ -899,7 +1014,7 @@ class MyApp(QWidget):
 
         # Set the layout for the pop-up window
         self.diePlacementWindow.setLayout(mainLayout)
-        self.diePlacementWindow.resize(2000, 1000)  # Adjust window size as needed
+        self.diePlacementWindow.resize(3000, 1200)  # Adjust window size as needed
         self.diePlacementWindow.exec_()
 
     def defineNewCell(self):
