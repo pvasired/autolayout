@@ -1,7 +1,7 @@
 import sys
 import argparse
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip
+    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip, QDialog
 )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QEvent
@@ -22,6 +22,12 @@ TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
 TEMP_CELL_NAME = "SIZE CHECK TEMP"
 TILDE_KEY = 96
+COLOR_SEQUENCE = [
+    "red", "green", "blue", "yellow", "pink",
+    "orange", "purple", "cyan", "magenta", "lime",
+    "teal", "brown", "coral", "navy", "olive",
+    "maroon", "aqua", "gold", "salmon", "violet"
+]
 
 def resource_path(relative_path):
     try:
@@ -510,6 +516,12 @@ class MyApp(QWidget):
 
         leftLayout.addLayout(plotLayout)
 
+        # Die Placement Utility Button
+        self.diePlacementButton = QPushButton('Die Placement Menu')
+        self.diePlacementButton.clicked.connect(self.showDiePlacementUtility)
+        self.diePlacementButton.setToolTip('Click to open the Die Placement menu.')
+        leftLayout.addWidget(self.diePlacementButton)  # Add the button to your desired layout, e.g., leftLayout
+
         # Test Structures layout
         testLayout = QVBoxLayout()
         testLabel = QLabel('Components')
@@ -739,6 +751,67 @@ class MyApp(QWidget):
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3400, 800)  # Set the initial size of the window
         self.show()
+
+    def showDiePlacementUtility(self):
+        # Create a new window for the Die Placement Utility
+        self.diePlacementWindow = QDialog(self)
+        self.diePlacementWindow.setWindowTitle('Die Placement Menu')
+
+        # Main layout
+        mainLayout = QHBoxLayout()
+
+        # Left layout for file selection, cell dropdown, and text input
+        self.leftLayout = QVBoxLayout()
+        self.rowIndex = 0
+
+        # Method to add a row
+        def addRow():
+            rowLayout = QHBoxLayout()
+            
+            # Apply background color to the row
+            color = COLOR_SEQUENCE[self.rowIndex % len(COLOR_SEQUENCE)]
+            rowWidget = QWidget()
+            rowWidget.setStyleSheet(f"background-color: {color}; padding: 5px;")
+            rowWidget.setLayout(rowLayout)
+
+            # Select File Button
+            selectFileButton = QPushButton('Select GDS File')
+            rowLayout.addWidget(selectFileButton)
+
+            # Cell Dropdown Combo Box
+            cellComboBox = QComboBox()
+            rowLayout.addWidget(cellComboBox)
+
+            # Text Input Field for Number of Dies
+            numDiesEdit = QLineEdit()
+            numDiesEdit.setPlaceholderText('Number of Dies')
+            numDiesEdit.setToolTip('Enter the number of dies to place.')
+            rowLayout.addWidget(numDiesEdit)
+
+            # Add the row widget (with layout and color) to the left layout
+            self.leftLayout.addWidget(rowWidget)
+            self.rowIndex += 1
+
+        addRowButton = QPushButton('+ Add Row')
+        addRowButton.clicked.connect(addRow)
+        self.leftLayout.addWidget(addRowButton)
+
+        # Initial row
+        addRow()
+
+        # Add left layout to main layout
+        mainLayout.addLayout(self.leftLayout)
+
+        # Graphical Interface using Matplotlib
+        self.fig = Figure(figsize=(12, 8))  # Adjust size as needed
+        self.canvas = FigureCanvas(self.fig)
+        self.ax = self.fig.add_subplot(111)
+        mainLayout.addWidget(self.canvas)
+
+        # Set the layout for the pop-up window
+        self.diePlacementWindow.setLayout(mainLayout)
+        self.diePlacementWindow.resize(2000, 1000)  # Adjust window size as needed
+        self.diePlacementWindow.exec_()
 
     def defineNewCell(self):
         if self.gds_design is None:
