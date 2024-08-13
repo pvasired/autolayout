@@ -110,24 +110,23 @@ class MyApp(QWidget):
             "Rectangle", "Circle", "Text", "Polygon", "Path", "Escape Routing", "Connect Rows", "Custom Test Structure"
         ]
         self.parameters = {
-            "MLA Alignment Mark": ["Cell Name", "Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent", "Automatic Placement"],
-            "Resistance Test": ["Cell Name", "Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text", "Automatic Placement"],
-            "Trace Test": ["Cell Name", "Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height", "Automatic Placement"],
-            "Interlayer Via Test": ["Cell Name", "Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height", "Automatic Placement"],
-            "Electronics Via Test": ["Cell Name", "Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height", "Automatic Placement"],
-            "Short Test": ["Cell Name", "Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height", "Automatic Placement"],
-            "Rectangle": ["Cell Name", "Layer", "Center", "Width", "Height", "Lower Left", "Upper Right", "Rotation"],
-            "Circle": ["Cell Name", "Layer", "Center", "Diameter"],
-            "Text": ["Cell Name", "Layer", "Center", "Text", "Height", "Rotation"],
-            "Polygon": ["Cell Name", "Layer"],
-            "Path": ["Cell Name", "Layer", "Width"],
-            "Escape Routing": ["Cell Name", "Layer", "Center", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent", "Cable Tie Routing Angle", "Autorouting Angle"],
-            "Connect Rows": ["Cell Name", "Layer", "Row 1 Start", "Row 1 End", "Row 1 Spacing", "Row 1 Constant", "Row 2 Start", "Row 2 End", "Row 2 Spacing", "Row 2 Constant", "Orientation", "Trace Width", "Escape Extent"],
-            "Custom Test Structure": ["Parent Cell Name", "Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Automatic Placement"]
+            "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent", "Automatic Placement"],
+            "Resistance Test": ["Layer", "Center", "Probe Pad Width", "Probe Pad Height", "Probe Pad Spacing", "Plug Width", "Plug Height", "Trace Width", "Trace Spacing", "Switchbacks", "X Extent", "Text Height", "Text", "Add Interlayer Short", "Layer Name Short", "Short Text", "Automatic Placement"],
+            "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height", "Automatic Placement"],
+            "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height", "Automatic Placement"],
+            "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height", "Automatic Placement"],
+            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height", "Automatic Placement"],
+            "Rectangle": ["Layer", "Center", "Width", "Height", "Lower Left", "Upper Right", "Rotation"],
+            "Circle": ["Layer", "Center", "Diameter"],
+            "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
+            "Polygon": ["Layer"],
+            "Path": ["Layer", "Width"],
+            "Escape Routing": ["Layer", "Center", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent", "Cable Tie Routing Angle", "Autorouting Angle"],
+            "Connect Rows": ["Layer", "Row 1 Start", "Row 1 End", "Row 1 Spacing", "Row 1 Constant", "Row 2 Start", "Row 2 End", "Row 2 Spacing", "Row 2 Constant", "Orientation", "Trace Width", "Escape Extent"],
+            "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Automatic Placement"]
         }
         self.paramTooltips = {
             "MLA Alignment Mark": {
-                "Cell Name": "Select the cell name for the alignment mark.",
                 "Layer": "Select the layer for the alignment mark.",
                 "Center": "Enter the center (x, y) coordinate of the alignment mark.",
                 "Outer Rect Width": "Enter the width of the outer rectangle.",
@@ -138,7 +137,6 @@ class MyApp(QWidget):
                 "Automatic Placement": "Check to automatically place the alignment mark."
             },
             "Resistance Test": {
-                "Cell Name": "Select the cell name for the resistance test structure.",
                 "Layer": "Select the layer for the resistance test structure.",
                 "Center": "Enter the center (x, y) coordinate of the resistance test structure.",
                 "Probe Pad Width": "Enter the width of the probe pad.",
@@ -158,7 +156,6 @@ class MyApp(QWidget):
                 "Automatic Placement": "Check to automatically place the resistance test structure."
             },
             "Trace Test": {
-                "Cell Name": "Select the cell name for the trace test structure.",
                 "Layer": "Select the layer for the trace test structure.",
                 "Center": "Enter the center (x, y) coordinate of the trace test structure.",
                 "Text": "Enter the text to display on the structure.",
@@ -170,7 +167,6 @@ class MyApp(QWidget):
                 "Automatic Placement": "Check to automatically place the trace test structure."
             },
             "Interlayer Via Test": {
-                "Cell Name": "Select the cell name for the interlayer via test structure.",
                 "Layer Number 1": "Select the first layer for the interlayer via test structure.",
                 "Layer Number 2": "Select the second layer for the interlayer via test structure.",
                 "Via Layer": "Select the via layer for the interlayer via test structure.",
@@ -187,7 +183,6 @@ class MyApp(QWidget):
                 "Automatic Placement": "Check to automatically place the interlayer via test structure."
             },
             "Electronics Via Test": {
-                "Cell Name": "Select the cell name for the electronics via test structure.",
                 "Layer Number 1": "Select the first layer for the electronics via test structure.",
                 "Layer Number 2": "Select the second layer for the electronics via test structure.",
                 "Via Layer": "Select the via layer for the electronics via test structure.",
@@ -205,7 +200,6 @@ class MyApp(QWidget):
                 "Automatic Placement": "Check to automatically place the electronics via test structure."
             },
             "Short Test": {
-                "Cell Name": "Select the cell name for the short test structure.",
                 "Layer": "Select the layer for the short test structure.",
                 "Center": "Enter the center (x, y) coordinate of the short test structure.",
                 "Text": "Enter the text to display on the structure.",
@@ -219,7 +213,6 @@ class MyApp(QWidget):
                 "Automatic Placement": "Check to automatically place the short test structure."
             },
             "Rectangle": {
-                "Cell Name": "Select the cell name for the rectangle.",
                 "Layer": "Select the layer for the rectangle.",
                 "Center": "Enter the center (x, y) coordinate of the rectangle.",
                 "Width": "Enter the width of the rectangle.",
@@ -229,13 +222,11 @@ class MyApp(QWidget):
                 "Rotation": "Enter the rotation angle of the rectangle."
             },
             "Circle": {
-                "Cell Name": "Select the cell name for the circle.",
                 "Layer": "Select the layer for the circle.",
                 "Center": "Enter the center (x, y) coordinate of the circle.",
                 "Diameter": "Enter the diameter of the circle."
             },
             "Text": {
-                "Cell Name": "Select the cell name for the text.",
                 "Layer": "Select the layer for the text.",
                 "Center": "Enter the center (x, y) coordinate of the text.",
                 "Text": "Enter the text to display.",
@@ -243,16 +234,13 @@ class MyApp(QWidget):
                 "Rotation": "Enter the rotation angle of the text."
             },
             "Polygon": {
-                "Cell Name": "Select the cell name for the polygon.",
                 "Layer": "Select the layer for the polygon."
             },
             "Path": {
-                "Cell Name": "Select the cell name for the path.",
                 "Layer": "Select the layer for the path.",
                 "Width": "Enter the width of the path."
             },
             "Escape Routing": {
-                "Cell Name": "Select the cell name for the escape routing.",
                 "Layer": "Select the layer for the escape routing.",
                 "Center": "Enter the center (x, y) coordinate of the escape routing.",
                 "Copies X": "Enter the number of copies in the x direction.",
@@ -268,7 +256,6 @@ class MyApp(QWidget):
                 "Autorouting Angle": "Enter the angle for autorouting in degrees."
             },
             "Connect Rows": {
-                "Cell Name": "Select the cell name for the connect rows.",
                 "Layer": "Select the layer for the connect rows.",
                 "Row 1 Start": "Enter the start of the first row.",
                 "Row 1 End": "Enter the end of the first row.",
@@ -283,7 +270,6 @@ class MyApp(QWidget):
                 "Escape Extent": "Enter the extent of the escape segment.",
             },
             "Custom Test Structure": {
-                "Parent Cell Name": "Select the parent cell name for the custom test structure.",
                 "Center": "Enter the center (x, y) coordinate of the custom test structure.",
                 "Magnification": "Enter the magnification factor of the custom test structure.",
                 "Rotation": "Enter the rotation angle of the custom test structure.",
@@ -298,7 +284,6 @@ class MyApp(QWidget):
         }
         self.defaultParams = {
             "MLA Alignment Mark": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Outer Rect Width": 500,
@@ -309,7 +294,6 @@ class MyApp(QWidget):
                 "Automatic Placement": True
             },
             "Resistance Test": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Probe Pad Width": 1000,
@@ -329,7 +313,6 @@ class MyApp(QWidget):
                 "Automatic Placement": True
             },
             "Trace Test": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Text": '',
@@ -341,7 +324,6 @@ class MyApp(QWidget):
                 "Automatic Placement": True
             },
             "Interlayer Via Test": {
-                "Cell Name": '',
                 "Layer Number 1": '',
                 "Layer Number 2": '',
                 "Via Layer": '',
@@ -358,7 +340,6 @@ class MyApp(QWidget):
                 "Automatic Placement": True
             },
             "Electronics Via Test": {
-                "Cell Name": '',
                 "Layer Number 1": '',
                 "Layer Number 2": '',
                 "Via Layer": '',
@@ -376,7 +357,6 @@ class MyApp(QWidget):
                 "Automatic Placement": True
             },
             "Short Test": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Text": '',
@@ -390,7 +370,6 @@ class MyApp(QWidget):
                 "Automatic Placement": True
             },
             "Rectangle": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Width": '',
@@ -400,13 +379,11 @@ class MyApp(QWidget):
                 "Rotation": 0
             },
             "Circle": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Diameter": ''
             },
             "Text": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Text": '',
@@ -414,16 +391,13 @@ class MyApp(QWidget):
                 "Rotation": 0
             },
             "Polygon": {
-                "Cell Name": '',
                 "Layer": ''
             },
             "Path": {
-                "Cell Name": '',
                 "Layer": '',
                 "Width": ''
             },
             "Escape Routing": {
-                "Cell Name": '',
                 "Layer": '',
                 "Center": '',
                 "Copies X": '',
@@ -439,7 +413,6 @@ class MyApp(QWidget):
                 "Autorouting Angle": 45
             },
             "Connect Rows": {
-                "Cell Name": '',
                 "Layer": '',
                 "Row 1 Start": '',
                 "Row 1 End": '',
@@ -454,7 +427,6 @@ class MyApp(QWidget):
                 "Escape Extent": 100,
             },
             "Custom Test Structure": {
-                "Parent Cell Name": '',  
                 "Center": '',
                 "Magnification": 1,
                 "Rotation": 0,
@@ -549,6 +521,10 @@ class MyApp(QWidget):
             testCheckBox = QCheckBox(name)
             testCheckBox.stateChanged.connect(self.createCheckStateHandler)
             testCheckBox.setToolTip(f'Check to include {name} in the design.')
+            cellBoxLabel = QLabel('Cell Name')
+            testCellComboBox = QComboBox()
+            testCellComboBox.setPlaceholderText(f'Select Cell to Place {name}')
+            testCellComboBox.setToolTip(f'Select the cell on which to place {name}.')
             paramLabel = QLabel('Parameters')
             paramComboBox = TooltipComboBox()
             paramComboBox.addItems(self.parameters[name])
@@ -568,46 +544,48 @@ class MyApp(QWidget):
             paramValueEdit.setToolTip(f'Enter value for the selected parameter of {name}.')
 
             gridLayout.addWidget(testCheckBox, row, 0)
-            gridLayout.addWidget(paramLabel, row, 1)
-            gridLayout.addWidget(paramComboBox, row, 2)
-            gridLayout.addWidget(paramValueEdit, row, 3)
-            gridLayout.addWidget(addButton, row, 4)
+            gridLayout.addWidget(cellBoxLabel, row, 1)
+            gridLayout.addWidget(testCellComboBox, row, 2)
+            gridLayout.addWidget(paramLabel, row, 3)
+            gridLayout.addWidget(paramComboBox, row, 4)
+            gridLayout.addWidget(paramValueEdit, row, 5)
+            gridLayout.addWidget(addButton, row, 6)
 
             if name == "Polygon":
                 self.polygonButton = QPushButton('Select Polygon Points File')
                 self.polygonButton.clicked.connect(self.selectPolygonPointsFile)
                 self.polygonButton.setToolTip('Click to select a file containing polygon points.')
-                gridLayout.addWidget(self.polygonButton, row, 5)
+                gridLayout.addWidget(self.polygonButton, row, 7)
             
             if name == "Path":
                 self.pathButton = QPushButton('Select Path Points File')
                 self.pathButton.clicked.connect(self.selectPathPointsFile)
                 self.pathButton.setToolTip('Click to select a file containing path points.')
-                gridLayout.addWidget(self.pathButton, row, 5)
+                gridLayout.addWidget(self.pathButton, row, 7)
             
             if name == "Escape Routing":
                 self.escapeButton = QPushButton('Select Escape Routing File')
                 self.escapeButton.clicked.connect(self.selectEscapeRoutingFile)
                 self.escapeButton.setToolTip('Click to select a file containing pad coordinates for escape routing.')
-                gridLayout.addWidget(self.escapeButton, row, 5)
+                gridLayout.addWidget(self.escapeButton, row, 7)
 
             if name == "Custom Test Structure":
                 self.customTestCellComboBox = QComboBox()
                 self.customTestCellComboBox.setPlaceholderText("Select Custom Test Structure Cell")
                 self.customTestCellComboBox.currentTextChanged.connect(self.handleCustomTestCellName)
                 self.customTestCellComboBox.setToolTip('Select a custom test structure cell.')
-                gridLayout.addWidget(self.customTestCellComboBox, row, 5)
+                gridLayout.addWidget(self.customTestCellComboBox, row, 7)
                 
                 # New button to select other .gds file
                 self.selectOtherGDSButton = QPushButton('Select Other .gds File')
                 self.selectOtherGDSButton.clicked.connect(self.selectOtherGDSFile)
                 self.selectOtherGDSButton.setToolTip('Click to select another .gds file.')
-                gridLayout.addWidget(self.selectOtherGDSButton, row, 6)  # Adjust the position as needed
+                gridLayout.addWidget(self.selectOtherGDSButton, row, 8)  # Adjust the position as needed
 
             row += 1
 
             defaultParams = deepcopy(self.defaultParams[name])
-            self.testStructures.append((testCheckBox, paramComboBox, paramValueEdit, defaultParams, addButton))
+            self.testStructures.append((testCheckBox, testCellComboBox, paramComboBox, paramValueEdit, defaultParams, addButton))
 
         testLayout.addLayout(gridLayout)
         leftLayout.addLayout(testLayout)
@@ -759,7 +737,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('GDS Automation GUI')
-        self.resize(2800, 800)  # Set the initial size of the window
+        self.resize(3400, 800)  # Set the initial size of the window
         self.show()
 
     def defineNewCell(self):
@@ -1138,7 +1116,7 @@ class MyApp(QWidget):
     def createParamChangeHandler(self, param):
         sender = self.sender()
         # Update the default value to display for the specific test structure and parameter
-        for checkBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+        for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if comboBox == sender:
                 name = checkBox.text()
                 value = defaultParams.get(param, '')
@@ -1151,7 +1129,7 @@ class MyApp(QWidget):
                 
     def createParamStoreHandler(self):
         sender = self.sender()
-        for checkBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+        for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if valueEdit == sender:
                 name = checkBox.text()
                 comboBox = comboBox
@@ -1160,7 +1138,7 @@ class MyApp(QWidget):
 
     def createAddToDesignHandler(self):
         sender = self.sender()
-        for checkBox, _, _, _, addButton in self.testStructures:
+        for checkBox, _, _, _, _, addButton in self.testStructures:
             if addButton == sender:
                 name = checkBox.text()
                 break
@@ -1376,6 +1354,11 @@ class MyApp(QWidget):
         self.customTestCellComboBox.clear()
         self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
         self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+        for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+            cellComboBox.clear()
+            cellComboBox.addItems(self.gds_design.cells.keys())
+            self.log(f"Cell combo box populated for {checkBox.text()} test structure: {list(self.gds_design.cells.keys())}")
                 
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
@@ -1420,10 +1403,10 @@ class MyApp(QWidget):
             value = self.validateLayer(value)
         elif param == "Center" and name != "Rectangle" and not(name == "Escape Routing" and self.center_escape is not None and value == ''):
             value = self.validateCenter(value)
-        for i, (checkBox, cb, edit, defaultParams, addButton) in enumerate(self.testStructures):
+        for i, (checkBox, ccb, cb, edit, defaultParams, addButton) in enumerate(self.testStructures):
             if cb == comboBox:
                 if param in defaultParams:
-                    self.testStructures[i][3][param] = value
+                    self.testStructures[i][4][param] = value
                     self.log(f"{name} {param} updated to {value}")
 
     def validateLayer(self, layer):
@@ -1463,45 +1446,46 @@ class MyApp(QWidget):
 
     def handleAddToDesign(self, testStructureName):
         # Make sure the checkbox is checked for this test structure
-        for checkBox, _, _, _, _ in self.testStructures:
+        for checkBox, cellComboBox, _, _, _, _ in self.testStructures:
             if checkBox.text() == testStructureName:
                 if not checkBox.isChecked():
                     QMessageBox.critical(self, "Test Structure Error", f"Please check the '{testStructureName}' checkbox to add it to the design.", QMessageBox.Ok)
                     self.log(f"Add to Design error: '{testStructureName}' checkbox not checked")
                     return
+                cell_name = cellComboBox.currentText()
         self.log(f"Adding {testStructureName} to design")
         self.addSnapshot()  # Store snapshot before adding new design
         params = self.getParameters(testStructureName)
         self.log(f"Parameters: {params}")
         if params:
             if testStructureName == "MLA Alignment Mark":
-                retval = self.addMLAAlignmentMark(**params)
+                retval = self.addMLAAlignmentMark(cell_name, **params)
             elif testStructureName == "Resistance Test":
-                retval = self.addResistanceTest(**params)
+                retval = self.addResistanceTest(cell_name, **params)
             elif testStructureName == "Trace Test":
-                retval = self.addTraceTest(**params)
+                retval = self.addTraceTest(cell_name, **params)
             elif testStructureName == "Interlayer Via Test":
-                retval = self.addInterlayerViaTest(**params)
+                retval = self.addInterlayerViaTest(cell_name, **params)
             elif testStructureName == "Electronics Via Test":
-                retval = self.addElectronicsViaTest(**params)
+                retval = self.addElectronicsViaTest(cell_name, **params)
             elif testStructureName == "Short Test":
-                retval = self.addShortTest(**params)
+                retval = self.addShortTest(cell_name, **params)
             elif testStructureName == "Custom Test Structure":
-                retval = self.addCustomTestStructure(**params)
+                retval = self.addCustomTestStructure(cell_name, **params)
             elif testStructureName == "Rectangle":
-                retval = self.addRectangle(**params)
+                retval = self.addRectangle(cell_name, **params)
             elif testStructureName == "Circle":
-                retval = self.addCircle(**params)
+                retval = self.addCircle(cell_name, **params)
             elif testStructureName == "Text":
-                retval = self.addText(**params)
+                retval = self.addText(cell_name, **params)
             elif testStructureName == "Polygon":
-                retval = self.addPolygon(**params)
+                retval = self.addPolygon(cell_name, **params)
             elif testStructureName == "Path":
-                retval = self.addPath(**params)
+                retval = self.addPath(cell_name, **params)
             elif testStructureName == "Escape Routing":
-                retval = self.addEscapeRouting(**params)
+                retval = self.addEscapeRouting(cell_name, **params)
             elif testStructureName == "Connect Rows":
-                retval = self.addConnectRows(**params)
+                retval = self.addConnectRows(cell_name, **params)
             
             if retval:
                 # Write the design
@@ -1537,7 +1521,7 @@ class MyApp(QWidget):
         params = {}
         autoplace = False
         # See if Automatic Placement is set to True
-        for testCheckBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+        for testCheckBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if testCheckBox.text() == testStructureName:
                 if "Automatic Placement" in defaultParams:
                     if type(defaultParams["Automatic Placement"]) == str:
@@ -1547,7 +1531,7 @@ class MyApp(QWidget):
                         autoplace = True
                 break
 
-        for testCheckBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
+        for testCheckBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             if testCheckBox.text() == testStructureName:
                 for param in self.parameters[testStructureName]:
                     value = defaultParams.get(param, '')
