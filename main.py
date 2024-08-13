@@ -813,15 +813,19 @@ class MyApp(QWidget):
         self.log(f"Selected cell for plotting: {selected_cell}")
 
         cell = self.gds_design.check_cell_exists(selected_cell)
+        self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
         self.update_plot_data(cell)
         self.update_plot()
 
     def update_plot_data(self, cell):
         polygons_by_spec = cell.get_polygons(by_spec=True)
         self.plot_layer_polygons = []
+        if self.plot_layer_number is None:
+            self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+
         for (lay, dat), polys in polygons_by_spec.items():
             for poly in polys:
-                if lay == int(self.plotLayersComboBox.currentText().split(':')[0].strip()):
+                if lay == self.plot_layer_number:
                     self.plot_layer_polygons.append(Polygon(poly))
     
     def update_plot(self):
