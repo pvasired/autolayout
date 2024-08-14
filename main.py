@@ -24,10 +24,26 @@ TEXT_HEIGHT_FACTOR = 0.7
 TEMP_CELL_NAME = "SIZE CHECK TEMP"
 TILDE_KEY = 96
 COLOR_SEQUENCE = [
-    "red", "green", "blue", "yellow", "pink",
-    "orange", "purple", "cyan", "magenta", "lime",
-    "teal", "brown", "coral", "navy", "olive",
-    "maroon", "aqua", "gold", "salmon", "violet"
+    "#FFCCCC",  # Light red
+    "#CCFFCC",  # Light green
+    "#CCCCFF",  # Light blue
+    "#FFFFCC",  # Light yellow
+    "#FFCCFF",  # Light pink
+    "#FFD1B3",  # Light orange
+    "#E6CCFF",  # Light purple
+    "#CCFFFF",  # Light cyan
+    "#FFCCF2",  # Light magenta
+    "#D9FFB3",  # Light lime
+    "#CCFFFF",  # Light teal
+    "#E6D8CC",  # Light brown
+    "#FFDAB3",  # Light coral
+    "#CCCCE6",  # Light navy
+    "#E6E6CC",  # Light olive
+    "#FFB3B3",  # Light maroon
+    "#CCFFFF",  # Light aqua
+    "#FFF5CC",  # Light gold
+    "#FFD1CC",  # Light salmon
+    "#E6CCFF"   # Light violet
 ]
 
 def resource_path(relative_path):
@@ -752,6 +768,29 @@ class MyApp(QWidget):
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3400, 800)  # Set the initial size of the window
         self.show()
+
+    def dieSelectGDSFile(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        fileName, _ = QFileDialog.getOpenFileName(self, "Select Input File", "", "GDS Files (*.gds);;All Files (*)", options=options)
+        if fileName:
+            if fileName.lower().endswith('.gds'):
+                sender = self.sender()
+                for rowIndex in self.dieInfo:
+                    selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, _ = self.dieInfo[rowIndex]
+                    if selectFileButton == sender:
+                        break
+                # Load the GDS file using GDSDesign
+                dieDesign = GDSDesign(filename=fileName)
+                cellComboBox.clear()
+                cellComboBox.addItems(dieDesign.cells.keys())
+                self.log(f"Cell combo box populated with cells: {list(dieDesign.cells.keys())}")
+
+                # Store the GDSDesign instance
+                self.dieInfo[rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieDesign)
+            else:
+                QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
+                self.log("File selection error: Not a .gds file")
     
     def drawSubstrate(self, axis_buffer=5):
         # Remove the previous wafer patch if it exists
@@ -759,7 +798,7 @@ class MyApp(QWidget):
             self.wafer_patch.remove()
 
         # Draw the new wafer patch
-        self.wafer_patch = patches.Circle((0, 0), self.waferDiameter / 2, edgecolor='tab:blue', facecolor='none')
+        self.wafer_patch = patches.Circle((0, 0), self.waferDiameter / 2, edgecolor='tab:blue', facecolor='none', linewidth=2)
         self.dieAx.add_patch(self.wafer_patch)
 
         # Set the aspect ratio to be equal
@@ -958,6 +997,7 @@ class MyApp(QWidget):
         self.diePlacementWindow.setWindowTitle('Die Placement Menu')
 
         self.waferDiameter = None
+        self.dieInfo = {}
 
         # Main layout
         mainLayout = QHBoxLayout()
@@ -1048,10 +1088,15 @@ class MyApp(QWidget):
 
             # Select File Button
             selectFileButton = QPushButton('Select GDS File')
+            selectFileButton.clicked.connect(self.dieSelectGDSFile)
+            selectFileButton.setToolTip('Click to select the GDS file for the die.')
             rowLayout.addWidget(selectFileButton)
 
             # Cell Dropdown Combo Box
             cellComboBox = QComboBox()
+            cellComboBox.setMinimumWidth(1000)
+            cellComboBox.setPlaceholderText('Select Cell')
+            cellComboBox.setToolTip('Select the cell from the GDS file to place.')
             rowLayout.addWidget(cellComboBox)
 
             # Text Input Field for Number of Dies
@@ -1068,6 +1113,7 @@ class MyApp(QWidget):
 
             # Add the row widget (with layout and color) to the left layout
             self.dieLeftLayout.addWidget(rowWidget)
+            self.dieInfo[self.rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, None)
             self.rowIndex += 1
 
         addRowButton = QPushButton('+ Add Row')
