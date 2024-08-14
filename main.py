@@ -45,6 +45,28 @@ COLOR_SEQUENCE = [
     "#FFD1CC",  # Light salmon
     "#E6CCFF"   # Light violet
 ]
+BASE_COLORS = {
+    "#FFCCCC": "#FF6666",  # Light red -> Red
+    "#CCFFCC": "#66FF66",  # Light green -> Green
+    "#CCCCFF": "#6666FF",  # Light blue -> Blue
+    "#FFFFCC": "#FFFF66",  # Light yellow -> Yellow
+    "#FFCCFF": "#FF66FF",  # Light pink -> Pink
+    "#FFD1B3": "#FF9966",  # Light orange -> Orange
+    "#E6CCFF": "#B266FF",  # Light purple -> Purple
+    "#CCFFFF": "#66FFFF",  # Light cyan -> Cyan
+    "#FFCCF2": "#FF66D9",  # Light magenta -> Magenta
+    "#D9FFB3": "#99FF66",  # Light lime -> Lime
+    "#CCFFFF": "#66FFFF",  # Light teal -> Teal
+    "#E6D8CC": "#C9A57A",  # Light brown -> Brown
+    "#FFDAB3": "#FF9966",  # Light coral -> Coral
+    "#CCCCE6": "#6666B2",  # Light navy -> Navy
+    "#E6E6CC": "#CCCC66",  # Light olive -> Olive
+    "#FFB3B3": "#FF6666",  # Light maroon -> Maroon
+    "#CCFFFF": "#66FFFF",  # Light aqua -> Aqua
+    "#FFF5CC": "#FFEB99",  # Light gold -> Gold
+    "#FFD1CC": "#FF9980",  # Light salmon -> Salmon
+    "#E6CCFF": "#B266FF"   # Light violet -> Violet
+}
 
 def resource_path(relative_path):
     try:
@@ -777,7 +799,7 @@ class MyApp(QWidget):
             if fileName.lower().endswith('.gds'):
                 sender = self.sender()
                 for rowIndex in self.dieInfo:
-                    selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, _ = self.dieInfo[rowIndex]
+                    selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, _ = self.dieInfo[rowIndex]
                     if selectFileButton == sender:
                         break
                 # Load the GDS file using GDSDesign
@@ -787,7 +809,7 @@ class MyApp(QWidget):
                 self.log(f"Cell combo box populated with cells: {list(dieDesign.cells.keys())}")
 
                 # Store the GDSDesign instance
-                self.dieInfo[rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieDesign)
+                self.dieInfo[rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, dieDesign)
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -1025,6 +1047,7 @@ class MyApp(QWidget):
         self.diePlacementWindow.setWindowTitle('Die Placement Menu')
 
         self.waferDiameter = None
+        self.activeRow = None
         self.diePlacement = {}
         self.dieInfo = {}
 
@@ -1105,6 +1128,21 @@ class MyApp(QWidget):
 
         self.rowIndex = 0
 
+        # Method to set the active row
+        def setActiveRow(rowIndex):
+            # Reset the color of the previous active row
+            if self.activeRow is not None:
+                prev_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
+                self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {prev_color}; padding: 5px;")
+            
+            # Set the new active row
+            self.activeRow = rowIndex
+            original_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
+            active_color = BASE_COLORS.get(original_color)
+            self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {active_color}; padding: 5px;")
+
+            self.log(f"Active row set to {self.activeRow}")
+
         # Method to add a row
         def addRow():
             rowLayout = QHBoxLayout()
@@ -1114,6 +1152,8 @@ class MyApp(QWidget):
             rowWidget = QWidget()
             rowWidget.setStyleSheet(f"background-color: {color}; padding: 5px;")
             rowWidget.setLayout(rowLayout)
+
+            rowWidget.mousePressEvent = lambda event, widget=rowWidget, idx=self.rowIndex: setActiveRow(idx)
 
             # Select File Button
             selectFileButton = QPushButton('Select GDS File')
@@ -1140,9 +1180,15 @@ class MyApp(QWidget):
             dieLabelEdit.setToolTip('Enter the text to display for the die label.')
             rowLayout.addWidget(dieLabelEdit)
 
+            # Text Input Field for Die Notes
+            dieNotesEdit = QLineEdit()
+            dieNotesEdit.setPlaceholderText('Die Notes')
+            dieNotesEdit.setToolTip('Enter any notes for the die.')
+            rowLayout.addWidget(dieNotesEdit)
+
             # Add the row widget (with layout and color) to the left layout
             self.dieLeftLayout.addWidget(rowWidget)
-            self.dieInfo[self.rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, None)
+            self.dieInfo[self.rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, None)
             self.rowIndex += 1
 
         addRowButton = QPushButton('+ Add Row')
