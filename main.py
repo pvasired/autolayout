@@ -991,6 +991,22 @@ class MyApp(QWidget):
         self.dieCanvas.draw()
         self.dpwTextBox.setText(str(self.dpw))
 
+    def die_on_click(self, event):
+        # Check if the toolbar is in zoom mode
+        if self.dieToolbar.mode == '':
+            if event.inaxes is not None:
+                x, y = event.xdata, event.ydata
+                self.log(f"Click at position: ({x}, {y})")
+                # You can process the click coordinates here
+                self.die_process_click(x, y)
+            else:
+                self.log("Click outside axes bounds")
+        else:
+            self.log(f"Toolbar mode is active ({self.dieToolbar.mode}), click not registered")
+    
+    def die_process_click(self, x, y):
+        pass
+
     def showDiePlacementUtility(self):
         # Create a new window for the Die Placement Utility
         self.diePlacementWindow = QDialog(self)
@@ -1130,6 +1146,7 @@ class MyApp(QWidget):
         # Graphical Interface using Matplotlib
         self.dieFig = Figure(figsize=(12, 8))  # Adjust size as needed
         self.dieCanvas = FigureCanvas(self.dieFig)
+        self.dieCanvas.mpl_connect('button_press_event', self.die_on_click)
         self.dieAx = self.dieFig.add_subplot(111)
         diePlotLayout.addWidget(self.dieCanvas)
 
