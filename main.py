@@ -1035,7 +1035,7 @@ class MyApp(QWidget):
     def updateDPW(self):
         cnt = 0
         for loc in self.diePlacement:
-            if self.diePlacement[loc][0] is None:
+            if self.diePlacement[loc][1].get_facecolor() == (0, 0, 0, 0) and self.diePlacement[loc][0] is None:
                cnt += 1
         self.dpwTextBox.setText(str(cnt))
         self.dpw = cnt 
@@ -1085,8 +1085,21 @@ class MyApp(QWidget):
             else:
                 QMessageBox.critical(self, 'Error', 'Please select a GDS file and cell for the die.', QMessageBox.Ok)
                 return
+        elif self.blacklistMode:
+            if self.diePlacement[closestLoc][1].get_facecolor() == (0, 0, 0, 1):
+                self.diePlacement[closestLoc][1].set_facecolor('none')
+                self.dieCanvas.draw()
+                self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
+
+                self.updateDPW()
+            else:
+                self.diePlacement[closestLoc][1].set_facecolor('black')
+                self.dieCanvas.draw()
+                self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
+
+                self.updateDPW()
         else:
-            QMessageBox.critical(self, 'Error', 'Please select a row in the Die Placement Menu.', QMessageBox.Ok)
+            QMessageBox.critical(self, 'Error', 'Please select a row in the Die Placement Menu or select Blacklist Mode.', QMessageBox.Ok)
             return
     
     def autoPlaceDies(self):
@@ -1094,7 +1107,7 @@ class MyApp(QWidget):
             QMessageBox.critical(self, 'Error', 'No spaces to place dies.', QMessageBox.Ok)
             return
         
-        keys = [key for key, value in self.diePlacement.items() if value[0] is None]
+        keys = [key for key, value in self.diePlacement.items() if value[0] is None and value[1].get_facecolor() != (0, 0, 0, 1)]
         random.shuffle(keys)
 
         numDies_tot = 0
@@ -1132,6 +1145,11 @@ class MyApp(QWidget):
         if self.activeRow is not None:
             prev_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
             self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {prev_color}; padding: 5px;")
+
+        if self.activeRow == rowIndex:
+            self.activeRow = None
+            self.log("Active row unset")
+            return
         
         # Set the new active row
         self.activeRow = rowIndex
@@ -1196,10 +1214,13 @@ class MyApp(QWidget):
         self.diePlacementWindow.setWindowTitle('Die Placement Menu')
 
         self.waferDiameter = None
+        self.wafer = None
         self.activeRow = None
         self.diePlacement = {}
         self.dieInfo = {}
         self.dpw = 0
+        self.blacklistMode = False
+        self.rowIndex = 0
 
         # Main layout
         mainLayout = QHBoxLayout()
@@ -1277,8 +1298,6 @@ class MyApp(QWidget):
 
         self.dieLeftLayout.addLayout(dieDimensionsLayout)
 
-        self.rowIndex = 0
-
         addRowButton = QPushButton('+ Add Row')
         addRowButton.clicked.connect(self.addRow)
         self.dieLeftLayout.addWidget(addRowButton)
@@ -1313,12 +1332,29 @@ class MyApp(QWidget):
         self.dieToolbar = NavigationToolbar(self.dieCanvas, self)
         diePlotLayout.addWidget(self.dieToolbar)
 
+        modeButtonLayout = QHBoxLayout()
+        self.blacklistButton = QPushButton('Blacklist Mode')
+        self.blacklistButton.setToolTip('Click to enter blacklist mode.')
+        self.blacklistButton.clicked.connect(self.setBlacklistMode)
+        modeButtonLayout.addWidget(self.blacklistButton)
+        diePlotLayout.addLayout(modeButtonLayout)
+
         mainLayout.addLayout(diePlotLayout)
 
         # Set the layout for the pop-up window
         self.diePlacementWindow.setLayout(mainLayout)
         self.diePlacementWindow.resize(3000, 1200)  # Adjust window size as needed
         self.diePlacementWindow.show()
+
+    def setBlacklistMode(self):
+        self.blacklistMode = not self.blacklistMode
+        if self.blacklistMode:
+            self.setActiveRow(self.activeRow)
+            self.blacklistButton.setStyleSheet("background-color: lightgreen")
+            self.log("Blacklist mode is active")
+        else:
+            self.blacklistButton.setStyleSheet("")
+            self.log("Blacklist mode is inactive")
 
     def defineNewCell(self):
         if self.gds_design is None:
