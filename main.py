@@ -9,6 +9,7 @@ from gdswriter import GDSDesign  # Import the GDSDesign class
 from copy import deepcopy
 import math
 import numpy as np
+import random
 import os
 import uuid
 from shapely.geometry import Polygon, Point, box
@@ -103,6 +104,18 @@ class CycleLineEdit(QLineEdit):
             self.editingFinished.emit()
             self.addButton.clicked.emit()
             return True  
+        return super().eventFilter(obj, event)
+    
+class EnterLineEdit(QLineEdit):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress and (event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return):
+            self.editingFinished.emit()
+            
+            return True  # Event handled
         return super().eventFilter(obj, event)
     
 class PushButtonEdit(QLineEdit):
@@ -1017,8 +1030,15 @@ class MyApp(QWidget):
                 
                 starting_y -= die_height + dicing_street_width
         self.dieCanvas.draw()
-        self.dpw = len(self.diePlacement.keys())
-        self.dpwTextBox.setText(str(self.dpw))
+        self.updateDPW()
+
+    def updateDPW(self):
+        cnt = 0
+        for loc in self.diePlacement:
+            if self.diePlacement[loc][0] is None:
+               cnt += 1
+        self.dpwTextBox.setText(str(cnt))
+        self.dpw = cnt 
 
     def die_on_click(self, event):
         # Check if the toolbar is in zoom mode
@@ -1055,17 +1075,55 @@ class MyApp(QWidget):
                     self.dieCanvas.draw()
 
                     self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
+                    self.updateDPW()
                 else:
                     self.diePlacement[closestLoc][1].set_facecolor(active_color)
                     self.dieCanvas.draw()
 
                     self.diePlacement[closestLoc] = self.dieInfo[self.activeRow], self.diePlacement[closestLoc][1]
+                    self.updateDPW()
             else:
                 QMessageBox.critical(self, 'Error', 'Please select a GDS file and cell for the die.', QMessageBox.Ok)
                 return
         else:
             QMessageBox.critical(self, 'Error', 'Please select a row in the Die Placement Menu.', QMessageBox.Ok)
             return
+    
+    def autoPlaceDies(self):
+        if self.dpw == 0:
+            QMessageBox.critical(self, 'Error', 'No spaces to place dies.', QMessageBox.Ok)
+            return
+        
+        keys = [key for key, value in self.diePlacement.items() if value[0] is None]
+        random.shuffle(keys)
+
+        numDies_tot = 0
+        for rowIndex in self.dieInfo:
+            if self.dieInfo[rowIndex][2].text() == '' or self.dieInfo[rowIndex][1].currentText() == '':
+                continue
+            try:
+                numDies_tot += int(self.dieInfo[rowIndex][2].text().strip())
+            except:
+                QMessageBox.critical(self, 'Error', 'Number of dies must be an integer.', QMessageBox.Ok)
+                return
+        self.log(f"Total number of dies to place: {numDies_tot}")
+        if numDies_tot > self.dpw:
+            QMessageBox.critical(self, 'Error', 'Not enough spaces to place all dies.', QMessageBox.Ok)
+            return
+        
+        cnt = 0
+        for rowIndex in self.dieInfo:
+            if self.dieInfo[rowIndex][2].text() == '' or self.dieInfo[rowIndex][1].currentText() == '':
+                continue
+            numDies = int(self.dieInfo[rowIndex][2].text().strip())
+            original_color = COLOR_SEQUENCE[rowIndex % len(COLOR_SEQUENCE)]
+            active_color = BASE_COLORS.get(original_color)
+            for i in range(numDies):
+                self.diePlacement[keys[cnt]][1].set_facecolor(active_color)
+                self.dieCanvas.draw()
+                self.diePlacement[keys[cnt]] = self.dieInfo[rowIndex], self.diePlacement[keys[cnt]][1]
+                self.updateDPW()
+                cnt += 1
         
     # Method to set the active row
     def setActiveRow(self, rowIndex):
@@ -1109,19 +1167,19 @@ class MyApp(QWidget):
         rowLayout.addWidget(cellComboBox)
 
         # Text Input Field for Number of Dies
-        numDiesEdit = QLineEdit()
+        numDiesEdit = EnterLineEdit()
         numDiesEdit.setPlaceholderText('Number of Dies')
         numDiesEdit.setToolTip('Enter the number of dies to place.')
         rowLayout.addWidget(numDiesEdit)
 
         # Text Input Field for Die Label
-        dieLabelEdit = QLineEdit()
+        dieLabelEdit = EnterLineEdit()
         dieLabelEdit.setPlaceholderText('Die Label')
         dieLabelEdit.setToolTip('Enter the text to display for the die label.')
         rowLayout.addWidget(dieLabelEdit)
 
         # Text Input Field for Die Notes
-        dieNotesEdit = QLineEdit()
+        dieNotesEdit = EnterLineEdit()
         dieNotesEdit.setPlaceholderText('Die Notes')
         dieNotesEdit.setToolTip('Enter any notes for the die.')
         rowLayout.addWidget(dieNotesEdit)
@@ -1140,6 +1198,7 @@ class MyApp(QWidget):
         self.activeRow = None
         self.diePlacement = {}
         self.dieInfo = {}
+        self.dpw = 0
 
         # Main layout
         mainLayout = QHBoxLayout()
@@ -1169,25 +1228,25 @@ class MyApp(QWidget):
 
         dieDimensionsLayout = QHBoxLayout()
         dieWidthLabel = QLabel('Die Width:')
-        self.dieWidthEdit = QLineEdit()
+        self.dieWidthEdit = EnterLineEdit()
         self.dieWidthEdit.setPlaceholderText('Die Width (mm)')
         self.dieWidthEdit.editingFinished.connect(self.createDiePlacement)
         self.dieWidthEdit.setToolTip('Enter the width of the die in mm.')
 
         dieHeightLabel = QLabel('Die Height:')
-        self.dieHeightEdit = QLineEdit()
+        self.dieHeightEdit = EnterLineEdit()
         self.dieHeightEdit.setPlaceholderText('Die Height (mm)')
         self.dieHeightEdit.editingFinished.connect(self.createDiePlacement)
         self.dieHeightEdit.setToolTip('Enter the height of the die in mm.')
 
         dicingStreetLabel = QLabel('Dicing Street Width:')
-        self.dicingStreetEdit = QLineEdit()
+        self.dicingStreetEdit = EnterLineEdit()
         self.dicingStreetEdit.setPlaceholderText('Dicing Street Width (mm)')
         self.dicingStreetEdit.editingFinished.connect(self.createDiePlacement)
         self.dicingStreetEdit.setToolTip('Enter the width of the dicing street in mm.')
 
         edgeMarginLabel = QLabel('Edge Margin:')
-        self.edgeMarginEdit = QLineEdit()
+        self.edgeMarginEdit = EnterLineEdit()
         self.edgeMarginEdit.setPlaceholderText('Edge Margin (mm)')
         self.edgeMarginEdit.editingFinished.connect(self.createDiePlacement)
         self.edgeMarginEdit.setToolTip('Enter the edge margin in mm.')
@@ -1198,9 +1257,10 @@ class MyApp(QWidget):
         self.centeredPlacementCheckBox.setToolTip('Check to place the dies in a centered arrangement.')
 
         self.dpwTextBox = QLineEdit()
-        self.dpwTextBox.setPlaceholderText('Dies Per Wafer')
+        self.dpwTextBox.setPlaceholderText('Available Die Locations')
+        self.dpwTextBox.setText(str(self.dpw))
         self.dpwTextBox.setReadOnly(True)
-        self.dpwTextBox.setToolTip('Displays the number of dies that can fit on the wafer.')
+        self.dpwTextBox.setToolTip('Displays the number of available locations for dies to be placed.')
 
         dieDimensionsLayout.addWidget(dieWidthLabel)
         dieDimensionsLayout.addWidget(self.dieWidthEdit)
@@ -1221,6 +1281,10 @@ class MyApp(QWidget):
         addRowButton = QPushButton('+ Add Row')
         addRowButton.clicked.connect(self.addRow)
         self.dieLeftLayout.addWidget(addRowButton)
+
+        autoPlaceButton = QPushButton('Automatically Place Dies')
+        autoPlaceButton.clicked.connect(self.autoPlaceDies)
+        self.dieLeftLayout.addWidget(autoPlaceButton)
 
         # Initial row
         self.addRow()
