@@ -1151,6 +1151,9 @@ class MyApp(QWidget):
             self.log("Active row unset")
             return
         
+        if self.blacklistMode:
+            self.setBlacklistMode()
+        
         # Set the new active row
         self.activeRow = rowIndex
         original_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
