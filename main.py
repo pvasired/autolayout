@@ -813,17 +813,17 @@ class MyApp(QWidget):
             if fileName.lower().endswith('.gds'):
                 sender = self.sender()
                 for rowIndex in self.dieInfo:
-                    selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, _ = self.dieInfo[rowIndex]
+                    selectFileButton = self.dieInfo[rowIndex]['selectFileButton']
                     if selectFileButton == sender:
                         break
                 # Load the GDS file using GDSDesign
                 dieDesign = GDSDesign(filename=fileName)
-                cellComboBox.clear()
-                cellComboBox.addItems(dieDesign.cells.keys())
+                self.dieInfo[rowIndex]['cellComboBox'].clear()
+                self.dieInfo[rowIndex]['cellComboBox'].addItems(dieDesign.cells.keys())
                 self.log(f"Cell combo box populated with cells: {list(dieDesign.cells.keys())}")
 
                 # Store the GDSDesign instance
-                self.dieInfo[rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, dieDesign)
+                self.dieInfo[rowIndex]['dieDesign'] = dieDesign
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -1031,6 +1031,10 @@ class MyApp(QWidget):
                 starting_y -= die_height + dicing_street_width
         self.dieCanvas.draw()
         self.updateDPW()
+        self.die_width = die_width
+        self.die_height = die_height
+        self.dicing_street_width = dicing_street_width
+        self.validateDieCells()
 
     def updateDPW(self):
         cnt = 0
@@ -1067,7 +1071,7 @@ class MyApp(QWidget):
         self.log(f"Closest die location: {closestLoc}")
         
         if self.activeRow is not None:
-            if self.dieInfo[self.activeRow][6] is not None and self.dieInfo[self.activeRow][1].currentText() != '':
+            if self.dieInfo[self.activeRow]['dieDesign'] is not None and self.dieInfo[self.activeRow]['cellComboBox'].currentText() != '':
                 original_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
                 active_color = BASE_COLORS.get(original_color)
                 if rgb2hex(self.diePlacement[closestLoc][1].get_facecolor()) == active_color.lower():
@@ -1112,10 +1116,10 @@ class MyApp(QWidget):
 
         numDies_tot = 0
         for rowIndex in self.dieInfo:
-            if self.dieInfo[rowIndex][2].text() == '' or self.dieInfo[rowIndex][1].currentText() == '':
+            if self.dieInfo[rowIndex]['numDiesEdit'].text() == '' or self.dieInfo[rowIndex]['cellComboBox'].currentText() == '':
                 continue
             try:
-                numDies_tot += int(self.dieInfo[rowIndex][2].text().strip())
+                numDies_tot += int(self.dieInfo[rowIndex]['numDiesEdit'].text().strip())
             except:
                 QMessageBox.critical(self, 'Error', 'Number of dies must be an integer.', QMessageBox.Ok)
                 return
@@ -1126,15 +1130,16 @@ class MyApp(QWidget):
         
         cnt = 0
         for rowIndex in self.dieInfo:
-            if self.dieInfo[rowIndex][2].text() == '' or self.dieInfo[rowIndex][1].currentText() == '':
+            if self.dieInfo[rowIndex]['numDiesEdit'].text() == '' or self.dieInfo[rowIndex]['cellComboBox'].currentText() == '':
                 continue
-            numDies = int(self.dieInfo[rowIndex][2].text().strip())
+            numDies = int(self.dieInfo[rowIndex]['numDiesEdit'].text().strip())
             original_color = COLOR_SEQUENCE[rowIndex % len(COLOR_SEQUENCE)]
             active_color = BASE_COLORS.get(original_color)
             for i in range(numDies):
                 self.diePlacement[keys[cnt]][1].set_facecolor(active_color)
                 self.diePlacement[keys[cnt]] = self.dieInfo[rowIndex], self.diePlacement[keys[cnt]][1]
                 cnt += 1
+            self.dieInfo[rowIndex]['numDiesEdit'].setText('0')
         
         self.dieCanvas.draw()
         self.updateDPW()
@@ -1144,7 +1149,7 @@ class MyApp(QWidget):
         # Reset the color of the previous active row
         if self.activeRow is not None:
             prev_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
-            self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {prev_color}; padding: 5px;")
+            self.dieInfo[self.activeRow]['rowWidget'].setStyleSheet(f"background-color: {prev_color}; padding: 5px;")
 
         if self.activeRow == rowIndex:
             self.activeRow = None
@@ -1158,10 +1163,25 @@ class MyApp(QWidget):
         self.activeRow = rowIndex
         original_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
         active_color = BASE_COLORS.get(original_color)
-        self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {active_color}; padding: 5px;")
+        self.dieInfo[self.activeRow]['rowWidget'].setStyleSheet(f"background-color: {active_color}; padding: 5px;")
 
         self.log(f"Active row set to {self.activeRow}")
 
+    def validateDieCells(self):
+        if self.die_width is None or self.die_height is None:
+            return
+        for rowIndex in self.dieInfo:
+            cellComboBox = self.dieInfo[rowIndex]['cellComboBox']
+            dieDesign = self.dieInfo[rowIndex]['dieDesign']
+            if cellComboBox.currentText() != '':
+                cell_name = cellComboBox.currentText()
+                cell_width, cell_height, cell_offset = dieDesign.calculate_cell_size(cell_name)
+                self.log(f"Cell {cell_name} dimensions: {cell_width} x {cell_height} um, offset: {cell_offset}")
+                if cell_width > self.die_width*1000 or cell_height > self.die_height*1000:
+                    QMessageBox.critical(self, 'Error', f'Cell {cell_name} dimensions exceed die dimensions.', QMessageBox.Ok)
+                    return
+                self.dieInfo[rowIndex]['offset'] = cell_offset
+        
     # Method to add a row
     def addRow(self):
         self.log("Adding a new row to the Die Placement Menu")
@@ -1185,30 +1205,39 @@ class MyApp(QWidget):
         cellComboBox = QComboBox()
         cellComboBox.setMinimumWidth(1000)
         cellComboBox.setPlaceholderText('Select Cell')
+        cellComboBox.currentTextChanged.connect(self.validateDieCells)
         cellComboBox.setToolTip('Select the cell from the GDS file to place.')
         rowLayout.addWidget(cellComboBox)
 
         # Text Input Field for Number of Dies
-        numDiesEdit = EnterLineEdit()
+        numDiesEdit = PushButtonEdit(self.autoPlaceButton)
         numDiesEdit.setPlaceholderText('Number of Dies')
         numDiesEdit.setToolTip('Enter the number of dies to place.')
         rowLayout.addWidget(numDiesEdit)
 
         # Text Input Field for Die Label
-        dieLabelEdit = EnterLineEdit()
+        dieLabelEdit = PushButtonEdit(self.autoPlaceButton)
         dieLabelEdit.setPlaceholderText('Die Label')
         dieLabelEdit.setToolTip('Enter the text to display for the die label.')
         rowLayout.addWidget(dieLabelEdit)
 
         # Text Input Field for Die Notes
-        dieNotesEdit = EnterLineEdit()
+        dieNotesEdit = PushButtonEdit(self.autoPlaceButton)
         dieNotesEdit.setPlaceholderText('Die Notes')
         dieNotesEdit.setToolTip('Enter any notes for the die.')
         rowLayout.addWidget(dieNotesEdit)
 
         # Add the row widget (with layout and color) to the left layout
         self.dieLeftLayout.addWidget(rowWidget)
-        self.dieInfo[self.rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, None)
+        self.dieInfo[self.rowIndex] = {}
+        self.dieInfo[self.rowIndex]['selectFileButton'] = selectFileButton
+        self.dieInfo[self.rowIndex]['cellComboBox'] = cellComboBox
+        self.dieInfo[self.rowIndex]['numDiesEdit'] = numDiesEdit
+        self.dieInfo[self.rowIndex]['dieLabelEdit'] = dieLabelEdit
+        self.dieInfo[self.rowIndex]['dieNotesEdit'] = dieNotesEdit
+        self.dieInfo[self.rowIndex]['rowWidget'] = rowWidget
+        self.dieInfo[self.rowIndex]['dieDesign'] = None
+        self.dieInfo[self.rowIndex]['offset'] = None
         self.rowIndex += 1
         
     def showDiePlacementUtility(self):
@@ -1224,6 +1253,9 @@ class MyApp(QWidget):
         self.dpw = 0
         self.blacklistMode = False
         self.rowIndex = 0
+        self.die_width = None
+        self.die_height = None
+        self.dicing_street_width = None
 
         # Main layout
         mainLayout = QHBoxLayout()
@@ -1306,10 +1338,10 @@ class MyApp(QWidget):
         self.dieLeftLayout.addWidget(addRowButton)
 
         buttonLayout = QHBoxLayout()
-        autoPlaceButton = QPushButton('Automatically Place Dies')
-        autoPlaceButton.clicked.connect(self.autoPlaceDies)
-        autoPlaceButton.setToolTip('Click to automatically place the dies in the available locations.')
-        buttonLayout.addWidget(autoPlaceButton)
+        self.autoPlaceButton = QPushButton('Automatically Place Dies')
+        self.autoPlaceButton.clicked.connect(self.autoPlaceDies)
+        self.autoPlaceButton.setToolTip('Click to automatically place the dies in the available locations.')
+        buttonLayout.addWidget(self.autoPlaceButton)
         clearButton = QPushButton('Clear Die Placement')
         clearButton.clicked.connect(self.createDiePlacement)
         clearButton.setToolTip('Click to clear the die placement.')
