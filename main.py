@@ -847,7 +847,7 @@ class MyApp(QWidget):
         
         self.dieAx.clear()
         self.drawSubstrate()
-        self.dpw = 0
+        self.diePlacement = {}
         if self.centeredPlacementCheckBox.isChecked():
             starting_y = 0
             while True:
@@ -864,7 +864,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x += die_width + dicing_street_width
 
@@ -878,7 +878,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x -= die_width + dicing_street_width
                 
@@ -899,7 +899,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x += die_width + dicing_street_width
 
@@ -913,7 +913,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x -= die_width + dicing_street_width
                 
@@ -934,7 +934,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x += die_width + dicing_street_width
 
@@ -948,7 +948,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x -= die_width + dicing_street_width
                 
@@ -969,7 +969,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x += die_width + dicing_street_width
 
@@ -983,12 +983,13 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.dpw += 1
+                    self.diePlacement[(starting_x, starting_y)] = None
 
                     starting_x -= die_width + dicing_street_width
                 
                 starting_y -= die_height + dicing_street_width
         self.dieCanvas.draw()
+        self.dpw = len(self.diePlacement.keys())
         self.dpwTextBox.setText(str(self.dpw))
 
     def die_on_click(self, event):
@@ -1005,14 +1006,26 @@ class MyApp(QWidget):
             self.log(f"Toolbar mode is active ({self.dieToolbar.mode}), click not registered")
     
     def die_process_click(self, x, y):
-        pass
+        if len(self.diePlacement.keys()) == 0:
+            return
+        minDist = np.inf
+        closestLoc = None
+        for loc in self.diePlacement.keys():
+            dist = np.linalg.norm(np.array(loc) - np.array([x, y]))
+            if dist < minDist:
+                minDist = dist
+                closestLoc = loc
+        
+        print(f"Closest location: {closestLoc}")
 
+        
     def showDiePlacementUtility(self):
         # Create a new window for the Die Placement Utility
         self.diePlacementWindow = QDialog(self)
         self.diePlacementWindow.setWindowTitle('Die Placement Menu')
 
         self.waferDiameter = None
+        self.diePlacement = {}
         self.dieInfo = {}
 
         # Main layout
