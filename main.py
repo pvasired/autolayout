@@ -1120,10 +1120,11 @@ class MyApp(QWidget):
             active_color = BASE_COLORS.get(original_color)
             for i in range(numDies):
                 self.diePlacement[keys[cnt]][1].set_facecolor(active_color)
-                self.dieCanvas.draw()
                 self.diePlacement[keys[cnt]] = self.dieInfo[rowIndex], self.diePlacement[keys[cnt]][1]
-                self.updateDPW()
                 cnt += 1
+        
+        self.dieCanvas.draw()
+        self.updateDPW()
         
     # Method to set the active row
     def setActiveRow(self, rowIndex):
@@ -1282,9 +1283,17 @@ class MyApp(QWidget):
         addRowButton.clicked.connect(self.addRow)
         self.dieLeftLayout.addWidget(addRowButton)
 
+        buttonLayout = QHBoxLayout()
         autoPlaceButton = QPushButton('Automatically Place Dies')
         autoPlaceButton.clicked.connect(self.autoPlaceDies)
-        self.dieLeftLayout.addWidget(autoPlaceButton)
+        autoPlaceButton.setToolTip('Click to automatically place the dies in the available locations.')
+        buttonLayout.addWidget(autoPlaceButton)
+        clearButton = QPushButton('Clear Die Placement')
+        clearButton.clicked.connect(self.createDiePlacement)
+        clearButton.setToolTip('Click to clear the die placement.')
+        buttonLayout.addWidget(clearButton)
+
+        self.dieLeftLayout.addLayout(buttonLayout)
 
         # Initial row
         self.addRow()
