@@ -13,6 +13,7 @@ import os
 import uuid
 from shapely.geometry import Polygon, Point, box
 from matplotlib.figure import Figure
+from matplotlib.colors import rgb2hex
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.patches as patches
@@ -863,8 +864,13 @@ class MyApp(QWidget):
             die_height = float(self.dieHeightEdit.text().strip())
             dicing_street_width = float(self.dicingStreetEdit.text().strip())
             edge_margin = float(self.edgeMarginEdit.text().strip())
-        except ValueError:
-            QMessageBox.critical(self, 'Error', 'Please enter valid numbers for the die width, die height, and dicing street width.', QMessageBox.Ok)
+
+            assert die_width > 0, 'Die width must be greater than 0.'
+            assert die_height > 0, 'Die height must be greater than 0.'
+            assert dicing_street_width >= 0, 'Dicing street width must be greater than or equal to 0.'
+            assert edge_margin > 0, 'Edge margin must be greater than 0.'
+        except (AssertionError, ValueError, Exception) as e:
+            QMessageBox.critical(self, 'Error', str(e), QMessageBox.Ok)
             return
         
         self.dieAx.clear()
@@ -886,7 +892,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x += die_width + dicing_street_width
 
@@ -900,7 +906,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x -= die_width + dicing_street_width
                 
@@ -921,7 +927,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x += die_width + dicing_street_width
 
@@ -935,7 +941,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x -= die_width + dicing_street_width
                 
@@ -956,7 +962,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x += die_width + dicing_street_width
 
@@ -970,7 +976,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x -= die_width + dicing_street_width
                 
@@ -991,7 +997,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x += die_width + dicing_street_width
 
@@ -1005,7 +1011,7 @@ class MyApp(QWidget):
 
                     # Add the square to the plot
                     self.dieAx.add_patch(die_patch)
-                    self.diePlacement[(starting_x, starting_y)] = None
+                    self.diePlacement[(starting_x, starting_y)] = None, die_patch
 
                     starting_x -= die_width + dicing_street_width
                 
@@ -1038,12 +1044,96 @@ class MyApp(QWidget):
                 minDist = dist
                 closestLoc = loc
         
-        print(f"Closest location: {closestLoc}")
+        self.log(f"Closest die location: {closestLoc}")
+        
+        if self.activeRow is not None:
+            if self.dieInfo[self.activeRow][6] is not None and self.dieInfo[self.activeRow][1].currentText() != '':
+                original_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
+                active_color = BASE_COLORS.get(original_color)
+                if rgb2hex(self.diePlacement[closestLoc][1].get_facecolor()) == active_color.lower():
+                    self.diePlacement[closestLoc][1].set_facecolor('none')
+                    self.dieCanvas.draw()
 
+                    self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
+                else:
+                    self.diePlacement[closestLoc][1].set_facecolor(active_color)
+                    self.dieCanvas.draw()
+
+                    self.diePlacement[closestLoc] = self.dieInfo[self.activeRow], self.diePlacement[closestLoc][1]
+            else:
+                QMessageBox.critical(self, 'Error', 'Please select a GDS file and cell for the die.', QMessageBox.Ok)
+                return
+        else:
+            QMessageBox.critical(self, 'Error', 'Please select a row in the Die Placement Menu.', QMessageBox.Ok)
+            return
+        
+    # Method to set the active row
+    def setActiveRow(self, rowIndex):
+        # Reset the color of the previous active row
+        if self.activeRow is not None:
+            prev_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
+            self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {prev_color}; padding: 5px;")
+        
+        # Set the new active row
+        self.activeRow = rowIndex
+        original_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
+        active_color = BASE_COLORS.get(original_color)
+        self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {active_color}; padding: 5px;")
+
+        self.log(f"Active row set to {self.activeRow}")
+
+    # Method to add a row
+    def addRow(self):
+        self.log("Adding a new row to the Die Placement Menu")
+        rowLayout = QHBoxLayout()
+        
+        # Apply background color to the row
+        color = COLOR_SEQUENCE[self.rowIndex % len(COLOR_SEQUENCE)]
+        rowWidget = QWidget()
+        rowWidget.setStyleSheet(f"background-color: {color}; padding: 5px;")
+        rowWidget.setLayout(rowLayout)
+
+        rowWidget.mousePressEvent = lambda event, widget=rowWidget, idx=self.rowIndex: self.setActiveRow(idx)
+
+        # Select File Button
+        selectFileButton = QPushButton('Select GDS File')
+        selectFileButton.clicked.connect(self.dieSelectGDSFile)
+        selectFileButton.setToolTip('Click to select the GDS file for the die.')
+        rowLayout.addWidget(selectFileButton)
+
+        # Cell Dropdown Combo Box
+        cellComboBox = QComboBox()
+        cellComboBox.setMinimumWidth(1000)
+        cellComboBox.setPlaceholderText('Select Cell')
+        cellComboBox.setToolTip('Select the cell from the GDS file to place.')
+        rowLayout.addWidget(cellComboBox)
+
+        # Text Input Field for Number of Dies
+        numDiesEdit = QLineEdit()
+        numDiesEdit.setPlaceholderText('Number of Dies')
+        numDiesEdit.setToolTip('Enter the number of dies to place.')
+        rowLayout.addWidget(numDiesEdit)
+
+        # Text Input Field for Die Label
+        dieLabelEdit = QLineEdit()
+        dieLabelEdit.setPlaceholderText('Die Label')
+        dieLabelEdit.setToolTip('Enter the text to display for the die label.')
+        rowLayout.addWidget(dieLabelEdit)
+
+        # Text Input Field for Die Notes
+        dieNotesEdit = QLineEdit()
+        dieNotesEdit.setPlaceholderText('Die Notes')
+        dieNotesEdit.setToolTip('Enter any notes for the die.')
+        rowLayout.addWidget(dieNotesEdit)
+
+        # Add the row widget (with layout and color) to the left layout
+        self.dieLeftLayout.addWidget(rowWidget)
+        self.dieInfo[self.rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, None)
+        self.rowIndex += 1
         
     def showDiePlacementUtility(self):
         # Create a new window for the Die Placement Utility
-        self.diePlacementWindow = QDialog(self)
+        self.diePlacementWindow = QDialog(self, Qt.Window)
         self.diePlacementWindow.setWindowTitle('Die Placement Menu')
 
         self.waferDiameter = None
@@ -1128,75 +1218,12 @@ class MyApp(QWidget):
 
         self.rowIndex = 0
 
-        # Method to set the active row
-        def setActiveRow(rowIndex):
-            # Reset the color of the previous active row
-            if self.activeRow is not None:
-                prev_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
-                self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {prev_color}; padding: 5px;")
-            
-            # Set the new active row
-            self.activeRow = rowIndex
-            original_color = COLOR_SEQUENCE[self.activeRow % len(COLOR_SEQUENCE)]
-            active_color = BASE_COLORS.get(original_color)
-            self.dieInfo[self.activeRow][5].setStyleSheet(f"background-color: {active_color}; padding: 5px;")
-
-            self.log(f"Active row set to {self.activeRow}")
-
-        # Method to add a row
-        def addRow():
-            rowLayout = QHBoxLayout()
-            
-            # Apply background color to the row
-            color = COLOR_SEQUENCE[self.rowIndex % len(COLOR_SEQUENCE)]
-            rowWidget = QWidget()
-            rowWidget.setStyleSheet(f"background-color: {color}; padding: 5px;")
-            rowWidget.setLayout(rowLayout)
-
-            rowWidget.mousePressEvent = lambda event, widget=rowWidget, idx=self.rowIndex: setActiveRow(idx)
-
-            # Select File Button
-            selectFileButton = QPushButton('Select GDS File')
-            selectFileButton.clicked.connect(self.dieSelectGDSFile)
-            selectFileButton.setToolTip('Click to select the GDS file for the die.')
-            rowLayout.addWidget(selectFileButton)
-
-            # Cell Dropdown Combo Box
-            cellComboBox = QComboBox()
-            cellComboBox.setMinimumWidth(1000)
-            cellComboBox.setPlaceholderText('Select Cell')
-            cellComboBox.setToolTip('Select the cell from the GDS file to place.')
-            rowLayout.addWidget(cellComboBox)
-
-            # Text Input Field for Number of Dies
-            numDiesEdit = QLineEdit()
-            numDiesEdit.setPlaceholderText('Number of Dies')
-            numDiesEdit.setToolTip('Enter the number of dies to place.')
-            rowLayout.addWidget(numDiesEdit)
-
-            # Text Input Field for Die Label
-            dieLabelEdit = QLineEdit()
-            dieLabelEdit.setPlaceholderText('Die Label')
-            dieLabelEdit.setToolTip('Enter the text to display for the die label.')
-            rowLayout.addWidget(dieLabelEdit)
-
-            # Text Input Field for Die Notes
-            dieNotesEdit = QLineEdit()
-            dieNotesEdit.setPlaceholderText('Die Notes')
-            dieNotesEdit.setToolTip('Enter any notes for the die.')
-            rowLayout.addWidget(dieNotesEdit)
-
-            # Add the row widget (with layout and color) to the left layout
-            self.dieLeftLayout.addWidget(rowWidget)
-            self.dieInfo[self.rowIndex] = (selectFileButton, cellComboBox, numDiesEdit, dieLabelEdit, dieNotesEdit, rowWidget, None)
-            self.rowIndex += 1
-
         addRowButton = QPushButton('+ Add Row')
-        addRowButton.clicked.connect(addRow)
+        addRowButton.clicked.connect(self.addRow)
         self.dieLeftLayout.addWidget(addRowButton)
 
         # Initial row
-        addRow()
+        self.addRow()
 
         # Add left layout to main layout
         mainLayout.addLayout(self.dieLeftLayout)
@@ -1218,7 +1245,7 @@ class MyApp(QWidget):
         # Set the layout for the pop-up window
         self.diePlacementWindow.setLayout(mainLayout)
         self.diePlacementWindow.resize(3000, 1200)  # Adjust window size as needed
-        self.diePlacementWindow.exec_()
+        self.diePlacementWindow.show()
 
     def defineNewCell(self):
         if self.gds_design is None:
