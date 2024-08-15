@@ -804,6 +804,10 @@ class MyApp(QWidget):
         self.placementCellComboBox.setPlaceholderText('Select Cell to Place Dies')
         self.placementCellComboBox.setToolTip('Select the cell from the GDS file to place dies.')
 
+        self.dicingStreetsLayerComboBox = QComboBox()
+        self.dicingStreetsLayerComboBox.setPlaceholderText('Select Dicing Streets Layer')
+        self.dicingStreetsLayerComboBox.setToolTip('Select the layer for the dicing streets.')
+
         self.setLayout(mainLayout)
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3400, 800)  # Set the initial size of the window
@@ -1196,6 +1200,20 @@ class MyApp(QWidget):
             return
         self.addSnapshot()
         for loc in self.diePlacement:
+            if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
+                dicing_layer_name = self.dicingStreetsLayerComboBox.currentText().split(':')[1].strip()
+                dicing_street_L_LL = (loc[0] - self.die_width/2 - self.dicing_street_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width/2)*1000
+                dicing_street_L_UR = (loc[0] - self.die_width/2)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width/2)*1000
+                dicing_street_R_LL = (loc[0] + self.die_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width/2)*1000
+                dicing_street_R_UR = (loc[0] + self.die_width/2 + self.dicing_street_width/2)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width/2)*1000
+                dicing_street_T_LL = (loc[0] - self.die_width/2 - self.dicing_street_width/2)*1000, (loc[1] + self.die_height/2)*1000
+                dicing_street_T_UR = (loc[0] + self.die_width/2 + self.dicing_street_width/2)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width/2)*1000
+                dicing_street_B_LL = (loc[0] - self.die_width/2 - self.dicing_street_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width/2)*1000
+                dicing_street_B_UR = (loc[0] + self.die_width/2 + self.dicing_street_width/2)*1000, (loc[1] - self.die_height/2)*1000
+                self.gds_design.add_rectangle(self.placementCellComboBox.currentText(), dicing_layer_name, lower_left=dicing_street_L_LL, upper_right=dicing_street_L_UR)
+                self.gds_design.add_rectangle(self.placementCellComboBox.currentText(), dicing_layer_name, lower_left=dicing_street_R_LL, upper_right=dicing_street_R_UR)
+                self.gds_design.add_rectangle(self.placementCellComboBox.currentText(), dicing_layer_name, lower_left=dicing_street_T_LL, upper_right=dicing_street_T_UR)
+                self.gds_design.add_rectangle(self.placementCellComboBox.currentText(), dicing_layer_name, lower_left=dicing_street_B_LL, upper_right=dicing_street_B_UR)
             if self.diePlacement[loc][0] is not None:
                 child_cell_name = self.diePlacement[loc][0]['cellComboBox'].currentText()
                 child_design = self.diePlacement[loc][0]['dieDesign']
@@ -1394,8 +1412,14 @@ class MyApp(QWidget):
         # Die Placement layout
         diePlacementLayout = QHBoxLayout()
         placementCellLabel = QLabel('Cell to Place Dies:')
+        self.dicingStreetsCheckBox = QCheckBox('Add Dicing Streets?')
+        self.dicingStreetsCheckBox.stateChanged.connect(self.dicingStreetsCheckBoxChanged)
         diePlacementLayout.addWidget(placementCellLabel)
         diePlacementLayout.addWidget(self.placementCellComboBox)
+        diePlacementLayout.addWidget(self.dicingStreetsCheckBox)
+        diePlacementLayout.addWidget(self.dicingStreetsLayerComboBox)
+
+        self.dicingStreetsLayerComboBox.hide()
         self.dieLeftLayout.addLayout(diePlacementLayout)
 
         addRowButton = QPushButton('+ Add Row')
@@ -1452,6 +1476,12 @@ class MyApp(QWidget):
         self.diePlacementWindow.setLayout(mainLayout)
         self.diePlacementWindow.resize(3000, 1200)  # Adjust window size as needed
         self.diePlacementWindow.show()
+
+    def dicingStreetsCheckBoxChanged(self):
+        if self.dicingStreetsCheckBox.isChecked():
+            self.dicingStreetsLayerComboBox.show()
+        else:
+            self.dicingStreetsLayerComboBox.hide()
 
     def setBlacklistMode(self):
         self.blacklistMode = not self.blacklistMode
@@ -2094,11 +2124,13 @@ class MyApp(QWidget):
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
         self.plotLayersComboBox.clear()
+        self.dicingStreetsLayerComboBox.clear()
         # Add layers to the dropdown sorted by layer number
         self.layerData.sort(key=lambda x: int(x[0]))
         for number, name in self.layerData:
             self.layersComboBox.addItem(f"{number}: {name}")
             self.plotLayersComboBox.addItem(f"{number}: {name}")
+            self.dicingStreetsLayerComboBox.addItem(f"{number}: {name}")
         self.log("Layers dropdowns updated")
 
     def validateOutputFileName(self):
