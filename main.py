@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QEvent
 from gdswriter import GDSDesign  # Import the GDSDesign class
+from gdswriter import TEXT_SPACING_FACTOR as GDS_TEXT_SPACING_FACTOR
 from copy import deepcopy
 import math
 import numpy as np
@@ -808,6 +809,10 @@ class MyApp(QWidget):
         self.dicingStreetsLayerComboBox.setPlaceholderText('Select Dicing Streets Layer')
         self.dicingStreetsLayerComboBox.setToolTip('Select the layer for the dicing streets.')
 
+        self.dieTextLayerComboBox = QComboBox()
+        self.dieTextLayerComboBox.setPlaceholderText('Select Die Text Layer')
+        self.dieTextLayerComboBox.setToolTip('Select the layer for the die text.')
+
         self.setLayout(mainLayout)
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3400, 800)  # Set the initial size of the window
@@ -1198,8 +1203,15 @@ class MyApp(QWidget):
         if self.placementCellComboBox.currentText() == '':
             QMessageBox.critical(self, 'Error', 'Please select a cell to place the dies.', QMessageBox.Ok)
             return
+        if self.dieTextLayerComboBox.currentText() != '':
+            die_text_layer = self.dieTextLayerComboBox.currentText()
+        if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
+            dicing_layer = self.dicingStreetsLayerComboBox.currentText()
         self.addSnapshot()
         for loc in self.diePlacement:
+            if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() == '':
+                QMessageBox.critical(self, 'Error', 'Please select a layer for the dicing streets.', QMessageBox.Ok)
+                return
             if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
                 dicing_layer_name = self.dicingStreetsLayerComboBox.currentText().split(':')[1].strip()
                 dicing_street_L_LL = (loc[0] - self.die_width/2 - self.dicing_street_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width/2)*1000
@@ -1247,13 +1259,40 @@ class MyApp(QWidget):
                     self.log(f"Current layers: {self.gds_design.layers}")
                     self.updateLayersComboBox()
 
+                    # Iterate through each item in the combo box
+                    for index in range(self.dieTextLayerComboBox.count()):
+                        entry = self.dieTextLayerComboBox.itemText(index)  # Get the text of the item at the current index
+                        
+                        if entry == die_text_layer:
+                            self.dieTextLayerComboBox.setCurrentIndex(index)
+                            break
+
+                    # Iterate through each item in the combo box
+                    for index in range(self.dicingStreetsLayerComboBox.count()):
+                        entry = self.dicingStreetsLayerComboBox.itemText(index)  # Get the text of the item at the current index
+                        
+                        if entry == dicing_layer:
+                            self.dicingStreetsLayerComboBox.setCurrentIndex(index)
+                            break
+
                 die_label = self.diePlacement[loc][0]['dieLabelEdit'].text()
+                if die_label != '' and self.dieTextLayerComboBox.currentText() == '':
+                    QMessageBox.critical(self, 'Error', 'Please select a layer for the die text.', QMessageBox.Ok)
+                    return
                 die_notes = self.diePlacement[loc][0]['dieNotesEdit'].text()
                 offset = self.diePlacement[loc][0]['offset']
 
                 position = (loc[0]*1000 - offset[0], loc[1]*1000 - offset[1])   # Convert to um
                 self.gds_design.add_cell_reference(self.placementCellComboBox.currentText(), child_cell_name, position)
                 self.logTestStructure(die_label, {'notes': die_notes, 'center position (um)': (loc[0]*1000, loc[1]*1000), 'die cell name': child_cell_name, 'die filename': child_filename})
+
+                if die_label != '':
+                    self.gds_design.add_text(self.placementCellComboBox.currentText(), 
+                                             die_label, 
+                                             self.dieTextLayerComboBox.currentText().split(':')[1].strip(), 
+                                             ((loc[0]+self.die_width/2)*1000-2*len(die_label)*self.dieLabelTextHeight*GDS_TEXT_SPACING_FACTOR-self.dieLabelTextBuffer, 
+                                              (loc[1]+self.die_height/2)*1000-self.dieLabelTextHeight-self.dieLabelTextBuffer), 
+                                             self.dieLabelTextHeight)
                 
         self.writeToGDS()
         
@@ -1332,6 +1371,8 @@ class MyApp(QWidget):
         self.die_width = None
         self.die_height = None
         self.dicing_street_width = None
+        self.dieLabelTextBuffer = 100
+        self.dieLabelTextHeight = 200
 
         # Main layout
         mainLayout = QHBoxLayout()
@@ -1414,8 +1455,11 @@ class MyApp(QWidget):
         placementCellLabel = QLabel('Cell to Place Dies:')
         self.dicingStreetsCheckBox = QCheckBox('Add Dicing Streets?')
         self.dicingStreetsCheckBox.stateChanged.connect(self.dicingStreetsCheckBoxChanged)
+        dieTextLayerLabel = QLabel('Layer for Die Labels:')
         diePlacementLayout.addWidget(placementCellLabel)
         diePlacementLayout.addWidget(self.placementCellComboBox)
+        diePlacementLayout.addWidget(dieTextLayerLabel)
+        diePlacementLayout.addWidget(self.dieTextLayerComboBox)
         diePlacementLayout.addWidget(self.dicingStreetsCheckBox)
         diePlacementLayout.addWidget(self.dicingStreetsLayerComboBox)
 
@@ -2125,12 +2169,14 @@ class MyApp(QWidget):
         self.layersComboBox.clear()
         self.plotLayersComboBox.clear()
         self.dicingStreetsLayerComboBox.clear()
+        self.dieTextLayerComboBox.clear()
         # Add layers to the dropdown sorted by layer number
         self.layerData.sort(key=lambda x: int(x[0]))
         for number, name in self.layerData:
             self.layersComboBox.addItem(f"{number}: {name}")
             self.plotLayersComboBox.addItem(f"{number}: {name}")
             self.dicingStreetsLayerComboBox.addItem(f"{number}: {name}")
+            self.dieTextLayerComboBox.addItem(f"{number}: {name}")
         self.log("Layers dropdowns updated")
 
     def validateOutputFileName(self):
