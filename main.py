@@ -800,6 +800,10 @@ class MyApp(QWidget):
         writeButton.setToolTip('Click to write the current design to a GDS file.')
         leftLayout.addWidget(writeButton)  # Add the write button to the left layout
 
+        self.placementCellComboBox = QComboBox()
+        self.placementCellComboBox.setPlaceholderText('Select Cell to Place Dies')
+        self.placementCellComboBox.setToolTip('Select the cell from the GDS file to place dies.')
+
         self.setLayout(mainLayout)
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3400, 800)  # Set the initial size of the window
@@ -1179,13 +1183,16 @@ class MyApp(QWidget):
                 cell_width, cell_height, cell_offset = dieDesign.calculate_cell_size(cell_name)
                 self.log(f"Cell {cell_name} dimensions: {cell_width} x {cell_height} um, offset: {cell_offset}")
                 if round(cell_width, 3) > self.die_width*1000 or round(cell_height, 3) > self.die_height*1000:
-                    QMessageBox.critical(self, 'Error', f'Cell {cell_name} dimensions exceed die dimensions.', QMessageBox.Ok)
-                    return
+                    # Show a warning box if the cell dimensions exceed the die dimensions
+                    QMessageBox.warning(self, 'Warning', f"Cell {cell_name} dimensions exceed the die dimensions.", QMessageBox.Ok)
                 self.dieInfo[rowIndex]['offset'] = cell_offset
 
     def placeDiesOnDesign(self):
         if self.gds_design is None:
-            QMessageBox.critical(self, 'Error', 'Please load a GDS file with the main window.', QMessageBox.Ok)
+            QMessageBox.critical(self, 'Error', 'Please load or create a GDS file with the main window.', QMessageBox.Ok)
+            return
+        if self.placementCellComboBox.currentText() == '':
+            QMessageBox.critical(self, 'Error', 'Please select a cell to place the dies.', QMessageBox.Ok)
             return
         self.addSnapshot()
         for loc in self.diePlacement:
@@ -1226,9 +1233,9 @@ class MyApp(QWidget):
                 die_notes = self.diePlacement[loc][0]['dieNotesEdit'].text()
                 offset = self.diePlacement[loc][0]['offset']
 
-                position = (loc[0]*1000 - offset[0], loc[1]*1000 - offset[1])
-                self.gds_design.add_cell_reference(self.gds_design.top_cell_names[0], child_cell_name, position)
-                self.logTestStructure(die_label, {'notes': die_notes, 'position (um)': (loc[0]*1000, loc[1]*1000), 'cell_name': child_cell_name, 'filename': child_filename})
+                position = (loc[0]*1000 - offset[0], loc[1]*1000 - offset[1])   # Convert to um
+                self.gds_design.add_cell_reference(self.placementCellComboBox.currentText(), child_cell_name, position)
+                self.logTestStructure(die_label, {'notes': die_notes, 'center position (um)': (loc[0]*1000, loc[1]*1000), 'die cell name': child_cell_name, 'die filename': child_filename})
                 
         self.writeToGDS()
         
@@ -1288,6 +1295,7 @@ class MyApp(QWidget):
         self.dieInfo[self.rowIndex]['rowWidget'] = rowWidget
         self.dieInfo[self.rowIndex]['dieDesign'] = None
         self.dieInfo[self.rowIndex]['offset'] = None
+        self.dieInfo[self.rowIndex]['fileName'] = None
         self.rowIndex += 1
         
     def showDiePlacementUtility(self):
@@ -1382,6 +1390,13 @@ class MyApp(QWidget):
         dieDimensionsLayout.addWidget(self.dpwTextBox)
 
         self.dieLeftLayout.addLayout(dieDimensionsLayout)
+
+        # Die Placement layout
+        diePlacementLayout = QHBoxLayout()
+        placementCellLabel = QLabel('Cell to Place Dies:')
+        diePlacementLayout.addWidget(placementCellLabel)
+        diePlacementLayout.addWidget(self.placementCellComboBox)
+        self.dieLeftLayout.addLayout(diePlacementLayout)
 
         addRowButton = QPushButton('+ Add Row')
         addRowButton.clicked.connect(self.addRow)
@@ -2066,6 +2081,10 @@ class MyApp(QWidget):
         self.customTestCellComboBox.clear()
         self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
         self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+
+        self.placementCellComboBox.clear()
+        self.placementCellComboBox.addItems(self.gds_design.cells.keys())
+        self.log(f"Placement combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             cellComboBox.clear()
