@@ -864,6 +864,7 @@ class MyApp(QWidget):
 
         # Redraw the canvas
         self.dieCanvas.draw()
+        self.log(f"Substrate drawn with diameter {self.waferDiameter} um")
 
     def onSubstrate4InchChecked(self):
         if self.substrate4InchCheckBox.isChecked():
@@ -874,6 +875,8 @@ class MyApp(QWidget):
             self.drawSubstrate()
             self.createDiePlacement()
 
+            self.log("4-inch substrate selected")
+
     def onSubstrate6InchChecked(self):
         if self.substrate6InchCheckBox.isChecked():
             self.substrate4InchCheckBox.setChecked(False)
@@ -882,6 +885,8 @@ class MyApp(QWidget):
             self.wafer = Point(0, 0).buffer(self.waferDiameter/2)
             self.drawSubstrate()
             self.createDiePlacement()
+
+            self.log("6-inch substrate selected")
 
     def createDiePlacement(self):
         if self.waferDiameter is None or self.dieWidthEdit.text() == '' or self.dieHeightEdit.text() == '' or self.dicingStreetEdit.text() == '' or self.edgeMarginEdit.text() == '':
@@ -1050,6 +1055,8 @@ class MyApp(QWidget):
         self.dicing_street_width = dicing_street_width
         self.validateDieCells()
 
+        self.log(f"Die placement created with die width {die_width}, die height {die_height}, dicing street width {dicing_street_width}, and edge margin {edge_margin}")
+
     def updateDPW(self):
         cnt = 0
         for loc in self.diePlacement:
@@ -1057,6 +1064,8 @@ class MyApp(QWidget):
                cnt += 1
         self.dpwTextBox.setText(str(cnt))
         self.dpw = cnt 
+
+        self.log(f"DPW updated to {cnt}")
 
     def die_on_click(self, event):
         # Check if the toolbar is in zoom mode
@@ -1094,12 +1103,16 @@ class MyApp(QWidget):
 
                     self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
                     self.updateDPW()
+
+                    self.log(f"Die at location {closestLoc} removed")
                 else:
                     self.diePlacement[closestLoc][1].set_facecolor(active_color)
                     self.dieCanvas.draw()
 
                     self.diePlacement[closestLoc] = self.dieInfo[self.activeRow], self.diePlacement[closestLoc][1]
                     self.updateDPW()
+
+                    self.log(f"Die at location {closestLoc} added")
             else:
                 QMessageBox.critical(self, 'Error', 'Please select a GDS file and cell for the die.', QMessageBox.Ok)
                 return
@@ -1110,12 +1123,16 @@ class MyApp(QWidget):
                 self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
 
                 self.updateDPW()
+
+                self.log(f"Die at location {closestLoc} removed from blacklist")
             else:
                 self.diePlacement[closestLoc][1].set_facecolor('black')
                 self.dieCanvas.draw()
                 self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
 
                 self.updateDPW()
+
+                self.log(f"Die at location {closestLoc} added to blacklist")
         else:
             QMessageBox.critical(self, 'Error', 'Please select a row in the Die Placement Menu or select Blacklist Mode.', QMessageBox.Ok)
             return
@@ -1157,6 +1174,8 @@ class MyApp(QWidget):
         
         self.dieCanvas.draw()
         self.updateDPW()
+
+        self.log(f"{numDies_tot} dies placed automatically")
         
     # Method to set the active row
     def setActiveRow(self, rowIndex):
@@ -1195,6 +1214,8 @@ class MyApp(QWidget):
                     # Show a warning box if the cell dimensions exceed the die dimensions
                     QMessageBox.warning(self, 'Warning', f"Cell {cell_name} dimensions exceed the die dimensions.", QMessageBox.Ok)
                 self.dieInfo[rowIndex]['offset'] = cell_offset
+        
+        self.log("Die cells validated")
 
     def placeDiesOnDesign(self):
         if self.gds_design is None:
@@ -1295,6 +1316,7 @@ class MyApp(QWidget):
                                              self.dieLabelTextHeight)
                 
         self.writeToGDS()
+        self.log("Dies placed on design")
         
     # Method to add a row
     def addRow(self):
@@ -1524,8 +1546,10 @@ class MyApp(QWidget):
     def dicingStreetsCheckBoxChanged(self):
         if self.dicingStreetsCheckBox.isChecked():
             self.dicingStreetsLayerComboBox.show()
+            self.log("Dicing streets checkbox checked")
         else:
             self.dicingStreetsLayerComboBox.hide()
+            self.log("Dicing streets checkbox unchecked")
 
     def setBlacklistMode(self):
         self.blacklistMode = not self.blacklistMode
