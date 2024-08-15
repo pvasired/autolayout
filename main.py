@@ -824,6 +824,7 @@ class MyApp(QWidget):
 
                 # Store the GDSDesign instance
                 self.dieInfo[rowIndex]['dieDesign'] = dieDesign
+                self.dieInfo[rowIndex]['fileName'] = fileName
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
@@ -1177,10 +1178,59 @@ class MyApp(QWidget):
                 cell_name = cellComboBox.currentText()
                 cell_width, cell_height, cell_offset = dieDesign.calculate_cell_size(cell_name)
                 self.log(f"Cell {cell_name} dimensions: {cell_width} x {cell_height} um, offset: {cell_offset}")
-                if cell_width > self.die_width*1000 or cell_height > self.die_height*1000:
+                if round(cell_width, 3) > self.die_width*1000 or round(cell_height, 3) > self.die_height*1000:
                     QMessageBox.critical(self, 'Error', f'Cell {cell_name} dimensions exceed die dimensions.', QMessageBox.Ok)
                     return
                 self.dieInfo[rowIndex]['offset'] = cell_offset
+
+    def placeDiesOnDesign(self):
+        if self.gds_design is None:
+            QMessageBox.critical(self, 'Error', 'Please load a GDS file with the main window.', QMessageBox.Ok)
+            return
+        self.addSnapshot()
+        for loc in self.diePlacement:
+            if self.diePlacement[loc][0] is not None:
+                child_cell_name = self.diePlacement[loc][0]['cellComboBox'].currentText()
+                child_design = self.diePlacement[loc][0]['dieDesign']
+                child_filename = self.diePlacement[loc][0]['fileName']
+
+                if child_cell_name not in self.gds_design.lib.cells:
+                    self.gds_design.lib.add(child_design.lib.cells[child_cell_name],
+                                        overwrite_duplicate=True, include_dependencies=True, update_references=False)
+                    unique_layers = set()
+                    for cell_name in self.gds_design.lib.cells.keys():
+                        if cell_name != '$$$CONTEXT_INFO$$$':
+                            polygons_by_spec = self.gds_design.lib.cells[cell_name].get_polygons(by_spec=True)
+                            for (lay, dat), polys in polygons_by_spec.items():
+                                unique_layers.add(lay)
+                    
+                    for layer_number in unique_layers:
+                        continueFlag = False
+                        for number, name in self.layerData:
+                            if int(number) == layer_number:
+                                continueFlag = True
+                                break
+                        if continueFlag:
+                            continue
+                        self.gds_design.define_layer(str(layer_number), layer_number)
+                        self.log(f"Layer defined: {layer_number} with number {layer_number}")
+                        
+                        # Add new layer if it doesn't exist already
+                        self.layerData.append((str(layer_number), str(layer_number)))
+                        self.log(f"New Layer added: {layer_number} - {layer_number}")
+
+                    self.log(f"Current layers: {self.gds_design.layers}")
+                    self.updateLayersComboBox()
+
+                die_label = self.diePlacement[loc][0]['dieLabelEdit'].text()
+                die_notes = self.diePlacement[loc][0]['dieNotesEdit'].text()
+                offset = self.diePlacement[loc][0]['offset']
+
+                position = (loc[0]*1000 - offset[0], loc[1]*1000 - offset[1])
+                self.gds_design.add_cell_reference(self.gds_design.top_cell_names[0], child_cell_name, position)
+                self.logTestStructure(die_label, {'notes': die_notes, 'position (um)': (loc[0]*1000, loc[1]*1000), 'cell_name': child_cell_name, 'filename': child_filename})
+                
+        self.writeToGDS()
         
     # Method to add a row
     def addRow(self):
@@ -1348,6 +1398,13 @@ class MyApp(QWidget):
         buttonLayout.addWidget(clearButton)
 
         self.dieLeftLayout.addLayout(buttonLayout)
+
+        placementLayout = QVBoxLayout()
+        placeDiesButton = QPushButton('Finalize and Write to GDS')
+        placeDiesButton.clicked.connect(self.placeDiesOnDesign)
+        placeDiesButton.setToolTip('Click to place the selected dies on the loaded .gds design.')
+        placementLayout.addWidget(placeDiesButton)
+        self.dieLeftLayout.addLayout(placementLayout)
 
         # Initial row
         self.addRow()
@@ -2167,7 +2224,7 @@ class MyApp(QWidget):
 
     def logTestStructure(self, name, params):
         with open(self.logFileName, 'a') as log_file:
-            log_file.write(f"Test Structure: {name}\n")
+            log_file.write(f"Component: {name}\n")
             for param, value in params.items():
                 log_file.write(f"{param}: {value}\n")
             log_file.write("\n")
