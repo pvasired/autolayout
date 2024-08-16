@@ -139,6 +139,14 @@ class GDSDesign:
         height = max_y - min_y
 
         return width, height, offset
+    
+    def get_layers_on_cell(self, cell_name):
+        layers = set()
+        cell = self.check_cell_exists(cell_name)
+        for (lay, dat), polys in cell.get_polygons(by_spec=True).items():
+            layers.add(lay)
+
+        return list(layers)
 
     def add_MLA_alignment_mark(self, cell_name, layer_name, center, rect_width=500, rect_height=20, width_interior=5,
                                extent_x_interior=50, extent_y_interior=50, datatype=0, netID=0, add_text=False, text_height=250,

@@ -1341,11 +1341,16 @@ class MyApp(QWidget):
                     QMessageBox.critical(self, 'Error', 'Please select a layer for the die text.', QMessageBox.Ok)
                     return
                 die_notes = self.diePlacement[loc][0]['dieNotesEdit'].text()
+                die_layers = child_design.get_layers_on_cell(child_cell_name)
                 offset = self.diePlacement[loc][0]['offset']
 
                 position = (loc[0]*1000 - offset[0], loc[1]*1000 - offset[1])   # Convert to um
                 self.gds_design.add_cell_reference(self.placementCellComboBox.currentText(), child_cell_name, position)
-                self.logTestStructure(die_label, {'notes': die_notes, 'center position (um)': (loc[0]*1000, loc[1]*1000), 'die cell name': child_cell_name, 'die filename': child_filename})
+                self.logTestStructure(die_label, {'notes': die_notes, 
+                                                  'center position (um)': (loc[0]*1000, loc[1]*1000), 
+                                                  'die cell name': child_cell_name,
+                                                  'die layers': die_layers, 
+                                                  'die filename': child_filename})
 
                 if die_label != '':
                     self.gds_design.add_text(self.placementCellComboBox.currentText(), 
@@ -1356,7 +1361,7 @@ class MyApp(QWidget):
                                              self.dieLabelTextHeight)
                 
         self.writeToGDS()
-        placement_map_filename = os.path.basename(self.outputFileName).split('.')[0] + '_die_placement.png'
+        placement_map_filename = ''.join(self.outputFileName.split('.')[:-1]) + '_die_placement.png'
         self.dieFig.savefig(placement_map_filename, dpi=300)
         self.log(f"Dies placed on design {self.outputFileName}, map saved to {placement_map_filename}")
         
