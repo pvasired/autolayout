@@ -22,6 +22,7 @@ import matplotlib.patches as patches
 import matplotlib
 matplotlib.use('Qt5Agg')
 
+AXIS_BUFFER = 5
 TEXT_SPACING_FACTOR = 0.55
 TEXT_HEIGHT_FACTOR = 0.7
 TEMP_CELL_NAME = "SIZE CHECK TEMP"
@@ -129,7 +130,11 @@ class PushButtonEdit(QLineEdit):
         if event.type() == QEvent.KeyPress and event.key() == Qt.Key_A and event.modifiers() == (Qt.ShiftModifier | Qt.AltModifier):
             self.editingFinished.emit()
             self.addButton.clicked.emit()
-            return True  
+            return True
+        elif event.type() == QEvent.KeyPress and (event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return):
+            self.editingFinished.emit()
+            
+            return True  # Event handled  
         return super().eventFilter(obj, event)
 
 class TooltipComboBox(QComboBox):
@@ -526,6 +531,8 @@ class MyApp(QWidget):
 
         # File selection layout
         fileLayout = QHBoxLayout()
+        fileMenuLabel = QLabel('File Menu')
+        leftLayout.addWidget(fileMenuLabel)
         self.initFileButton = QPushButton('Select Input File')
         self.initFileButton.clicked.connect(self.selectInputFile)
         self.initFileButton.setToolTip('Click to select the input GDS file.')
@@ -555,6 +562,8 @@ class MyApp(QWidget):
 
         # Add cell dropdown and Matplotlib Button
         plotLayout = QHBoxLayout()
+        plotMenuLabel = QLabel('Interactive Plotting Menu')
+        leftLayout.addWidget(plotMenuLabel)
         self.cellComboBox = QComboBox()
         self.cellComboBox.setToolTip('Select a cell from the loaded GDS file.')
         plotLayout.addWidget(self.cellComboBox)
@@ -571,14 +580,14 @@ class MyApp(QWidget):
         leftLayout.addLayout(plotLayout)
 
         # Die Placement Utility Button
-        self.diePlacementButton = QPushButton('Die Placement Menu')
+        self.diePlacementButton = QPushButton('Open Die Placement Menu')
         self.diePlacementButton.clicked.connect(self.showDiePlacementUtility)
         self.diePlacementButton.setToolTip('Click to open the Die Placement menu.')
         leftLayout.addWidget(self.diePlacementButton)  # Add the button to your desired layout, e.g., leftLayout
 
         # Test Structures layout
         testLayout = QVBoxLayout()
-        testLabel = QLabel('Components')
+        testLabel = QLabel('Add Components')
         testLayout.addWidget(testLabel)
 
         gridLayout = QGridLayout()
@@ -658,6 +667,8 @@ class MyApp(QWidget):
 
         # Layers layout
         layersHBoxLayout = QHBoxLayout()  # Change from QVBoxLayout to QHBoxLayout
+        layerAndCellMenuLabel = QLabel('Layers and Cells Menu')
+        leftLayout.addWidget(layerAndCellMenuLabel)
         layersLabel = QLabel('Layers:')
         layersLabel.setToolTip('Layers available in the design.')
         layersHBoxLayout.addWidget(layersLabel)
@@ -818,6 +829,30 @@ class MyApp(QWidget):
         self.resize(3400, 800)  # Set the initial size of the window
         self.show()
 
+    def updatePlacementLegend(self):
+        # Iterate through self.diePlacement and find the colors that are used
+        # Associate those colors with the corresponding die labels and notes if they exist
+        new_handles = []
+        new_labels = []
+        for loc in self.diePlacement:
+            color = self.diePlacement[loc][1].get_facecolor()
+            if color != (0, 0, 0, 0) and color != (0, 0, 0, 1):
+                color_already_in_legend = any(
+                    [handle.get_facecolor() == color for handle in new_handles]
+                )
+                
+                # If color is not in the legend, add it
+                if not color_already_in_legend:
+                    die_label = self.diePlacement[loc][0]['dieLabelEdit'].text()
+                    die_notes = self.diePlacement[loc][0]['dieNotesEdit'].text()
+                    label = f'Label: {die_label}, Notes: {die_notes}'
+                    new_patch = patches.Patch(color=color, label=label)
+                    new_handles.append(new_patch)
+                    new_labels.append(label)
+
+        self.dieAx.legend(new_handles, new_labels, loc='upper right', fontsize=10)
+        self.dieCanvas.draw()
+
     def dieSelectGDSFile(self):
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
@@ -842,7 +877,7 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 self.log("File selection error: Not a .gds file")
     
-    def drawSubstrate(self, axis_buffer=5):
+    def drawSubstrate(self):
         # Remove the previous wafer patch if it exists
         if hasattr(self, 'wafer_patch'):
             self.wafer_patch.remove()
@@ -855,8 +890,8 @@ class MyApp(QWidget):
         self.dieAx.set_aspect('equal', 'box')
 
         # Set the limits of the plot
-        self.dieAx.set_xlim(-self.waferDiameter / 2 - axis_buffer, self.waferDiameter / 2 + axis_buffer)
-        self.dieAx.set_ylim(-self.waferDiameter / 2 - axis_buffer, self.waferDiameter / 2 + axis_buffer)
+        self.dieAx.set_xlim(-self.waferDiameter / 2 - AXIS_BUFFER, self.waferDiameter + AXIS_BUFFER)
+        self.dieAx.set_ylim(-self.waferDiameter / 2 - AXIS_BUFFER, self.waferDiameter / 2 + AXIS_BUFFER)
 
         # Increase the size of the tick marks
         self.dieAx.tick_params(axis='both', which='major', labelsize=18, length=10, width=2)
@@ -1103,6 +1138,7 @@ class MyApp(QWidget):
 
                     self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
                     self.updateDPW()
+                    self.updatePlacementLegend()
 
                     self.log(f"Die at location {closestLoc} removed")
                 else:
@@ -1111,6 +1147,7 @@ class MyApp(QWidget):
 
                     self.diePlacement[closestLoc] = self.dieInfo[self.activeRow], self.diePlacement[closestLoc][1]
                     self.updateDPW()
+                    self.updatePlacementLegend()
 
                     self.log(f"Die at location {closestLoc} added")
             else:
@@ -1123,6 +1160,7 @@ class MyApp(QWidget):
                 self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
 
                 self.updateDPW()
+                self.updatePlacementLegend()
 
                 self.log(f"Die at location {closestLoc} removed from blacklist")
             else:
@@ -1131,6 +1169,7 @@ class MyApp(QWidget):
                 self.diePlacement[closestLoc] = None, self.diePlacement[closestLoc][1]
 
                 self.updateDPW()
+                self.updatePlacementLegend()    
 
                 self.log(f"Die at location {closestLoc} added to blacklist")
         else:
@@ -1174,6 +1213,7 @@ class MyApp(QWidget):
         
         self.dieCanvas.draw()
         self.updateDPW()
+        self.updatePlacementLegend()
 
         self.log(f"{numDies_tot} dies placed automatically")
         
@@ -1316,7 +1356,9 @@ class MyApp(QWidget):
                                              self.dieLabelTextHeight)
                 
         self.writeToGDS()
-        self.log("Dies placed on design")
+        placement_map_filename = os.path.basename(self.outputFileName).split('.')[0] + '_die_placement.png'
+        self.dieFig.savefig(placement_map_filename, dpi=300)
+        self.log(f"Dies placed on design {self.outputFileName}, map saved to {placement_map_filename}")
         
     # Method to add a row
     def addRow(self):
@@ -1355,12 +1397,14 @@ class MyApp(QWidget):
         dieLabelEdit = PushButtonEdit(self.autoPlaceButton)
         dieLabelEdit.setPlaceholderText('Die Label')
         dieLabelEdit.setToolTip('Enter the text to display for the die label.')
+        dieLabelEdit.editingFinished.connect(self.updatePlacementLegend)
         rowLayout.addWidget(dieLabelEdit)
 
         # Text Input Field for Die Notes
         dieNotesEdit = PushButtonEdit(self.autoPlaceButton)
         dieNotesEdit.setPlaceholderText('Die Notes')
         dieNotesEdit.setToolTip('Enter any notes for the die.')
+        dieNotesEdit.editingFinished.connect(self.updatePlacementLegend)
         rowLayout.addWidget(dieNotesEdit)
 
         # Add the row widget (with layout and color) to the left layout
