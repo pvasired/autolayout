@@ -1734,15 +1734,15 @@ class MyApp(QWidget):
             for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
                 # Calculate the distance from the click to the escape routing
                 for orientation in escapeDict:
-                    layer = escapeDict[orientation][2]
+                    layer = escapeDict[orientation]['layer_number']
                     if layer == layer_number:
-                        dist = np.linalg.norm(np.mean(escapeDict[orientation][0], axis=0)-np.array([x, y]))
+                        dist = np.linalg.norm(np.mean(escapeDict[orientation]['ports'], axis=0)-np.array([x, y]))
                         if dist < min_dist:
                             min_dist = dist
-                            route_ports = escapeDict[orientation][0]
-                            route_orientations = escapeDict[orientation][1]  
-                            route_trace_width = escapeDict[orientation][3]
-                            route_trace_space = escapeDict[orientation][4]
+                            route_ports = escapeDict[orientation]['ports']
+                            route_orientations = escapeDict[orientation]['orientations']  
+                            route_trace_width = escapeDict[orientation]['trace_width']
+                            route_trace_space = escapeDict[orientation]['trace_space']
             
             if route_ports is None:
                 QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
@@ -1791,13 +1791,14 @@ class MyApp(QWidget):
                     # Remove the routed ports from the corresponding escapeDicts
                     for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
                         for orientation in escapeDict:
-                            ports = escapeDict[orientation][0]
+                            ports = escapeDict[orientation]['ports']
                             
                             idx1 = np.where(~np.any(np.all(ports[:, None] == ports1, axis=2), axis=1))[0]
                             idx2 = np.where(~np.any(np.all(ports[:, None] == ports2, axis=2), axis=1))[0]
 
                             idx = np.intersect1d(idx1, idx2)
-                            escapeDict[orientation] = (escapeDict[orientation][0][idx], escapeDict[orientation][1][idx], escapeDict[orientation][2], escapeDict[orientation][3], escapeDict[orientation][4])              
+                            escapeDict[orientation]['ports'] = escapeDict[orientation]['ports'][idx]
+                            escapeDict[orientation]['orientations'] = escapeDict[orientation]['orientations'][idx]          
                     
                     # Write the design
                     self.writeToGDS()
@@ -1840,16 +1841,16 @@ class MyApp(QWidget):
             for i, escapeDict in enumerate(self.escapeDicts[self.cellComboBox.currentText()]):
                 # Calculate the distance from the click to the escape routing
                 for orientation in escapeDict:
-                    layer = escapeDict[orientation][2]
+                    layer = escapeDict[orientation]['layer_number']
                     if layer == layer_number:
                         dist = np.linalg.norm(np.mean(escapeDict[orientation][0], axis=0)-np.array([x, y]))
                         if dist < min_dist:
                             min_dist = dist
                             min_orientation = i, orientation
-                            route_ports = escapeDict[orientation][0]
-                            route_orientations = escapeDict[orientation][1]  
-                            route_trace_width = escapeDict[orientation][3]
-                            route_trace_space = escapeDict[orientation][4]
+                            route_ports = escapeDict[orientation]['ports']
+                            route_orientations = escapeDict[orientation]['orientations']  
+                            route_trace_width = escapeDict[orientation]['trace_width']
+                            route_trace_space = escapeDict[orientation]['trace_space']
             
             if route_ports is None:
                 QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
@@ -1863,11 +1864,16 @@ class MyApp(QWidget):
             if reply == QMessageBox.Yes:
                 self.addSnapshot()  # Store snapshot before adding new design
                 try:
-                    self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]] = self.gds_design.flare_ports(self.cellComboBox.currentText(), layer_name, route_ports, 
+                    new_ports, new_orientations, new_trace_width, new_trace_space = self.gds_design.flare_ports(self.cellComboBox.currentText(), layer_name, route_ports, 
                                                                                                                      route_orientations, route_trace_width, route_trace_space, 
                                                                                                                      ending_trace_width, ending_trace_space, routing_angle=flare_routing_angle,
                                                                                                                      escape_extent=flare_escape_extent, final_length=flare_final_length,
                                                                                                                      autorouting_angle=flare_autorouting_angle)
+                
+                    self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]]['ports'] = new_ports
+                    self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]]['orientations'] = new_orientations
+                    self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]]['trace_width'] = new_trace_width
+                    self.escapeDicts[self.cellComboBox.currentText()][min_orientation[0]][min_orientation[1]]['trace_space'] = new_trace_space
                     # Write the design
                     self.writeToGDS()
                     # Update the available space
