@@ -1628,11 +1628,6 @@ class MyApp(QWidget):
 
         self.addSnapshot()
         self.writeToGDS()
-        # Update the available space
-        self.updateAvailableSpace()
-
-        self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-        self.update_plot()
 
     def setRoutingMode(self):
         self.routingMode = True
@@ -1678,29 +1673,28 @@ class MyApp(QWidget):
             self.log("No layer selected from the dropdown menu.")
             return
 
-        # Use the selected cell from the dropdown
+        self.update_plot_data()
+
+    def update_plot_data(self):
+        if self.gds_design is None:
+            return
+        if self.cellComboBox.currentText() == "":
+            return
+        if self.plotLayersComboBox.currentText() == "":
+            return
         selected_cell = self.cellComboBox.currentText()
-        self.log(f"Selected cell for plotting: {selected_cell}")
-
         cell = self.gds_design.check_cell_exists(selected_cell)
-        self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
-        self.update_plot_data(cell)
-        self.update_plot()
-
-    def update_plot_data(self, cell):
         polygons_by_spec = cell.get_polygons(by_spec=True)
-        self.plot_layer_polygons = []
-        if self.plot_layer_number is None:
-            self.plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+        plot_layer_polygons = []
+        plot_layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
 
         for (lay, dat), polys in polygons_by_spec.items():
             for poly in polys:
-                if lay == self.plot_layer_number:
-                    self.plot_layer_polygons.append(Polygon(poly))
+                if lay == plot_layer_number:
+                    plot_layer_polygons.append(Polygon(poly))
     
-    def update_plot(self):
         self.ax.clear()
-        for poly in self.plot_layer_polygons:
+        for poly in plot_layer_polygons:
             x, y = poly.exterior.xy
             self.ax.plot(x, y, color='tab:blue')
 
@@ -1810,8 +1804,7 @@ class MyApp(QWidget):
                     # Update the available space
                     self.updateAvailableSpace()
                     
-                    self.update_plot_data(cell)
-                    self.update_plot()
+                    self.update_plot_data()
                 except (Exception, AssertionError, ValueError) as e:
                     QMessageBox.critical(self, "Design Error", f"Error routing ports: {str(e)}", QMessageBox.Ok)
                     self.log(f"Error routing ports: {str(e)}")
@@ -1880,8 +1873,7 @@ class MyApp(QWidget):
                     # Update the available space
                     self.updateAvailableSpace()
                     
-                    self.update_plot_data(cell)
-                    self.update_plot()
+                    self.update_plot_data()
                 except (Exception, AssertionError, ValueError) as e:
                     QMessageBox.critical(self, "Design Error", f"Error flaring ports: {str(e)}", QMessageBox.Ok)
                     self.log(f"Error flaring ports: {str(e)}")
@@ -2039,8 +2031,7 @@ class MyApp(QWidget):
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
-            self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-            self.update_plot()
+            self.update_plot_data()
         else:
             QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
 
@@ -2052,16 +2043,36 @@ class MyApp(QWidget):
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
-            self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-            self.update_plot()
+            self.update_plot_data()
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
 
     def createBlankDesign(self):
+        self.inputFileName = ""
+        self.outputFileName = ""
+        self.outFileField.setText("")
+        self.logFileName = ""
+        self.layerData = []
+        self.substrateLayer = None
+        self.availableSpace = None
+        self.allOtherPolygons = None
+        self.undoStack = []  # Initialize undo stack
+        self.redoStack = []  # Initialize redo stack
+        self.escapeDicts = {}  # To store escape routing dictionaries
+        self.routing = []
+        self.routingMode = False
+        self.flareMode = False
+        self.pitch_x = None
+        self.pitch_y = None
+        self.copies_x = None
+        self.copies_y = None
+        self.center_escape = None
+
         self.gds_design = GDSDesign()
         self.log("Blank GDS design created")
 
         self.updateCellComboBox()
+        self.updateLayersComboBox()
 
         QMessageBox.information(self, "Design Created", "Blank GDS design created.", QMessageBox.Ok)
 
@@ -2261,7 +2272,12 @@ class MyApp(QWidget):
             self.logFileName = f"{outputFileName.rsplit('.', 1)[0]}-log.txt"  # Update log file name based on new output file name
             
             if os.path.exists(oldLogFileName):
-                os.rename(oldLogFileName, self.logFileName)  # Rename the existing log file to the new log file name
+                if os.path.exists(self.logFileName):
+                    reply = QMessageBox.question(self, "Log File Exists", f"Log file {self.logFileName} already exists. Do you want to overwrite it?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                    if reply == QMessageBox.Yes:
+                        os.replace(oldLogFileName, self.logFileName)
+                else:
+                    os.rename(oldLogFileName, self.logFileName)  # Rename the existing log file to the new log file name
             else:
                 self.initLogFile()
             
@@ -2375,8 +2391,7 @@ class MyApp(QWidget):
                 # Update the available space
                 self.updateAvailableSpace()
 
-                self.update_plot_data(self.gds_design.check_cell_exists(self.cellComboBox.currentText()))
-                self.update_plot()
+                self.update_plot_data()
             
             else:
                 self.undo()
