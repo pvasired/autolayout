@@ -760,6 +760,10 @@ class GDSDesign:
         available_length_y = effective_pitch_y - 2*trace_space - trace_width
         available_length_x = effective_pitch_x - 2*trace_space - trace_width
 
+        max_x = np.amax(x)
+        max_y = np.amax(y)
+        min_x = np.amin(x)
+        min_y = np.amin(y)
         if not escape_y:
             for j in range(int(array_size_y/2)):
                 num_traces = int(array_size_x/2)
@@ -860,18 +864,29 @@ class GDSDesign:
                     cnt += 1
 
         grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        max_x = max(max_x, np.amax(ports[:, 0]))
+        min_x = min(min_x, np.amin(ports[:, 0]))
+        max_y = max(max_y, np.amax(ports[:, 1]))
+        min_y = min(min_y, np.amin(ports[:, 1]))
         unique_orientations = np.unique(orientations)
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=cable_tie_routing_angle,
                                                                  escape_extent=escape_extent)
+            max_x = max(max_x, np.amax(wire_ports[:, 0]))
+            min_x = min(min_x, np.amin(wire_ports[:, 0]))
+            max_y = max(max_y, np.amax(wire_ports[:, 1]))
+            min_y = min(min_y, np.amin(wire_ports[:, 1]))
             return_dict[val] = {}
             return_dict[val]['ports'] = wire_ports
             return_dict[val]['orientations'] = wire_orientations
             return_dict[val]['layer_number'] = self.get_layer_number(layer_name)
             return_dict[val]['trace_width'] = trace_width
             return_dict[val]['trace_space'] = trace_space
+
+        for val in return_dict:
+            return_dict[val]['bbox'] = [[min_x, min_y], [max_x, max_y]]
         return return_dict
     
     # The traces escape from the array on the positive and negative x directions and the positive y direction
@@ -913,6 +928,10 @@ class GDSDesign:
         available_length_y = effective_pitch_y - 2*trace_space - trace_width
         available_length_x = effective_pitch_x - 2*trace_space - trace_width
 
+        max_x = np.amax(x)
+        max_y = np.amax(y)
+        min_x = np.amin(x)
+        min_y = np.amin(y)
         if escape_y:
             if not escape_negative:
                 for j in range(int(array_size_y/2)):
@@ -1119,18 +1138,29 @@ class GDSDesign:
                         cnt += 1
         
         grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        max_x = max(max_x, np.amax(ports[:, 0]))
+        min_x = min(min_x, np.amin(ports[:, 0]))
+        max_y = max(max_y, np.amax(ports[:, 1]))
+        min_y = min(min_y, np.amin(ports[:, 1]))
         unique_orientations = np.unique(orientations)
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=cable_tie_routing_angle,
                                                                  escape_extent=escape_extent)
+            max_x = max(max_x, np.amax(wire_ports[:, 0]))
+            min_x = min(min_x, np.amin(wire_ports[:, 0]))
+            max_y = max(max_y, np.amax(wire_ports[:, 1]))
+            min_y = min(min_y, np.amin(wire_ports[:, 1]))
             return_dict[val] = {}
             return_dict[val]['ports'] = wire_ports
             return_dict[val]['orientations'] = wire_orientations
             return_dict[val]['layer_number'] = self.get_layer_number(layer_name)
             return_dict[val]['trace_width'] = trace_width
             return_dict[val]['trace_space'] = trace_space
+
+        for val in return_dict:
+            return_dict[val]['bbox'] = [[min_x, min_y], [max_x, max_y]]
         return return_dict
     
     def add_regular_array_escape_one_sided(self, trace_cell_name, center, layer_name, pitch_x, pitch_y, array_size_x, array_size_y, trace_width, pad_diameter, escape_extent=50, routing_angle=45,
@@ -1171,6 +1201,10 @@ class GDSDesign:
         available_length_y = effective_pitch_y - 2*trace_space - trace_width
         available_length_x = effective_pitch_x - 2*trace_space - trace_width
 
+        max_x = np.amax(x)
+        min_x = np.amin(x)
+        max_y = np.amax(y)
+        min_y = np.amin(y)
         if not escape_y:
             if escape_negative:
                 for j in range(array_size_y):
@@ -1249,18 +1283,29 @@ class GDSDesign:
                             cnt += 1
             
         grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        max_x = max(max_x, np.amax(ports[:, 0]))
+        min_x = min(min_x, np.amin(ports[:, 0]))
+        max_y = max(max_y, np.amax(ports[:, 1]))
+        min_y = min(min_y, np.amin(ports[:, 1]))
         unique_orientations = np.unique(orientations)
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=cable_tie_routing_angle,
                                                                  escape_extent=escape_extent)
+            max_x = max(max_x, np.amax(wire_ports[:, 0]))
+            min_x = min(min_x, np.amin(wire_ports[:, 0]))
+            max_y = max(max_y, np.amax(wire_ports[:, 1]))
+            min_y = min(min_y, np.amin(wire_ports[:, 1]))
             return_dict[val] = {}
             return_dict[val]['ports'] = wire_ports
             return_dict[val]['orientations'] = wire_orientations
             return_dict[val]['layer_number'] = self.get_layer_number(layer_name)
             return_dict[val]['trace_width'] = trace_width
             return_dict[val]['trace_space'] = trace_space
+        
+        for val in return_dict:
+            return_dict[val]['bbox'] = [[min_x, min_y], [max_x, max_y]]
         return return_dict
 
     # The traces escape from all four sides of the array
@@ -1291,6 +1336,11 @@ class GDSDesign:
         x = np.linspace(-pitch_x*(array_size_x-1)/2, pitch_x*(array_size_x-1)/2, array_size_x)
         y = np.linspace(-pitch_y*(array_size_y-1)/2, pitch_y*(array_size_y-1)/2, array_size_y)
         xx, yy = np.meshgrid(x, y, indexing='ij')
+
+        max_x = np.amax(x)
+        max_y = np.amax(y)
+        min_x = np.amin(x)
+        min_y = np.amin(y)
 
         # Stack the coordinates into a single 3D array
         grid = np.stack((xx, yy), axis=-1)
@@ -2006,18 +2056,29 @@ class GDSDesign:
                 ports[top_route[0]][special_row] = np.array(hinged_path[-1])
         
         grid, ports, orientations = np.around(grid.reshape(array_size_x*array_size_y, 2), 3), np.around(ports.reshape(array_size_x*array_size_y, 2), 3), orientations.reshape(array_size_x*array_size_y)
+        max_x = max(max_x, np.amax(ports[:, 0]))
+        min_x = min(min_x, np.amin(ports[:, 0]))
+        max_y = max(max_y, np.amax(ports[:, 1]))
+        min_y = min(min_y, np.amin(ports[:, 1]))
         unique_orientations = np.unique(orientations)
         return_dict = {}
         for val in unique_orientations:
             idx = np.where(orientations == val)[0]
             wire_ports, wire_orientations = self.cable_tie_ports(trace_cell_name, layer_name, ports[idx], orientations[idx], trace_width, trace_space, routing_angle=cable_tie_routing_angle,
                                                                  escape_extent=escape_extent)
+            max_x = max(max_x, np.amax(wire_ports[:, 0]))
+            min_x = min(min_x, np.amin(wire_ports[:, 0]))
+            max_y = max(max_y, np.amax(wire_ports[:, 1]))
+            min_y = min(min_y, np.amin(wire_ports[:, 1]))
             return_dict[val] = {}
             return_dict[val]['ports'] = wire_ports
             return_dict[val]['orientations'] = wire_orientations
             return_dict[val]['layer_number'] = self.get_layer_number(layer_name)
             return_dict[val]['trace_width'] = trace_width
             return_dict[val]['trace_space'] = trace_space
+
+        for val in return_dict:
+            return_dict[val]['bbox'] = [[min_x, min_y], [max_x, max_y]]   
         return return_dict
 
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
