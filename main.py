@@ -529,6 +529,11 @@ class MyApp(QWidget):
         # Left Layout (contains all the menus)
         leftLayout = QVBoxLayout()
 
+        # Write to GDS button
+        self.writeButton = QPushButton('Write to GDS')
+        self.writeButton.clicked.connect(self.writeToGDS)
+        self.writeButton.setToolTip('Click to write the current design to a GDS file.')
+
         # File selection layout
         fileLayout = QHBoxLayout()
         fileMenuLabel = QLabel('File Menu')
@@ -539,7 +544,7 @@ class MyApp(QWidget):
         self.blankFileButton = QPushButton('Create Blank Design')
         self.blankFileButton.clicked.connect(self.createBlankDesign)
         self.blankFileButton.setToolTip('Click to create a blank design.')
-        self.outFileField = QLineEdit()
+        self.outFileField = PushButtonEdit(self.writeButton)
         self.outFileField.setPlaceholderText('Output File')
         self.outFileField.editingFinished.connect(self.validateOutputFileName)
         self.outFileField.setToolTip('Enter the name of the output GDS file.')
@@ -806,11 +811,7 @@ class MyApp(QWidget):
         defineCellHBoxLayout.addWidget(defineCellButton)
         leftLayout.addLayout(defineCellHBoxLayout)
 
-        # Write to GDS button
-        writeButton = QPushButton('Write to GDS')
-        writeButton.clicked.connect(self.writeToGDS)
-        writeButton.setToolTip('Click to write the current design to a GDS file.')
-        leftLayout.addWidget(writeButton)  # Add the write button to the left layout
+        leftLayout.addWidget(self.writeButton)  # Add the write button to the left layout
 
         self.placementCellComboBox = QComboBox()
         self.placementCellComboBox.setPlaceholderText('Select Cell to Place Dies')
@@ -3433,6 +3434,10 @@ class MyApp(QWidget):
         return True
 
     def addCustomTestStructure(self, Parent_Cell_Name, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Automatic_Placement):
+        if not self.customTestCellName:
+            QMessageBox.critical(self, "Custom Test Structure Error", "Please select a custom test structure cell.", QMessageBox.Ok)
+            self.log("Custom Test Structure placement error: No cell name provided")
+            return False
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
             if self.customTestCellName not in self.gds_design.lib.cells:
