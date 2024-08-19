@@ -662,6 +662,12 @@ class MyApp(QWidget):
                 self.selectOtherGDSButton.setToolTip('Click to select another .gds file.')
                 gridLayout.addWidget(self.selectOtherGDSButton, row, 8)  # Adjust the position as needed
 
+                # Reset file button
+                self.resetOtherGDSButton = QPushButton('Reset Other .gds File')
+                self.resetOtherGDSButton.clicked.connect(self.resetOtherGDSFile)
+                self.resetOtherGDSButton.setToolTip('Click to reset the other .gds file.')
+                gridLayout.addWidget(self.resetOtherGDSButton, row, 9)
+
             row += 1
 
             defaultParams = deepcopy(self.defaultParams[name])
@@ -829,6 +835,12 @@ class MyApp(QWidget):
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3400, 800)  # Set the initial size of the window
         self.show()
+
+    def resetOtherGDSFile(self):
+        self.customFileName = None
+        self.custom_design = None
+
+        self.updateCellComboBox()
 
     def updatePlacementLegend(self):
         # Iterate through self.diePlacement and find the colors that are used
@@ -1844,7 +1856,7 @@ class MyApp(QWidget):
                 for orientation in escapeDict:
                     layer = escapeDict[orientation]['layer_number']
                     if layer == layer_number:
-                        dist = np.linalg.norm(np.mean(escapeDict[orientation][0], axis=0)-np.array([x, y]))
+                        dist = np.linalg.norm(np.mean(escapeDict[orientation]['ports'], axis=0)-np.array([x, y]))
                         if dist < min_dist:
                             min_dist = dist
                             min_orientation = i, orientation
@@ -2244,8 +2256,12 @@ class MyApp(QWidget):
         self.log(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         self.customTestCellComboBox.clear()
-        self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
-        self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        if self.custom_design is None:
+            self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
+            self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        else:
+            self.customTestCellComboBox.addItems(self.custom_design.cells.keys())
+            self.log(f"Custom Test Structure combo box populated with cells: {list(self.custom_design.cells.keys())}")
 
         self.placementCellComboBox.clear()
         self.placementCellComboBox.addItems(self.gds_design.cells.keys())
@@ -3434,10 +3450,6 @@ class MyApp(QWidget):
         return True
 
     def addCustomTestStructure(self, Parent_Cell_Name, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Automatic_Placement):
-        if not self.customTestCellName:
-            QMessageBox.critical(self, "Custom Test Structure Error", "Please select a custom test structure cell.", QMessageBox.Ok)
-            self.log("Custom Test Structure placement error: No cell name provided")
-            return False
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
             if self.customTestCellName not in self.gds_design.lib.cells:
