@@ -833,7 +833,7 @@ class MyApp(QWidget):
 
         self.setLayout(mainLayout)
         self.setWindowTitle('GDS Automation GUI')
-        self.resize(3400, 800)  # Set the initial size of the window
+        self.resize(3600, 800)  # Set the initial size of the window
         self.show()
 
     def resetOtherGDSFile(self):
