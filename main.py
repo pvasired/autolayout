@@ -13,6 +13,8 @@ import numpy as np
 import random
 import os
 import uuid
+import logging
+from datetime import datetime
 from shapely.geometry import Polygon, Point, box
 from matplotlib.figure import Figure
 from matplotlib.colors import rgb2hex
@@ -71,6 +73,29 @@ BASE_COLORS = {
     "#FFD1CC": "#FF9980",  # Light salmon -> Salmon
     "#E6CCFF": "#B266FF"   # Light violet -> Violet
 }
+
+def setup_logging():
+    # Create a logs directory if it doesn't exist
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+
+    # Generate a timestamp for the log file
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    log_filename = f'logs/log_{timestamp}.log'
+
+    # Configure logging
+    logging.basicConfig(
+        filename=log_filename,
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
+    # Optionally, also log to the console
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(console_handler)
 
 def resource_path(relative_path):
     try:
@@ -837,6 +862,7 @@ class MyApp(QWidget):
         self.show()
 
     def resetOtherGDSFile(self):
+        logging.info("Resetting other GDS file")
         self.customFileName = None
         self.custom_design = None
 
@@ -881,14 +907,14 @@ class MyApp(QWidget):
                 dieDesign = GDSDesign(filename=fileName)
                 self.dieInfo[rowIndex]['cellComboBox'].clear()
                 self.dieInfo[rowIndex]['cellComboBox'].addItems(dieDesign.cells.keys())
-                self.log(f"Cell combo box populated with cells: {list(dieDesign.cells.keys())}")
+                logging.info(f"Cell combo box populated with cells: {list(dieDesign.cells.keys())}")
 
                 # Store the GDSDesign instance
                 self.dieInfo[rowIndex]['dieDesign'] = dieDesign
                 self.dieInfo[rowIndex]['fileName'] = fileName
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
-                self.log("File selection error: Not a .gds file")
+                logging.error("File selection error: Not a .gds file")
     
     def drawSubstrate(self):
         # Remove the previous wafer patch if it exists
@@ -912,7 +938,7 @@ class MyApp(QWidget):
 
         # Redraw the canvas
         self.dieCanvas.draw()
-        self.log(f"Substrate drawn with diameter {self.waferDiameter} um")
+        logging.info(f"Substrate drawn with diameter {self.waferDiameter} um")
 
     def onSubstrate4InchChecked(self):
         if self.substrate4InchCheckBox.isChecked():
@@ -923,7 +949,7 @@ class MyApp(QWidget):
             self.drawSubstrate()
             self.createDiePlacement()
 
-            self.log("4-inch substrate selected")
+            logging.info("4-inch substrate selected")
 
     def onSubstrate6InchChecked(self):
         if self.substrate6InchCheckBox.isChecked():
@@ -934,7 +960,7 @@ class MyApp(QWidget):
             self.drawSubstrate()
             self.createDiePlacement()
 
-            self.log("6-inch substrate selected")
+            logging.info("6-inch substrate selected")
 
     def createDiePlacement(self):
         if self.waferDiameter is None or self.dieWidthEdit.text() == '' or self.dieHeightEdit.text() == '' or self.dicingStreetEdit.text() == '' or self.edgeMarginEdit.text() == '':
@@ -951,6 +977,7 @@ class MyApp(QWidget):
             assert edge_margin > 0, 'Edge margin must be greater than 0.'
         except (AssertionError, ValueError, Exception) as e:
             QMessageBox.critical(self, 'Error', str(e), QMessageBox.Ok)
+            logging.error(f"Error creating die placement: {e}")
             return
         
         self.dieAx.clear()
@@ -1103,7 +1130,7 @@ class MyApp(QWidget):
         self.dicing_street_width = dicing_street_width
         self.validateDieCells()
 
-        self.log(f"Die placement created with die width {die_width}, die height {die_height}, dicing street width {dicing_street_width}, and edge margin {edge_margin}")
+        logging.info(f"Die placement created with die width {die_width}, die height {die_height}, dicing street width {dicing_street_width}, and edge margin {edge_margin}")
 
     def updateDPW(self):
         cnt = 0
@@ -1113,20 +1140,20 @@ class MyApp(QWidget):
         self.dpwTextBox.setText(str(cnt))
         self.dpw = cnt 
 
-        self.log(f"DPW updated to {cnt}")
+        logging.info(f"DPW updated to {cnt}")
 
     def die_on_click(self, event):
         # Check if the toolbar is in zoom mode
         if self.dieToolbar.mode == '':
             if event.inaxes is not None:
                 x, y = event.xdata, event.ydata
-                self.log(f"Click at position: ({x}, {y})")
+                logging.info(f"Click at position: ({x}, {y})")
                 # You can process the click coordinates here
                 self.die_process_click(x, y)
             else:
-                self.log("Click outside axes bounds")
+                logging.info("Click outside axes bounds")
         else:
-            self.log(f"Toolbar mode is active ({self.dieToolbar.mode}), click not registered")
+            logging.info(f"Toolbar mode is active ({self.dieToolbar.mode}), click not registered")
     
     def die_process_click(self, x, y):
         if len(self.diePlacement.keys()) == 0:
@@ -1139,7 +1166,7 @@ class MyApp(QWidget):
                 minDist = dist
                 closestLoc = loc
         
-        self.log(f"Closest die location: {closestLoc}")
+        logging.info(f"Closest die location: {closestLoc}")
         
         if self.activeRow is not None:
             if self.dieInfo[self.activeRow]['dieDesign'] is not None and self.dieInfo[self.activeRow]['cellComboBox'].currentText() != '':
@@ -1153,7 +1180,7 @@ class MyApp(QWidget):
                     self.updateDPW()
                     self.updatePlacementLegend()
 
-                    self.log(f"Die at location {closestLoc} removed")
+                    logging.info(f"Die at location {closestLoc} removed")
                 else:
                     self.diePlacement[closestLoc][1].set_facecolor(active_color)
                     self.dieCanvas.draw()
@@ -1162,9 +1189,10 @@ class MyApp(QWidget):
                     self.updateDPW()
                     self.updatePlacementLegend()
 
-                    self.log(f"Die at location {closestLoc} added")
+                    logging.info(f"Die at location {closestLoc} added")
             else:
                 QMessageBox.critical(self, 'Error', 'Please select a GDS file and cell for the die.', QMessageBox.Ok)
+                logging.error("Error processing click: GDS file and cell not selected")
                 return
         elif self.blacklistMode:
             if self.diePlacement[closestLoc][1].get_facecolor() == (0, 0, 0, 1):
@@ -1175,7 +1203,7 @@ class MyApp(QWidget):
                 self.updateDPW()
                 self.updatePlacementLegend()
 
-                self.log(f"Die at location {closestLoc} removed from blacklist")
+                logging.info(f"Die at location {closestLoc} removed from blacklist")
             else:
                 self.diePlacement[closestLoc][1].set_facecolor('black')
                 self.dieCanvas.draw()
@@ -1184,14 +1212,16 @@ class MyApp(QWidget):
                 self.updateDPW()
                 self.updatePlacementLegend()    
 
-                self.log(f"Die at location {closestLoc} added to blacklist")
+                logging.info(f"Die at location {closestLoc} added to blacklist")
         else:
             QMessageBox.critical(self, 'Error', 'Please select a row in the Die Placement Menu or select Blacklist Mode.', QMessageBox.Ok)
+            logging.error("Error processing click: No active row or blacklist mode selected")
             return
     
     def autoPlaceDies(self):
         if self.dpw == 0:
             QMessageBox.critical(self, 'Error', 'No spaces to place dies.', QMessageBox.Ok)
+            logging.error("Error placing dies: No spaces available")
             return
         
         keys = [key for key, value in self.diePlacement.items() if value[0] is None and value[1].get_facecolor() != (0, 0, 0, 1)]
@@ -1205,10 +1235,12 @@ class MyApp(QWidget):
                 numDies_tot += int(self.dieInfo[rowIndex]['numDiesEdit'].text().strip())
             except:
                 QMessageBox.critical(self, 'Error', 'Number of dies must be an integer.', QMessageBox.Ok)
+                logging.error("Error placing dies: Number of dies not an integer")
                 return
-        self.log(f"Total number of dies to place: {numDies_tot}")
+        logging.info(f"Total number of dies to place: {numDies_tot}")
         if numDies_tot > self.dpw:
             QMessageBox.critical(self, 'Error', 'Not enough spaces to place all dies.', QMessageBox.Ok)
+            logging.error("Error placing dies: Not enough spaces available")
             return
         
         cnt = 0
@@ -1228,7 +1260,7 @@ class MyApp(QWidget):
         self.updateDPW()
         self.updatePlacementLegend()
 
-        self.log(f"{numDies_tot} dies placed automatically")
+        logging.info(f"{numDies_tot} dies placed automatically")
         
     # Method to set the active row
     def setActiveRow(self, rowIndex):
@@ -1239,7 +1271,7 @@ class MyApp(QWidget):
 
         if self.activeRow == rowIndex:
             self.activeRow = None
-            self.log("Active row unset")
+            logging.info("Active row unset")
             return
         
         if self.blacklistMode:
@@ -1251,7 +1283,7 @@ class MyApp(QWidget):
         active_color = BASE_COLORS.get(original_color)
         self.dieInfo[self.activeRow]['rowWidget'].setStyleSheet(f"background-color: {active_color}; padding: 5px;")
 
-        self.log(f"Active row set to {self.activeRow}")
+        logging.info(f"Active row set to {self.activeRow}")
 
     def validateDieCells(self):
         if self.die_width is None or self.die_height is None:
@@ -1262,20 +1294,23 @@ class MyApp(QWidget):
             if cellComboBox.currentText() != '':
                 cell_name = cellComboBox.currentText()
                 cell_width, cell_height, cell_offset = dieDesign.calculate_cell_size(cell_name)
-                self.log(f"Cell {cell_name} dimensions: {cell_width} x {cell_height} um, offset: {cell_offset}")
+                logging.info(f"Cell {cell_name} dimensions: {cell_width} x {cell_height} um, offset: {cell_offset}")
                 if round(cell_width, 3) > self.die_width*1000 or round(cell_height, 3) > self.die_height*1000:
                     # Show a warning box if the cell dimensions exceed the die dimensions
                     QMessageBox.warning(self, 'Warning', f"Cell {cell_name} dimensions exceed the die dimensions.", QMessageBox.Ok)
+                    logging.warning(f"Cell {cell_name} dimensions exceed the die dimensions")
                 self.dieInfo[rowIndex]['offset'] = cell_offset
         
-        self.log("Die cells validated")
+        logging.info("Die cells validated")
 
     def placeDiesOnDesign(self):
         if self.gds_design is None:
             QMessageBox.critical(self, 'Error', 'Please load or create a GDS file with the main window.', QMessageBox.Ok)
+            logging.error("Error placing dies: No GDS file loaded")
             return
         if self.placementCellComboBox.currentText() == '':
             QMessageBox.critical(self, 'Error', 'Please select a cell to place the dies.', QMessageBox.Ok)
+            logging.error("Error placing dies: No cell selected")
             return
         if self.dieTextLayerComboBox.currentText() != '':
             die_text_layer = self.dieTextLayerComboBox.currentText()
@@ -1285,6 +1320,7 @@ class MyApp(QWidget):
         for loc in self.diePlacement:
             if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() == '':
                 QMessageBox.critical(self, 'Error', 'Please select a layer for the dicing streets.', QMessageBox.Ok)
+                logging.error("Error placing dies: No layer selected for dicing streets")
                 return
             if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
                 dicing_layer_name = self.dicingStreetsLayerComboBox.currentText().split(':')[1].strip()
@@ -1324,13 +1360,13 @@ class MyApp(QWidget):
                         if continueFlag:
                             continue
                         self.gds_design.define_layer(str(layer_number), layer_number)
-                        self.log(f"Layer defined: {layer_number} with number {layer_number}")
+                        logging.info(f"Layer defined: {layer_number} with number {layer_number}")
                         
                         # Add new layer if it doesn't exist already
                         self.layerData.append((str(layer_number), str(layer_number)))
-                        self.log(f"New Layer added: {layer_number} - {layer_number}")
+                        logging.info(f"New Layer added: {layer_number} - {layer_number}")
 
-                    self.log(f"Current layers: {self.gds_design.layers}")
+                    logging.info(f"Current layers: {self.gds_design.layers}")
                     self.updateLayersComboBox()
 
                     # Iterate through each item in the combo box
@@ -1352,6 +1388,7 @@ class MyApp(QWidget):
                 die_label = self.diePlacement[loc][0]['dieLabelEdit'].text()
                 if die_label != '' and self.dieTextLayerComboBox.currentText() == '':
                     QMessageBox.critical(self, 'Error', 'Please select a layer for the die text.', QMessageBox.Ok)
+                    logging.error("Error placing dies: No layer selected for die text")
                     return
                 die_notes = self.diePlacement[loc][0]['dieNotesEdit'].text()
                 die_layers = child_design.get_layers_on_cell(child_cell_name)
@@ -1376,11 +1413,11 @@ class MyApp(QWidget):
         self.writeToGDS()
         placement_map_filename = ''.join(self.outputFileName.split('.')[:-1]) + '_die_placement.png'
         self.dieFig.savefig(placement_map_filename, dpi=300)
-        self.log(f"Dies placed on design {self.outputFileName}, map saved to {placement_map_filename}")
+        logging.info(f"Dies placed on design {self.outputFileName}, map saved to {placement_map_filename}")
         
     # Method to add a row
     def addRow(self):
-        self.log("Adding a new row to the Die Placement Menu")
+        logging.info("Adding a new row to the Die Placement Menu")
         rowLayout = QHBoxLayout()
         
         # Apply background color to the row
@@ -1608,33 +1645,33 @@ class MyApp(QWidget):
     def dicingStreetsCheckBoxChanged(self):
         if self.dicingStreetsCheckBox.isChecked():
             self.dicingStreetsLayerComboBox.show()
-            self.log("Dicing streets checkbox checked")
+            logging.info("Dicing streets checkbox checked")
         else:
             self.dicingStreetsLayerComboBox.hide()
-            self.log("Dicing streets checkbox unchecked")
+            logging.info("Dicing streets checkbox unchecked")
 
     def setBlacklistMode(self):
         self.blacklistMode = not self.blacklistMode
         if self.blacklistMode:
             self.setActiveRow(self.activeRow)
             self.blacklistButton.setStyleSheet("background-color: lightgreen")
-            self.log("Blacklist mode is active")
+            logging.info("Blacklist mode is active")
         else:
             self.blacklistButton.setStyleSheet("")
-            self.log("Blacklist mode is inactive")
+            logging.info("Blacklist mode is inactive")
 
     def defineNewCell(self):
         if self.gds_design is None:
             QMessageBox.critical(self, "Design Error", "No GDS design loaded.", QMessageBox.Ok)
-            self.log("No GDS design loaded.")
+            logging.error("No GDS design loaded.")
             return
         if self.newCellNameEdit.text() == "":
             QMessageBox.critical(self, "Input Error", "No cell name provided.", QMessageBox.Ok)
-            self.log("No cell name provided.")
+            logging.error("No cell name provided.")
             return
         if self.outputFileName == "":
             QMessageBox.critical(self, "Output Error", "No output file name provided.", QMessageBox.Ok)
-            self.log("No output file name provided.")
+            logging.error("No output file name provided.")
             return
         self.gds_design.add_cell(self.newCellNameEdit.text().strip())
         self.updateCellComboBox()
@@ -1675,15 +1712,15 @@ class MyApp(QWidget):
     def showMatplotlibWindow(self):
         if self.gds_design is None:
             QMessageBox.critical(self, "Design Error", "No GDS design loaded.", QMessageBox.Ok)
-            self.log("No GDS design loaded.")
+            logging.error("No GDS design loaded.")
             return
         if self.cellComboBox.currentText() == "":
             QMessageBox.critical(self, "Selection Error", "No cell selected from the dropdown menu.", QMessageBox.Ok)
-            self.log("No cell selected from the dropdown menu.")
+            logging.error("No cell selected from the dropdown menu.")
             return
         if self.plotLayersComboBox.currentText() == "":
             QMessageBox.critical(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
-            self.log("No layer selected from the dropdown menu.")
+            logging.error("No layer selected from the dropdown menu.")
             return
 
         self.update_plot_data()
@@ -1721,20 +1758,20 @@ class MyApp(QWidget):
         if self.toolbar.mode == '':
             if event.inaxes is not None:
                 x, y = event.xdata, event.ydata
-                self.log(f"Click at position: ({x}, {y})")
+                logging.info(f"Click at position: ({x}, {y})")
                 # You can process the click coordinates here
                 self.process_click(x, y)
             else:
-                self.log("Click outside axes bounds")
+                logging.info("Click outside axes bounds")
         else:
-            self.log(f"Toolbar mode is active ({self.toolbar.mode}), click not registered")
+            logging.info(f"Toolbar mode is active ({self.toolbar.mode}), click not registered")
 
     def process_click(self, x, y):
         # Implement your processing logic here
-        self.log(f"Processing click at: ({x}, {y})")
+        logging.info(f"Processing click at: ({x}, {y})")
 
         if self.routingMode:
-            self.log("Routing mode is active")
+            logging.info("Routing mode is active")
             min_dist = np.inf
             route_ports = None
             route_orientations = None
@@ -1759,7 +1796,7 @@ class MyApp(QWidget):
             
             if route_ports is None:
                 QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
-                self.log("No valid ports found in cell.")
+                logging.error("No valid ports found in cell.")
                 return
             # Query the user to confirm the choice of ports and orientations
             reply = QMessageBox.question(self, "Confirm Ports", f"You have selected {len(route_ports)} ports at center {np.mean(route_ports, axis=0)} with orientation {route_orientations[0]}.", 
@@ -1775,7 +1812,7 @@ class MyApp(QWidget):
 
                 if trace_width1 != trace_width2 or trace_space1 != trace_space2:
                     QMessageBox.critical(self, "Design Error", "Trace pitches do not match.", QMessageBox.Ok)
-                    self.log("Trace pitches do not match.")
+                    logging.error("Trace pitches do not match.")
                     self.routing = []
                     return
                 
@@ -1821,14 +1858,14 @@ class MyApp(QWidget):
                     self.update_plot_data()
                 except (Exception, AssertionError, ValueError) as e:
                     QMessageBox.critical(self, "Design Error", f"Error routing ports: {str(e)}", QMessageBox.Ok)
-                    self.log(f"Error routing ports: {str(e)}")
+                    logging.error(f"Error routing ports: {str(e)}")
 
                     self.undo()
 
                 self.routing = []
 
         elif self.flareMode:
-            self.log("Flare mode is active")
+            logging.info("Flare mode is active")
             try:
                 ending_trace_width = float(self.endingTraceWidthEdit.text())
                 ending_trace_space = float(self.endingTraceSpaceEdit.text())
@@ -1838,7 +1875,7 @@ class MyApp(QWidget):
                 flare_autorouting_angle = float(self.flareAutoroutingAngleEdit.text())
             except ValueError:
                 QMessageBox.critical(self, "Design Error", "Invalid flare parameters.", QMessageBox.Ok)
-                self.log("Invalid flare parameters.")
+                logging.error("Invalid flare parameters.")
                 return
             
             min_dist = np.inf
@@ -1867,7 +1904,7 @@ class MyApp(QWidget):
             
             if route_ports is None:
                 QMessageBox.critical(self, "Design Error", "No ports found in cell.", QMessageBox.Ok)
-                self.log("No valid ports found in cell.")
+                logging.error("No valid ports found in cell.")
                 return
             
             # Query the user to confirm the choice of ports and orientations
@@ -1895,7 +1932,7 @@ class MyApp(QWidget):
                     self.update_plot_data()
                 except (Exception, AssertionError, ValueError) as e:
                     QMessageBox.critical(self, "Design Error", f"Error flaring ports: {str(e)}", QMessageBox.Ok)
-                    self.log(f"Error flaring ports: {str(e)}")
+                    logging.error(f"Error flaring ports: {str(e)}")
 
                     self.undo()
                     return
@@ -1913,24 +1950,24 @@ class MyApp(QWidget):
                 layer_number = int(layer)
                 if layer_number == self.substrateLayer:
                     QMessageBox.critical(self, "Layer Error", "Cannot exclude the substrate layer.", QMessageBox.Ok)
-                    self.log(f"Excluded Layers input error: Cannot exclude substrate layer {layer}")
+                    logging.error(f"Excluded Layers input error: Cannot exclude substrate layer {layer}")
                     return
                 elif any(int(number) == layer_number for number, name in self.layerData):
                     valid_layers.append(layer_number)
                 else:
                     QMessageBox.critical(self, "Layer Error", f"Invalid layer number: {layer}", QMessageBox.Ok)
-                    self.log(f"Excluded Layers input error: Invalid layer number {layer}")
+                    logging.error(f"Excluded Layers input error: Invalid layer number {layer}")
                     return
             else:
                 if any(name.lower() == layer.lower() for number, name in self.layerData) and not any(int(number) == self.substrateLayer for number, name in self.layerData if name.lower() == layer.lower()):
                     valid_layers.append(next(int(number) for number, name in self.layerData if name.lower() == layer.lower() and int(number) != self.substrateLayer))
                 else:
                     QMessageBox.critical(self, "Layer Error", f"Invalid layer name: {layer}", QMessageBox.Ok)
-                    self.log(f"Excluded Layers input error: Invalid layer name {layer}")
+                    logging.error(f"Excluded Layers input error: Invalid layer name {layer}")
                     return
                 
         self.excludedLayers = valid_layers
-        self.log(f"Excluded layers set to: {self.excludedLayers}")
+        logging.info(f"Excluded layers set to: {self.excludedLayers}")
         if type(self.substrateLayer) == int:
             substrate_name = None
             for number, name in self.layerData:
@@ -1938,8 +1975,8 @@ class MyApp(QWidget):
                     substrate_name = name
             if substrate_name:
                 self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name, self.excludedLayers)
-                self.log(f"Available space calculated.")
-                self.log(f"All other polygons calculated.")
+                logging.info(f"Available space calculated.")
+                logging.info(f"All other polygons calculated.")
 
     def calculateLayerArea(self):
         currentLayer = self.layersComboBox.currentText()
@@ -1952,21 +1989,17 @@ class MyApp(QWidget):
                     cell_name = None
                 area = round(self.gds_design.calculate_area_for_layer(layerName, cell_name=cell_name), 6)
                 self.layerAreaEdit.setText(f"{area} mm^2")
-                self.log(f"Layer Area for {layerName}: {area} mm^2")
+                logging.info(f"Layer Area for {layerName}: {area} mm^2")
             except Exception as e:
                 QMessageBox.critical(self, "Calculation Error", f"Error calculating area for layer {layerName}: {str(e)}", QMessageBox.Ok)
-                self.log(f"Error calculating area for layer {layerName}: {str(e)}")
+                logging.error(f"Error calculating area for layer {layerName}: {str(e)}")
         else:
             QMessageBox.warning(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
-
-    def log(self, message):
-        if self.verbose:
-            print(message)
 
     def createCheckStateHandler(self, state):
         sender = self.sender()
         name = sender.text()
-        self.log(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
+        logging.info(f"{name} {'selected' if state == Qt.Checked else 'unselected'}")
     
     def selectSubstrateLayer(self):
         # Output: sets self.substrateLayer and sets available space and all other polygons
@@ -1975,7 +2008,7 @@ class MyApp(QWidget):
             layerNumber = int(currentLayer.split(':')[0])
             if layerNumber in self.excludedLayers:
                 QMessageBox.critical(self, "Layer Error", "Cannot set the substrate layer to an excluded layer.", QMessageBox.Ok)
-                self.log(f"Substrate layer selection error: Cannot set to excluded layer {layerNumber}")
+                logging.error(f"Substrate layer selection error: Cannot set to excluded layer {layerNumber}")
                 return
             
             # Initialize available space
@@ -1986,15 +2019,15 @@ class MyApp(QWidget):
             if substrate_name:
                 try:
                     self.availableSpace, self.allOtherPolygons = self.gds_design.determine_available_space(substrate_name, self.excludedLayers)
-                    self.log(f"Available space calculated.")
-                    self.log(f"All other polygons calculated.")
+                    logging.info(f"Available space calculated.")
+                    logging.info(f"All other polygons calculated.")
 
                     self.substrateLayer = layerNumber
-                    self.log(f"Substrate layer set to: {self.substrateLayer}")
+                    logging.info(f"Substrate layer set to: {self.substrateLayer}")
                     QMessageBox.information(self, "Substrate Layer Selected", f"Substrate layer set to: {self.substrateLayer}", QMessageBox.Ok)
                 except ValueError:
                     QMessageBox.critical(self, "Layer Error", "Substrate layer does not exist in the design. First add substrate shape to the design and then re-select as substrate layer.", QMessageBox.Ok)
-                    self.log(f"Substrate layer selection error: Layer {self.substrateLayer} does not exist in the design.")
+                    logging.error(f"Substrate layer selection error: Layer {self.substrateLayer} does not exist in the design.")
         else:
             QMessageBox.warning(self, "Selection Error", "No layer selected from the dropdown menu.", QMessageBox.Ok)
 
@@ -2010,7 +2043,7 @@ class MyApp(QWidget):
                 tooltip = self.paramTooltips.get(name, {}).get(param, '')
                 comboBox.setToolTip(tooltip)
                 # Log that this specific test structure has this parameter selected
-                self.log(f"{name} Parameter {param} selected, display value set to {value}")
+                logging.info(f"{name} Parameter {param} selected, display value set to {value}")
                 
     def createParamStoreHandler(self):
         sender = self.sender()
@@ -2030,7 +2063,7 @@ class MyApp(QWidget):
         self.handleAddToDesign(name)
 
     def addSnapshot(self):
-        self.log("Adding snapshot to undo stack and clearing redo stack")
+        logging.info("Adding snapshot to undo stack and clearing redo stack")
         self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
         self.redoStack.clear()
 
@@ -2044,7 +2077,7 @@ class MyApp(QWidget):
 
     def undo(self):
         if self.undoStack:
-            self.log("Adding snapshot to redo stack and reverting to previous state")
+            logging.info("Adding snapshot to redo stack and reverting to previous state")
             self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
             self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.undoStack.pop()
             self.writeLogEntries(log_entries)
@@ -2053,10 +2086,11 @@ class MyApp(QWidget):
             self.update_plot_data()
         else:
             QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
+            logging.error("No undo history is currently stored")
 
     def redo(self):
         if self.redoStack:
-            self.log("Adding snapshot to undo stack and reverting to previous state")
+            logging.info("Adding snapshot to undo stack and reverting to previous state")
             self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
             self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.redoStack.pop()
             self.writeLogEntries(log_entries)
@@ -2065,6 +2099,7 @@ class MyApp(QWidget):
             self.update_plot_data()
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
+            logging.error("No redo history is currently stored")
 
     def createBlankDesign(self):
         self.inputFileName = ""
@@ -2088,7 +2123,7 @@ class MyApp(QWidget):
         self.center_escape = None
 
         self.gds_design = GDSDesign()
-        self.log("Blank GDS design created")
+        logging.info("Blank GDS design created")
 
         self.updateCellComboBox()
         self.updateLayersComboBox()
@@ -2103,20 +2138,20 @@ class MyApp(QWidget):
         if fileName:
             if fileName.lower().endswith('.gds'):
                 self.inputFileName = fileName
-                self.log(f"Input File: {self.inputFileName}")
+                logging.info(f"Input File: {self.inputFileName}")
                 baseName = fileName.rsplit('.', 1)[0]
                 self.outputFileName = f"{baseName}-output.gds"
                 self.outFileField.setText(self.outputFileName)
-                self.log(f"Output File automatically set to: {self.outputFileName}")
+                logging.info(f"Output File automatically set to: {self.outputFileName}")
 
                 self.logFileName = f"{self.outputFileName.rsplit('.', 1)[0]}-log.txt"  # Set log file name based on output file name
-                self.log(f"Log File set to: {self.logFileName}")
+                logging.info(f"Log File set to: {self.logFileName}")
                 self.initLogFile()  # Initialize the log file
 
                 # Load the GDS file using GDSDesign
                 self.gds_design = GDSDesign(filename=self.inputFileName)
                 self.layerData = [(str(layer['number']), layer_name) for layer_name, layer in self.gds_design.layers.items()]
-                self.log(f"Layers read from file: {self.layerData}")
+                logging.info(f"Layers read from file: {self.layerData}")
                 self.updateLayersComboBox()
 
                 self.updateCellComboBox()
@@ -2124,7 +2159,7 @@ class MyApp(QWidget):
                 self.showMatplotlibWindow()
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
-                self.log("File selection error: Not a .gds file")
+                logging.error("File selection error: Not a .gds file")
     
     def selectOtherGDSFile(self):
         # Output: sets self.customFileName and self.custom_design, updates customTestCellComboBox
@@ -2135,7 +2170,7 @@ class MyApp(QWidget):
             if fileName.lower().endswith('.gds'):
                 self.customFileName = fileName
                 self.custom_design = GDSDesign(filename=fileName)
-                self.log(f"Custom design loaded from: {fileName}")
+                logging.info(f"Custom design loaded from: {fileName}")
                 QMessageBox.information(self, "File Selected", f"Custom design loaded from: {fileName}", QMessageBox.Ok)
                 
                 if self.customFileName != self.inputFileName:
@@ -2143,15 +2178,15 @@ class MyApp(QWidget):
                         if cell in self.custom_design.lib.cells:
                             idstr = uuid.uuid4().hex[:8]
                             self.custom_design.lib.rename_cell(self.custom_design.lib.cells[cell], f"{cell}_custom_{idstr}", update_references=True)
-                            self.log(f'Duplicate cell found. Renaming cell {cell} to {cell}_custom_{idstr}')
+                            logging.warning(f'Duplicate cell found. Renaming cell {cell} to {cell}_custom_{idstr}')
 
                 # Populate the custom test cell combo box with cell names
                 self.customTestCellComboBox.clear()
                 self.customTestCellComboBox.addItems(self.custom_design.lib.cells.keys())
-                self.log(f"Custom Test Structure cell names: {list(self.custom_design.lib.cells.keys())}")
+                logging.info(f"Custom Test Structure cell names: {list(self.custom_design.lib.cells.keys())}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
-                self.log("File selection error: Not a .gds file")
+                logging.error("File selection error: Not a .gds file")
 
     def readPolygonPointsFile(self, fileName):
         # Output: sets self.polygon_points
@@ -2163,12 +2198,12 @@ class MyApp(QWidget):
             points_list = [tuple(point) for point in points]
             if all(len(point) == 2 for point in points_list):
                 self.polygon_points = points_list
-                self.log(f"Polygon Points read: {self.polygon_points}")
+                logging.info(f"Polygon Points read: {self.polygon_points}")
             else:
                 raise ValueError("File does not contain valid (x, y) coordinates.")
         except Exception as e:
             QMessageBox.critical(self, "File Error", f"Error reading file: {str(e)}", QMessageBox.Ok)
-            self.log(f"Error reading polygon points file: {str(e)}")
+            logging.error(f"Error reading polygon points file: {str(e)}")
 
     def readPathPointsFile(self, fileName):
         # Output: sets self.path_points
@@ -2180,12 +2215,12 @@ class MyApp(QWidget):
             points_list = [tuple(point) for point in points]
             if all(len(point) == 2 for point in points_list):
                 self.path_points = points_list
-                self.log(f"Path Points read: {self.path_points}")
+                logging.info(f"Path Points read: {self.path_points}")
             else:
                 raise ValueError("File does not contain valid (x, y) coordinates.")
         except Exception as e:
             QMessageBox.critical(self, "File Error", f"Error reading file: {str(e)}", QMessageBox.Ok)
-            self.log(f"Error reading path points file: {str(e)}")
+            logging.error(f"Error reading path points file: {str(e)}")
 
     def selectPolygonPointsFile(self):
         options = QFileDialog.Options()
@@ -2194,10 +2229,10 @@ class MyApp(QWidget):
         if fileName:
             if fileName.lower().endswith('.txt') or fileName.lower().endswith('.csv'):
                 self.readPolygonPointsFile(fileName)
-                self.log(f"Polygon Points File: {fileName}")
+                logging.info(f"Polygon Points File: {fileName}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
-                self.log("File selection error: Not a .txt or .csv file")
+                logging.error("File selection error: Not a .txt or .csv file")
 
     def selectPathPointsFile(self):
         options = QFileDialog.Options()
@@ -2206,10 +2241,10 @@ class MyApp(QWidget):
         if fileName:
             if fileName.lower().endswith('.txt') or fileName.lower().endswith('.csv'):
                 self.readPathPointsFile(fileName)
-                self.log(f"Path Points File: {fileName}")
+                logging.info(f"Path Points File: {fileName}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
-                self.log("File selection error: Not a .txt or .csv file")
+                logging.error("File selection error: Not a .txt or .csv file")
 
     def selectEscapeRoutingFile(self):
         options = QFileDialog.Options()
@@ -2218,10 +2253,10 @@ class MyApp(QWidget):
         if fileName:
             if fileName.lower().endswith('.txt') or fileName.lower().endswith('.csv'):
                 self.readEscapeRoutingPointsFile(fileName)
-                self.log(f"Escape Routing Points File: {fileName}")
+                logging.info(f"Escape Routing Points File: {fileName}")
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .txt or .csv file.", QMessageBox.Ok)
-                self.log("File selection error: Not a .txt or .csv file")
+                logging.error("File selection error: Not a .txt or .csv file")
 
     def readEscapeRoutingPointsFile(self, fileName):
         try:
@@ -2239,38 +2274,38 @@ class MyApp(QWidget):
                 self.copies_x = len(np.unique(points[:, 0]))
                 self.copies_y = len(np.unique(points[:, 1]))
                 self.center_escape = (np.mean(np.unique(points[:, 0])), np.mean(np.unique(points[:, 1])))
-                self.log(f"Escape Routing Points read: center {self.center_escape}, pitch_x {self.pitch_x}, pitch_y {self.pitch_y}, copies_x {self.copies_x}, copies_y {self.copies_y}")
+                logging.info(f"Escape Routing Points read: center {self.center_escape}, pitch_x {self.pitch_x}, pitch_y {self.pitch_y}, copies_x {self.copies_x}, copies_y {self.copies_y}")
             else:
                 raise ValueError("File does not contain valid (x, y) coordinates.")
         except Exception as e:
             QMessageBox.critical(self, "File Error", f"Error reading file: {str(e)}", QMessageBox.Ok)
-            self.log(f"Error reading escape routing points file: {str(e)}")
+            logging.error(f"Error reading escape routing points file: {str(e)}")
     
     def updateCellComboBox(self):
         self.cellComboBox.clear()
         self.cellComboBox.addItems(self.gds_design.cells.keys())
-        self.log(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        logging.info(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         self.layerCellComboBox.clear()
         self.layerCellComboBox.addItems(self.gds_design.cells.keys())
-        self.log(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        logging.info(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         self.customTestCellComboBox.clear()
         if self.custom_design is None:
             self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
-            self.log(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+            logging.info(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
         else:
             self.customTestCellComboBox.addItems(self.custom_design.cells.keys())
-            self.log(f"Custom Test Structure combo box populated with cells: {list(self.custom_design.cells.keys())}")
+            logging.info(f"Custom Test Structure combo box populated with cells: {list(self.custom_design.cells.keys())}")
 
         self.placementCellComboBox.clear()
         self.placementCellComboBox.addItems(self.gds_design.cells.keys())
-        self.log(f"Placement combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        logging.info(f"Placement combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             cellComboBox.clear()
             cellComboBox.addItems(self.gds_design.cells.keys())
-            self.log(f"Cell combo box populated for {checkBox.text()} test structure: {list(self.gds_design.cells.keys())}")
+            logging.info(f"Cell combo box populated for {checkBox.text()} test structure: {list(self.gds_design.cells.keys())}")
                 
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
@@ -2284,7 +2319,7 @@ class MyApp(QWidget):
             self.plotLayersComboBox.addItem(f"{number}: {name}")
             self.dicingStreetsLayerComboBox.addItem(f"{number}: {name}")
             self.dieTextLayerComboBox.addItem(f"{number}: {name}")
-        self.log("Layers dropdowns updated")
+        logging.info("Layers dropdowns updated")
 
     def validateOutputFileName(self):
         # Output: sets self.outputFileName and renames log file if needed
@@ -2304,12 +2339,12 @@ class MyApp(QWidget):
             else:
                 self.initLogFile()
             
-            self.log(f"Output File set to: {self.outputFileName}")
-            self.log(f"Log File renamed to: {self.logFileName}")
+            logging.info(f"Output File set to: {self.outputFileName}")
+            logging.info(f"Log File renamed to: {self.logFileName}")
         else:
             QMessageBox.critical(self, "File Error", "Output file must be a .gds file.", QMessageBox.Ok)
             self.outFileField.setText(self.outputFileName)
-            self.log("Output file validation error: Not a .gds file")
+            logging.info("Output file validation error: Not a .gds file")
 
     def initLogFile(self):
         with open(self.logFileName, 'w') as log_file:
@@ -2317,51 +2352,63 @@ class MyApp(QWidget):
             log_file.write("============================\n\n")
 
     def storeParameterValue(self, comboBox, valueEdit, name):
+        autoplace = False
+        # See if Automatic Placement is set to True
+        for _, _, cb, _, defaultParams, _ in self.testStructures:
+            if cb == comboBox:
+                if "Automatic Placement" in defaultParams:
+                    if type(defaultParams["Automatic Placement"]) == str:
+                        if defaultParams["Automatic Placement"].lower() == 'true':
+                            autoplace = True
+                    elif defaultParams["Automatic Placement"]:
+                        autoplace = True
+                break
         # Output: updates the defaultParams dictionary for the specific test structure and parameter
         param = comboBox.currentText()
         value = valueEdit.text()
         if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer":
             value = self.validateLayer(value)
-        elif param == "Center" and name != "Rectangle" and not(name == "Escape Routing" and self.center_escape is not None and value == ''):
+        elif param == "Center" and not(autoplace) and name != "Rectangle" and not(name == "Escape Routing" and self.center_escape is not None and value == ''):
             value = self.validateCenter(value)
         for i, (checkBox, ccb, cb, edit, defaultParams, addButton) in enumerate(self.testStructures):
             if cb == comboBox:
                 if param in defaultParams:
                     self.testStructures[i][4][param] = value
-                    self.log(f"{name} {param} updated to {value}")
+                    logging.info(f"{name} {param} updated to {value}")
 
     def validateLayer(self, layer):
-        self.log(f"Validating Layer: {layer}")
+        logging.info(f"Validating Layer: {layer}")
         layer = layer.strip()
         if layer.isdigit():
             layer_number = int(layer)
             for number, name in self.layerData:
                 if int(number) == layer_number:
-                    self.log(f"Layer number {layer_number} is valid")
+                    logging.info(f"Layer number {layer_number} is valid")
                     return int(number)  # Return the layer name instead of number
         else:
             for number, name in self.layerData:
                 if name == layer:
-                    self.log(f"Layer name {layer} is valid")
+                    logging.info(f"Layer name {layer} is valid")
                     return int(number)
-        self.log("Invalid layer")
+        logging.error("Invalid layer")
         QMessageBox.critical(self, "Layer Error", "Invalid layer. Please select a valid layer.", QMessageBox.Ok)
         return None
 
     def validateCenter(self, center):
-        self.log(f"Validating Center: {center}")
+        logging.info(f"Validating Center: {center}")
         if not(center):
             QMessageBox.critical(self, "Center Error", "Please enter a center (x, y) coordinate.", QMessageBox.Ok)
+            logging.error(f"Invalid center: {center}")
             return None
         if isinstance(center, tuple):
             return center
         center = center.replace("(", "").replace(")", "").replace(" ", "")
         try:
             x, y = map(float, center.split(','))
-            self.log(f"Center is valid: ({x}, {y})")
+            logging.info(f"Center is valid: ({x}, {y})")
             return (x, y)
         except:
-            self.log("Invalid center")
+            logging.error(f"Invalid center {center}")
             QMessageBox.critical(self, "Center Error", "Invalid center. Please enter a valid (x, y) coordinate.", QMessageBox.Ok)
             return None
 
@@ -2371,13 +2418,13 @@ class MyApp(QWidget):
             if checkBox.text() == testStructureName:
                 if not checkBox.isChecked():
                     QMessageBox.critical(self, "Test Structure Error", f"Please check the '{testStructureName}' checkbox to add it to the design.", QMessageBox.Ok)
-                    self.log(f"Add to Design error: '{testStructureName}' checkbox not checked")
+                    logging.error(f"Add to Design error: '{testStructureName}' checkbox not checked")
                     return
                 cell_name = cellComboBox.currentText()
-        self.log(f"Adding {testStructureName} to design")
+        logging.info(f"Adding {testStructureName} to design")
         self.addSnapshot()  # Store snapshot before adding new design
         params = self.getParameters(testStructureName)
-        self.log(f"Parameters: {params}")
+        logging.info(f"Parameters: {params}")
         if params:
             if testStructureName == "MLA Alignment Mark":
                 retval = self.addMLAAlignmentMark(cell_name, **params)
@@ -2427,8 +2474,8 @@ class MyApp(QWidget):
                     substrate_name = name
             if substrate_name:
                 self.availableSpace, self.allOtherPolygons = self.gds_design.update_available_space(substrate_name, self.availableSpace, self.allOtherPolygons, self.excludedLayers)
-                self.log(f"Available space updated.")
-                self.log(f"All other polygons updated.")
+                logging.info(f"Available space updated.")
+                logging.info(f"All other polygons updated.")
 
     def logTestStructure(self, name, params):
         with open(self.logFileName, 'a') as log_file:
@@ -2455,7 +2502,7 @@ class MyApp(QWidget):
             if testCheckBox.text() == testStructureName:
                 for param in self.parameters[testStructureName]:
                     value = defaultParams.get(param, '')
-                    self.log(f"Getting parameter {param}: {value}")
+                    logging.info(f"Getting parameter {param}: {value}")
                     if param == "Layer" or param == "Layer Number 1" or param == "Layer Number 2" or param == "Via Layer" or (param == "Layer Name Short" and value):
                         # Lookup layer number and get name
                         layer_number = self.validateLayer(str(value))
@@ -2481,6 +2528,7 @@ class MyApp(QWidget):
     def addConnectRows(self, Cell_Name, Layer, Row_1_Start, Row_1_End, Row_1_Spacing, Row_1_Constant, Row_2_Start, Row_2_End, Row_2_Spacing, Row_2_Constant, Orientation, Trace_Width, Escape_Extent):
         if Orientation is None:
             QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the connect rows.", QMessageBox.Ok)
+            logging.error("Orientation Error: No orientation entered for connect rows")
             return False
         Orientation = Orientation.lower().strip()
         if Orientation == '-x':
@@ -2497,6 +2545,7 @@ class MyApp(QWidget):
             connect_y = True
         else:
             QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+            logging.error("Orientation Error: Invalid orientation entered for connect rows")
             return False
         try:
             self.gds_design.connect_rows(
@@ -2515,16 +2564,17 @@ class MyApp(QWidget):
                 connect_y=connect_y,
                 connect_negative=connect_negative
             )
-            self.log(f"Rows connected in {Cell_Name} on layer {Layer}")
+            logging.info(f"Rows connected in {Cell_Name} on layer {Layer}")
             return True
         except Exception as e:
             QMessageBox.critical(self, "Placement Error", f"Error connecting rows: {str(e)}", QMessageBox.Ok)
-            self.log(f"Error connecting rows: {str(e)}")
+            logging.error(f"Error connecting rows: {str(e)}")
             return False
 
     def addEscapeRouting(self, Cell_Name, Layer, Center, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Trace_Width, Trace_Space, Pad_Diameter, Orientation, Escape_Extent, Cable_Tie_Routing_Angle, Autorouting_Angle):
         if Orientation is None:
             QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the escape routing.", QMessageBox.Ok)
+            logging.error("Orientation Error: No orientation entered for escape routing")
             return False
         Orientation = Orientation.lower()
         split = Orientation.split(',')
@@ -2543,6 +2593,7 @@ class MyApp(QWidget):
                 escape_negative = False
             else:
                 QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+                logging.error("Orientation Error: Invalid orientation entered for escape routing")
                 return False
             
             try:
@@ -2566,11 +2617,11 @@ class MyApp(QWidget):
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
                 self.escapeDicts[Cell_Name].append(escape_dict)
-                self.log(f"One-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                logging.info(f"One-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding one-sided escape: {str(e)}", QMessageBox.Ok)
-                self.log(f"One-sided escape placement error: {str(e)}")
+                logging.error(f"One-sided escape placement error: {str(e)}")
                 return False
             
         elif split[0].strip() == '2':
@@ -2580,6 +2631,7 @@ class MyApp(QWidget):
                 escape_y = True
             else:
                 QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+                logging.error("Orientation Error: Invalid orientation entered for escape routing")
                 return False
 
             try:
@@ -2602,11 +2654,11 @@ class MyApp(QWidget):
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
                 self.escapeDicts[Cell_Name].append(escape_dict)
-                self.log(f"Two-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                logging.info(f"Two-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding two-sided escape: {str(e)}", QMessageBox.Ok)
-                self.log(f"Two-sided escape placement error: {str(e)}")
+                logging.error(f"Two-sided escape placement error: {str(e)}")
                 return False
         elif split[0].strip() == '3':
             if split[1].strip() == '-x':
@@ -2623,6 +2675,7 @@ class MyApp(QWidget):
                 escape_negative = False
             else:
                 QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+                logging.error("Orientation Error: Invalid orientation entered for escape routing")
                 return False
             
             try:
@@ -2646,11 +2699,11 @@ class MyApp(QWidget):
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
                 self.escapeDicts[Cell_Name].append(escape_dict)
-                self.log(f"Three-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                logging.info(f"Three-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding three-sided escape: {str(e)}", QMessageBox.Ok)
-                self.log(f"Three-sided escape placement error: {str(e)}")
+                logging.error(f"Three-sided escape placement error: {str(e)}")
                 return False
         elif split[0].strip() == '4':
             try:
@@ -2672,14 +2725,15 @@ class MyApp(QWidget):
                 if Cell_Name not in self.escapeDicts:
                     self.escapeDicts[Cell_Name] = []
                 self.escapeDicts[Cell_Name].append(escape_dict)
-                self.log(f"Four-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
+                logging.info(f"Four-sided escape added to {Cell_Name} on layer {Layer} at center {Center}")
                 return True
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding four-sided escape: {str(e)}", QMessageBox.Ok)
-                self.log(f"Four-sided escape placement error: {str(e)}")
+                logging.error(f"Four-sided escape placement error: {str(e)}")
                 return False
         else:
             QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+            logging.error("Orientation Error: Invalid orientation entered for escape routing")
             return False
 
     def addMLAAlignmentMark(self, Cell_Name, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent, Automatic_Placement):
@@ -2697,7 +2751,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding MLA Alignment Mark: {str(e)}", QMessageBox.Ok)
-                self.log(f"MLA Alignment Mark placement error: {str(e)}")
+                logging.error(f"MLA Alignment Mark placement error: {str(e)}")
                 return False
         # If automatic placement is set to true, place the feature on a temporary cell, determine the size, and then place it on the top cell in a position where there is no overlap
         elif Automatic_Placement:
@@ -2720,7 +2774,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding MLA Alignment Mark: {str(e)}", QMessageBox.Ok)
-                self.log(f"MLA Alignment Mark placement error: {str(e)}")
+                logging.error(f"MLA Alignment Mark placement error: {str(e)}")
                 return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -2731,14 +2785,14 @@ class MyApp(QWidget):
                     substrate_name = name
             if not substrate_name:
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                self.log("MLA Alignment Mark placement error: Substrate layer not set")
+                logging.error("MLA Alignment Mark placement error: Substrate layer not set")
                 return False
             available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
                 QMessageBox.critical(self, "Placement Error", "No space available for the MLA Alignment Mark. You may need to exclude a layer?", QMessageBox.Ok)
-                self.log("MLA Alignment Mark placement error: No space available")
+                logging.error("MLA Alignment Mark placement error: No space available")
                 return False
             self.gds_design.add_MLA_alignment_mark(
                 cell_name=Cell_Name,
@@ -2753,6 +2807,7 @@ class MyApp(QWidget):
         else:
             # Show error message that either Automatic Placement must be true or the Center position is specified
             QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            logging.error("MLA Alignment Mark placement error: Center position not specified")
             return False
         params = {
             "Layer": Layer,
@@ -2764,7 +2819,7 @@ class MyApp(QWidget):
             "Interior Y Extent": Interior_Y_Extent
         }
         self.logTestStructure("MLA Alignment Mark", params)  # Log the test structure details
-        self.log(f"MLA Alignment Mark added to {Cell_Name} on layer {Layer} at center {Center}")
+        logging.info(f"MLA Alignment Mark added to {Cell_Name} on layer {Layer} at center {Center}")
         return True
 
     def addResistanceTest(self, Cell_Name, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text, Automatic_Placement):
@@ -2791,7 +2846,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Resistance Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Resistance Test placement error: {str(e)}")
+                logging.error(f"Resistance Test placement error: {str(e)}")
                 return False
         elif Automatic_Placement:
             try:
@@ -2822,7 +2877,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Resistance Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Resistance Test placement error: {str(e)}")
+                logging.error(f"Resistance Test placement error: {str(e)}")
                 return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -2833,14 +2888,14 @@ class MyApp(QWidget):
                     substrate_name = name
             if not substrate_name:
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                self.log("Resistance Test placement error: Substrate layer not set")
+                logging.error("Resistance Test placement error: Substrate layer not set")
                 return False
             available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
                 QMessageBox.critical(self, "Placement Error", "No space available for the Resistance Test. You may need to exclude a layer?", QMessageBox.Ok)
-                self.log("Resistance Test placement error: No space available")
+                logging.error("Resistance Test placement error: No space available")
                 return False
             self.gds_design.add_resistance_test_structure(
                 cell_name=Cell_Name,
@@ -2864,6 +2919,7 @@ class MyApp(QWidget):
         else:
             # Show error message that either Automatic Placement must be true or the Center position is specified
             QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            logging.error("Resistance Test placement error: Center position not specified")
             return False
         params = {
             "Layer": Layer,
@@ -2884,7 +2940,7 @@ class MyApp(QWidget):
             "Short Text": Short_Text
         }
         self.logTestStructure("Resistance Test", params)  # Log the test structure details
-        self.log(f"Resistance Test added to {Cell_Name} on layer {Layer} at center {Center}")
+        logging.info(f"Resistance Test added to {Cell_Name} on layer {Layer} at center {Center}")
         return True
 
     def addTraceTest(self, Cell_Name, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height, Automatic_Placement):
@@ -2903,7 +2959,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Trace Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Trace Test placement error: {str(e)}")
+                logging.error(f"Trace Test placement error: {str(e)}")
                 return False
         elif Automatic_Placement:
             try:
@@ -2926,7 +2982,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Trace Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Trace Test placement error: {str(e)}")
+                logging.error(f"Trace Test placement error: {str(e)}")
                 return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -2937,14 +2993,14 @@ class MyApp(QWidget):
                     substrate_name = name
             if not substrate_name:
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                self.log("Trace Test placement error: Substrate layer not set")
+                logging.error("Trace Test placement error: Substrate layer not set")
                 return False
             available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
                 QMessageBox.critical(self, "Placement Error", "No space available for the Trace Test. You may need to exclude a layer?", QMessageBox.Ok)
-                self.log("Trace Test placement error: No space available")
+                logging.error("Trace Test placement error: No space available")
                 return False
             self.gds_design.add_line_test_structure(
                 cell_name=Cell_Name,
@@ -2960,6 +3016,7 @@ class MyApp(QWidget):
         else:
             # Show error message that either Automatic Placement must be true or the Center position is specified
             QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            logging.error("Trace Test placement error: Center position not specified")
             return False
         params = {
             "Layer": Layer,
@@ -2972,7 +3029,7 @@ class MyApp(QWidget):
             "Text Height": Text_Height
         }
         self.logTestStructure("Trace Test", params)  # Log the test structure details
-        self.log(f"Trace Test added to {Cell_Name} on layer {Layer} at center {Center}")
+        logging.info(f"Trace Test added to {Cell_Name} on layer {Layer} at center {Center}")
         return True
 
     def addInterlayerViaTest(self, Cell_Name, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height, Automatic_Placement):
@@ -2996,7 +3053,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Interlayer Via Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Interlayer Via Test placement error: {str(e)}")
+                logging.error(f"Interlayer Via Test placement error: {str(e)}")
                 return False
         elif Automatic_Placement:
             try:
@@ -3024,7 +3081,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Interlayer Via Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Interlayer Via Test placement error: {str(e)}")
+                logging.error(f"Interlayer Via Test placement error: {str(e)}")
                 return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -3035,14 +3092,14 @@ class MyApp(QWidget):
                     substrate_name = name
             if not substrate_name:
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                self.log("Interlayer Via Test placement error: Substrate layer not set")
+                logging.error("Interlayer Via Test placement error: Substrate layer not set")
                 return False
             available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
                 QMessageBox.critical(self, "Placement Error", "No space available for the Interlayer Via Test. You may need to exclude a layer?", QMessageBox.Ok)
-                self.log("Interlayer Via Test placement error: No space available")
+                logging.error("Interlayer Via Test placement error: No space available")
                 return False
             self.gds_design.add_p_via_test_structure(
                 cell_name=Cell_Name,
@@ -3063,6 +3120,7 @@ class MyApp(QWidget):
         else:
             # Show error message that either Automatic Placement must be true or the Center position is specified
             QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            logging.error("Interlayer Via Test placement error: Center position not specified")
             return False
         params = {
             "Layer Number 1": Layer_Number_1,
@@ -3080,13 +3138,13 @@ class MyApp(QWidget):
             "Text Height": Text_Height
         }
         self.logTestStructure("Interlayer Via Test", params)  # Log the test structure details
-        self.log(f"Interlayer Via Test added to {Cell_Name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
+        logging.info(f"Interlayer Via Test added to {Cell_Name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
         return True
     
     def addRectangle(self, Cell_Name, Layer, Center, Width, Height, Lower_Left, Upper_Right, Rotation):
         if (not Width or not Height or not Center) and (not Lower_Left or not Upper_Right):
             QMessageBox.critical(self, "Input Error", "Please enter either width and height or lower left and upper right coordinates for the rectangle.", QMessageBox.Ok)
-            self.log("Rectangle add error: No dimensions provided")
+            logging.error("Rectangle add error: No dimensions provided")
             return False
         try:
             self.gds_design.add_rectangle(
@@ -3101,7 +3159,7 @@ class MyApp(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, "Placement Error", f"Error adding Rectangle: {str(e)}", QMessageBox.Ok)
-            self.log(f"Rectangle placement error: {str(e)}")
+            logging.error(f"Rectangle placement error: {str(e)}")
             return False
         params = {
             "Layer": Layer,
@@ -3113,13 +3171,13 @@ class MyApp(QWidget):
             "Rotation": Rotation
         }
         self.logTestStructure("Rectangle", params)  # Log the test structure details
-        self.log(f"Rectangle added to {Cell_Name} on layer {Layer} at center {Center}")
+        logging.info(f"Rectangle added to {Cell_Name} on layer {Layer} at center {Center}")
         return True
 
     def addCircle(self, Cell_Name, Layer, Center, Diameter):
         if not Diameter:
             QMessageBox.critical(self, "Input Error", "Please enter a diameter for the circle.", QMessageBox.Ok)
-            self.log("Circle add error: No diameter provided")
+            logging.error("Circle add error: No diameter provided")
             return False
         try:
             self.gds_design.add_circle_as_polygon(
@@ -3130,7 +3188,7 @@ class MyApp(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, "Placement Error", f"Error adding Circle: {str(e)}", QMessageBox.Ok)
-            self.log(f"Circle placement error: {str(e)}")
+            logging.error(f"Circle placement error: {str(e)}")
             return False
         params = {
             "Layer": Layer,
@@ -3138,7 +3196,7 @@ class MyApp(QWidget):
             "Diameter": Diameter
         }
         self.logTestStructure("Circle", params)  # Log the test structure details
-        self.log(f"Circle added to {Cell_Name} on layer {Layer} at center {Center}")
+        logging.info(f"Circle added to {Cell_Name} on layer {Layer} at center {Center}")
         return True
     
     def addText(self, Cell_Name, Layer, Center, Text, Height, Rotation):
@@ -3174,7 +3232,7 @@ class MyApp(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, "Placement Error", f"Error adding Text: {str(e)}", QMessageBox.Ok)
-            self.log(f"Text placement error: {str(e)}")
+            logging.error(f"Text placement error: {str(e)}")
             return False
         params = {
             "Layer": Layer,
@@ -3184,14 +3242,14 @@ class MyApp(QWidget):
             "Rotation": Rotation
         }
         self.logTestStructure("Text", params)  # Log the test structure details
-        self.log(f"Text {Text} added to {Cell_Name} on layer {Layer} at center {Center}")
+        logging.info(f"Text {Text} added to {Cell_Name} on layer {Layer} at center {Center}")
         return True
 
     def addPolygon(self, Cell_Name, Layer):
         Points = self.polygon_points
         if len(Points) < 3:
             QMessageBox.critical(self, "Input Error", "Please select a valid polygon points file.", QMessageBox.Ok)
-            self.log("Polygon add error: Invalid points provided")
+            logging.error("Polygon add error: Invalid points provided")
             return False
         try:
             self.gds_design.add_polygon(
@@ -3201,25 +3259,25 @@ class MyApp(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, "Placement Error", f"Error adding Polygon: {str(e)}", QMessageBox.Ok)
-            self.log(f"Polygon placement error: {str(e)}")
+            logging.error(f"Polygon placement error: {str(e)}")
             return False
         params = {
             "Layer": Layer,
             "Points": Points
         }
         self.logTestStructure("Polygon", params)  # Log the test structure details
-        self.log(f"Polygon added to {Cell_Name} on layer {Layer}")
+        logging.info(f"Polygon added to {Cell_Name} on layer {Layer}")
         return True
 
     def addPath(self, Cell_Name, Layer, Width):
         Points = self.path_points
         if len(Points) < 2:
             QMessageBox.critical(self, "Input Error", "Please select a valid path points file.", QMessageBox.Ok)
-            self.log("Path add error: No points provided")
+            logging.error("Path add error: No points provided")
             return False
         if not Width:
             QMessageBox.critical(self, "Input Error", "Please enter a width for the path.", QMessageBox.Ok)
-            self.log("Path add error: No width provided")
+            logging.error("Path add error: No width provided")
             return False
         try:
             self.gds_design.add_path_as_polygon(
@@ -3230,7 +3288,7 @@ class MyApp(QWidget):
             )
         except Exception as e:
             QMessageBox.critical(self, "Placement Error", f"Error adding Path: {str(e)}", QMessageBox.Ok)
-            self.log(f"Path placement error: {str(e)}")
+            logging.error(f"Path placement error: {str(e)}")
             return False
         params = {
             "Layer": Layer,
@@ -3238,7 +3296,7 @@ class MyApp(QWidget):
             "Width": Width
         }
         self.logTestStructure("Path", params)  # Log the test structure details
-        self.log(f"Path added to {Cell_Name} on layer {Layer}")
+        logging.info(f"Path added to {Cell_Name} on layer {Layer}")
         return True
 
     def addElectronicsViaTest(self, Cell_Name, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height, Automatic_Placement):
@@ -3263,7 +3321,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Electronics Via Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Electronics Via Test placement error: {str(e)}")
+                logging.error(f"Electronics Via Test placement error: {str(e)}")
                 return False
         elif Automatic_Placement:
             try:
@@ -3292,7 +3350,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Electronics Via Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Electronics Via Test placement error: {str(e)}")
+                logging.error(f"Electronics Via Test placement error: {str(e)}")
                 return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -3303,14 +3361,14 @@ class MyApp(QWidget):
                     substrate_name = name
             if not substrate_name:
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                self.log("Electronics Via Test placement error: Substrate layer not set")
+                logging.error("Electronics Via Test placement error: Substrate layer not set")
                 return False
             available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
                 QMessageBox.critical(self, "Placement Error", "No space available for the Electronics Via Test. You may need to exclude a layer?", QMessageBox.Ok)
-                self.log("Electronics Via Test placement error: No space available")
+                logging.error("Electronics Via Test placement error: No space available")
                 return False
             self.gds_design.add_electronics_via_test_structure(
                 cell_name=Cell_Name,
@@ -3332,6 +3390,7 @@ class MyApp(QWidget):
         else:
             # Show error message that either Automatic Placement must be true or the Center position is specified
             QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            logging.error("Electronics Via Test placement error: Center position not specified")
             return False
         params = {
             "Layer Number 1": Layer_Number_1,
@@ -3350,7 +3409,7 @@ class MyApp(QWidget):
             "Text Height": Text_Height
         }
         self.logTestStructure("Electronics Via Test", params)  # Log the test structure details
-        self.log(f"Electronics Via Test added to {Cell_Name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
+        logging.info(f"Electronics Via Test added to {Cell_Name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
         return True
 
     def addShortTest(self, Cell_Name, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
@@ -3371,7 +3430,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Short Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Short Test placement error: {str(e)}")
+                logging.error(f"Short Test placement error: {str(e)}")
                 return False
         elif Automatic_Placement:
             try:
@@ -3396,7 +3455,7 @@ class MyApp(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "Placement Error", f"Error adding Short Test: {str(e)}", QMessageBox.Ok)
-                self.log(f"Short Test placement error: {str(e)}")
+                logging.error(f"Short Test placement error: {str(e)}")
                 return False
             cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
             self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -3407,14 +3466,14 @@ class MyApp(QWidget):
                     substrate_name = name
             if not substrate_name:
                 QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                self.log("Short Test placement error: Substrate layer not set")
+                logging.error("Short Test placement error: Substrate layer not set")
                 return False
             available_space = self.availableSpace
             try:
                 Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
             except ValueError:
                 QMessageBox.critical(self, "Placement Error", "No space available for the Short Test. You may need to exclude a layer?", QMessageBox.Ok)
-                self.log("Short Test placement error: No space available")
+                logging.error("Short Test placement error: No space available")
                 return False
             self.gds_design.add_short_test_structure(
                 cell_name=Cell_Name,
@@ -3432,6 +3491,7 @@ class MyApp(QWidget):
         else:
             # Show error message that either Automatic Placement must be true or the Center position is specified
             QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+            logging.error("Short Test placement error: Center position not specified")
             return False
         params = {
             "Layer": Layer,
@@ -3446,20 +3506,20 @@ class MyApp(QWidget):
             "Text Height": Text_Height
         }
         self.logTestStructure("Short Test", params)  # Log the test structure details
-        self.log(f"Short Test added to {Cell_Name} on layer {Layer} at center {Center}")
+        logging.info(f"Short Test added to {Cell_Name} on layer {Layer} at center {Center}")
         return True
 
     def addCustomTestStructure(self, Parent_Cell_Name, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Automatic_Placement):
         if Parent_Cell_Name == "":
             QMessageBox.critical(self, "Parent Cell Name Error", "Please enter a parent cell name.", QMessageBox.Ok)
-            self.log("Custom Test Structure placement error: No parent cell name provided")
+            logging.error("Custom Test Structure placement error: No parent cell name provided")
             return False
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
             if self.customTestCellName not in self.gds_design.lib.cells:
                 if not self.customTestCellName:
                     QMessageBox.critical(self, "Custom Test Structure Error", "Please select a custom test structure cell name.", QMessageBox.Ok)
-                    self.log("Custom Test Structure placement error: No cell name provided")
+                    logging.error("Custom Test Structure placement error: No cell name provided")
                     return False
                 self.gds_design.lib.add(self.custom_design.lib.cells[self.customTestCellName],
                                     overwrite_duplicate=True, include_dependencies=True, update_references=False)
@@ -3479,13 +3539,13 @@ class MyApp(QWidget):
                     if continueFlag:
                         continue
                     self.gds_design.define_layer(str(layer_number), layer_number)
-                    self.log(f"Layer defined: {layer_number} with number {layer_number}")
+                    logging.info(f"Layer defined: {layer_number} with number {layer_number}")
                     
                     # Add new layer if it doesn't exist already
                     self.layerData.append((str(layer_number), str(layer_number)))
-                    self.log(f"New Layer added: {layer_number} - {layer_number}")
+                    logging.info(f"New Layer added: {layer_number} - {layer_number}")
 
-                self.log(f"Current layers: {self.gds_design.layers}")
+                logging.info(f"Current layers: {self.gds_design.layers}")
                 self.updateLayersComboBox()
 
         if self.customTestCellName:
@@ -3502,7 +3562,7 @@ class MyApp(QWidget):
                         )
                     except Exception as e:
                         QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure: {str(e)}", QMessageBox.Ok)
-                        self.log(f"Custom Test Structure placement error: {str(e)}")
+                        logging.error(f"Custom Test Structure placement error: {str(e)}")
                         return False
                 elif Automatic_Placement:
                     try:
@@ -3522,7 +3582,7 @@ class MyApp(QWidget):
                         )
                     except Exception as e:
                         QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure: {str(e)}", QMessageBox.Ok)
-                        self.log(f"Custom Test Structure placement error: {str(e)}")
+                        logging.error(f"Custom Test Structure placement error: {str(e)}")
                         return False
                     cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
                     self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -3533,14 +3593,14 @@ class MyApp(QWidget):
                             substrate_name = name
                     if not substrate_name:
                         QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                        self.log("Custom Test Structure placement error: Substrate layer not set")
+                        logging.error("Custom Test Structure placement error: Substrate layer not set")
                         return False
                     available_space = self.availableSpace
                     try:
                         Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
                     except ValueError:
                         QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure. You may need to exclude a layer?", QMessageBox.Ok)
-                        self.log("Custom Test Structure placement error: No space available")
+                        logging.error("Custom Test Structure placement error: No space available")
                         return False
                     self.gds_design.add_cell_reference(
                         parent_cell_name=Parent_Cell_Name,
@@ -3553,6 +3613,7 @@ class MyApp(QWidget):
                 else:
                     # Show error message that either Automatic Placement must be true or the Center position is specified
                     QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+                    logging.error("Custom Test Structure placement error: Center position not specified")
                     return False
                 params = {
                     "Cell Name": self.customTestCellName,
@@ -3562,7 +3623,7 @@ class MyApp(QWidget):
                     "X Reflection": X_Reflection
                 }
                 self.logTestStructure("Custom Test Structure", params)  # Log the test structure details
-                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {Parent_Cell_Name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
+                logging.info(f"Custom Test Structure '{self.customTestCellName}' added to {Parent_Cell_Name} at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}")
                 
                 return True
             else:
@@ -3582,7 +3643,7 @@ class MyApp(QWidget):
                         )
                     except Exception as e:
                         QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure Array: {str(e)}", QMessageBox.Ok)
-                        self.log(f"Custom Test Structure Array placement error: {str(e)}")
+                        logging.error(f"Custom Test Structure Array placement error: {str(e)}")
                         return False
                 elif Automatic_Placement:
                     try:
@@ -3606,7 +3667,7 @@ class MyApp(QWidget):
                         )
                     except Exception as e:
                         QMessageBox.critical(self, "Placement Error", f"Error adding Custom Test Structure Array: {str(e)}", QMessageBox.Ok)
-                        self.log(f"Custom Test Structure Array placement error: {str(e)}")
+                        logging.error(f"Custom Test Structure Array placement error: {str(e)}")
                         return False
                     cell_width, cell_height, cell_offset = self.gds_design.calculate_cell_size(TEMP_CELL_NAME)
                     self.gds_design.delete_cell(TEMP_CELL_NAME)
@@ -3617,14 +3678,14 @@ class MyApp(QWidget):
                             substrate_name = name
                     if not substrate_name:
                         QMessageBox.critical(self, "Substrate Layer Error", "Substrate layer not set. Please select a substrate layer.", QMessageBox.Ok)
-                        self.log("Custom Test Structure placement error: Substrate layer not set")
+                        logging.error("Custom Test Structure placement error: Substrate layer not set")
                         return False
                     available_space = self.availableSpace
                     try:
                         Center = self.gds_design.find_position_for_rectangle(available_space, cell_width, cell_height, cell_offset)
                     except ValueError:
                         QMessageBox.critical(self, "Placement Error", "No space available for the Custom Test Structure. You may need to exclude a layer?", QMessageBox.Ok)
-                        self.log("Custom Test Structure placement error: No space available")
+                        logging.error("Custom Test Structure placement error: No space available")
                         return False
                     self.gds_design.add_cell_array(
                         target_cell_name=Parent_Cell_Name,
@@ -3641,6 +3702,7 @@ class MyApp(QWidget):
                 else:
                     # Show error message that either Automatic Placement must be true or the Center position is specified
                     QMessageBox.critical(self, "Placement Error", "Please specify the center position or set Automatic Placement to True.", QMessageBox.Ok)
+                    logging.error("Custom Test Structure placement error: Center position not specified")
                     return False
                 params = {
                     "Cell Name": self.customTestCellName,
@@ -3654,54 +3716,56 @@ class MyApp(QWidget):
                     "Pitch Y": Pitch_Y
                 }
                 self.logTestStructure("Custom Test Structure Array", params)  # Log the test structure details
-                self.log(f"Custom Test Structure '{self.customTestCellName}' added to {Parent_Cell_Name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, pitch x {Pitch_X}, pitch y {Pitch_Y}")
+                logging.info(f"Custom Test Structure '{self.customTestCellName}' added to {Parent_Cell_Name} as an array at center {Center} with magnification {Magnification}, rotation {Rotation}, x_reflection {X_Reflection}, copies x {Copies_X}, copies y {Copies_Y}, pitch x {Pitch_X}, pitch y {Pitch_Y}")
                 return True
             
     def handleCustomTestCellName(self):
         self.customTestCellName = self.customTestCellComboBox.currentText()
-        self.log(f"Custom Test Structure Cell Name set to: {self.customTestCellName}")
+        logging.info(f"Custom Test Structure Cell Name set to: {self.customTestCellName}")
         self.checkCustomTestCell()
 
     def checkCustomTestCell(self):
         if self.customTestCellName:
             if self.custom_design is not None:
                 if self.customTestCellName in self.custom_design.lib.cells:
-                    self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
+                    logging.info(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
                 else:
                     QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
+                    logging.error(f"Custom Test Structure Cell '{self.customTestCellName}' not found in design")
             else:
                 if self.customTestCellName in self.gds_design.lib.cells:
-                    self.log(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
+                    logging.info(f"Custom Test Structure Cell '{self.customTestCellName}' found in design.")
                 else:
                     QMessageBox.critical(self, "Input Error", "The test structure cell you specified was not found in the .gds file.", QMessageBox.Ok)
+                    logging.error(f"Custom Test Structure Cell '{self.customTestCellName}' not found in design")
         else:
             QMessageBox.critical(self, "Input Error", "Please select a Custom Test Structure Cell Name.", QMessageBox.Ok)
-            self.log("Custom Test Structure Cell Name not selected")
+            logging.error("Custom Test Structure Cell Name not selected")
 
     def writeToGDS(self):
         if self.gds_design:
             outputFileName = self.outFileField.text()
             if outputFileName.lower().endswith('.gds'):
                 self.gds_design.write_gds(outputFileName)
-                self.log(f"GDS file written to {outputFileName}")
+                logging.info(f"GDS file written to {outputFileName}")
             else:
                 QMessageBox.critical(self, "File Error", "Output file must be a .gds file.", QMessageBox.Ok)
-                self.log("Output file write error: Not a .gds file")
+                logging.info("Output file write error: Not a .gds file")
         else:
             QMessageBox.critical(self, "Design Error", "No design loaded to write to GDS.", QMessageBox.Ok)
-            self.log("Write to GDS error: No design loaded")
+            logging.error("Write to GDS error: No design loaded")
 
     def defineNewLayer(self):
         number = self.newLayerNumberEdit.text().strip()
         name = self.newLayerNameEdit.text().strip()
         if self.gds_design is None:
             QMessageBox.critical(self, "Design Error", "No design loaded to define a new layer.", QMessageBox.Ok)
-            self.log("Layer definition error: No design loaded")
+            logging.error("Layer definition error: No design loaded")
             return
         if number and name:
             # Define the new layer using GDSDesign
             self.gds_design.define_layer(name, int(number))
-            self.log(f"Layer defined: {name} with number {number}")
+            logging.info(f"Layer defined: {name} with number {number}")
             
             # Check if layer already exists and update name if so
             for i, (layer_number, layer_name) in enumerate(self.layerData):
@@ -3709,25 +3773,43 @@ class MyApp(QWidget):
                     old_name = self.layerData[i][1]
                     self.layerData[i] = (number, name)
                     self.updateLayersComboBox()
-                    self.log(f"Layer {number} name updated from {old_name} to {name}")
-                    self.log(f"Current layers: {self.gds_design.layers}")
+                    logging.info(f"Layer {number} name updated from {old_name} to {name}")
+                    logging.info(f"Current layers: {self.gds_design.layers}")
                     return
             
             # Add new layer if it doesn't exist already
             self.layerData.append((number, name))
             self.updateLayersComboBox()
-            self.log(f"New Layer added: {number} - {name}")
-            self.log(f"Current layers: {self.gds_design.layers}")
+            logging.info(f"New Layer added: {number} - {name}")
+            logging.info(f"Current layers: {self.gds_design.layers}")
         else:
             QMessageBox.critical(self, "Input Error", "Please enter both Layer Number and Layer Name.", QMessageBox.Ok)
-            self.log("Layer definition error: Missing layer number or name")
+            logging.error("Layer definition error: Missing layer number or name")
+
+def log_unhandled_exception(exctype, value, tb):
+    logging.error("Unhandled exception", exc_info=(exctype, value, tb))
+
+    # Show the error message in a message box
+    QMessageBox.critical(None, "Error", f"An unhandled exception occurred:\n{value}", QMessageBox.Ok)
+    
+    # Exit the application after showing the error
+    sys.exit(1)
 
 if __name__ == '__main__':
+    setup_logging()
+    logging.info("Starting the application...")
+
     parser = argparse.ArgumentParser(description='Run the PyQt5 GUI application.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
     args = parser.parse_args()
 
+    sys.excepthook = log_unhandled_exception
+
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path('favicon.ico')))  # Set the application icon here
     ex = MyApp(verbose=True)
+
+    # Connect aboutToQuit signal for additional cleanup or logging
+    app.aboutToQuit.connect(lambda: logging.info('Application is exiting.'))
+
     sys.exit(app.exec_())
