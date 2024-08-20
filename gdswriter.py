@@ -395,6 +395,7 @@ class GDSDesign:
             text_position = (center[0]-len(text)*text_height*TEXT_SPACING_FACTOR, center[1] + layer_2_rect_height/2 + text_height)
         self.add_text(cell_name, text, via_layer, text_position, text_height, text_angle)
 
+    # TODO: decouple trace width and spacing
     def add_short_test_structure(self, cell_name, layer_name, center, text, rect_width=1300,
                                  trace_width=5, num_lines=5, group_spacing=130, num_groups=6, num_lines_vert=100,
                                  text_height=250, text_angle=90, text_position=None):
@@ -2221,10 +2222,14 @@ class GDSDesign:
 
         # Convert lists of polygons to GeoDataFrames
         substrate_gdf = gpd.GeoDataFrame(geometry=substrate_polygons)
+        substrate_union = substrate_gdf.dissolve().geometry[0]
+
+        if not all_other_polygons:
+            return (substrate_union if isinstance(substrate_union, MultiPolygon) else MultiPolygon([substrate_union]), [])
+
         all_other_gdf = gpd.GeoDataFrame(geometry=all_other_polygons)
 
         # Perform dissolve (union) operation
-        substrate_union = substrate_gdf.dissolve().geometry[0]
         all_other_union = all_other_gdf.dissolve().geometry[0]
 
         # Subtract the occupied space from the substrate
@@ -3469,12 +3474,6 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     path_points[:, 1] += start_point[1]
     
     return path_points
-
-def max_value_before_jump(arr):
-    for i in range(1, len(arr)):
-        if arr[i] - arr[i-1] > 1:
-            return arr[i-1]
-    return arr[-1]
 
 def merge_paths(start_path, end_path):
     """
