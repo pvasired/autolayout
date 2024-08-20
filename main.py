@@ -652,7 +652,7 @@ class MyApp(QWidget):
             if name == "Custom Test Structure":
                 self.customTestCellComboBox = QComboBox()
                 self.customTestCellComboBox.setPlaceholderText("Select Custom Test Structure Cell")
-                self.customTestCellComboBox.currentTextChanged.connect(self.handleCustomTestCellName)
+                self.customTestCellComboBox.activated.connect(self.handleCustomTestCellName)
                 self.customTestCellComboBox.setToolTip('Select a custom test structure cell.')
                 gridLayout.addWidget(self.customTestCellComboBox, row, 7)
                 
@@ -3450,6 +3450,10 @@ class MyApp(QWidget):
         return True
 
     def addCustomTestStructure(self, Parent_Cell_Name, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Automatic_Placement):
+        if Parent_Cell_Name == "":
+            QMessageBox.critical(self, "Parent Cell Name Error", "Please enter a parent cell name.", QMessageBox.Ok)
+            self.log("Custom Test Structure placement error: No parent cell name provided")
+            return False
         # If the custom cell is from another file, add it to the current design
         if self.custom_design is not None:
             if self.customTestCellName not in self.gds_design.lib.cells:
