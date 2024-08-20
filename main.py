@@ -1,7 +1,7 @@
 import sys
 import argparse
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip, QDialog
+    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip, QDialog, QSizePolicy
 )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QEvent
@@ -548,6 +548,31 @@ class MyApp(QWidget):
         self.initUI()
 
     def initUI(self):
+        # Set a global stylesheet for the entire application
+        font_size = 24  # Adjust the font size as needed
+        self.setStyleSheet(f"""
+            QWidget {{
+                font-size: {font_size}px;
+            }}
+            QLineEdit {{
+                font-size: {font_size}px;
+            }}
+            QPushButton {{
+                font-size: {font_size}px;
+            }}
+            QLabel {{
+                font-size: {font_size}px;
+            }}
+            QComboBox {{
+                font-size: {font_size}px;
+            }}
+            QCheckBox {{
+                font-size: {font_size}px;
+            }}
+            QToolTip {{
+                font-size: {font_size}px;
+            }}
+        """)
         # Main Layout
         mainLayout = QHBoxLayout()  # Changed to QHBoxLayout
 
@@ -558,6 +583,7 @@ class MyApp(QWidget):
         self.writeButton = QPushButton('Write to GDS')
         self.writeButton.clicked.connect(self.writeToGDS)
         self.writeButton.setToolTip('Click to write the current design to a GDS file.')
+        self.writeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         # File selection layout
         fileLayout = QHBoxLayout()
@@ -566,13 +592,16 @@ class MyApp(QWidget):
         self.initFileButton = QPushButton('Select Input File')
         self.initFileButton.clicked.connect(self.selectInputFile)
         self.initFileButton.setToolTip('Click to select the input GDS file.')
+        self.initFileButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.blankFileButton = QPushButton('Create Blank Design')
         self.blankFileButton.clicked.connect(self.createBlankDesign)
         self.blankFileButton.setToolTip('Click to create a blank design.')
+        self.blankFileButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.outFileField = PushButtonEdit(self.writeButton)
         self.outFileField.setPlaceholderText('Output File')
         self.outFileField.editingFinished.connect(self.validateOutputFileName)
         self.outFileField.setToolTip('Enter the name of the output GDS file.')
+        self.outFileField.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         fileLayout.addWidget(self.initFileButton)
         fileLayout.addWidget(self.blankFileButton)
         fileLayout.addWidget(self.outFileField)
@@ -583,9 +612,11 @@ class MyApp(QWidget):
         self.undoButton = QPushButton('Undo')
         self.undoButton.clicked.connect(self.undo)
         self.undoButton.setToolTip('Undo the last action.')
+        self.undoButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.redoButton = QPushButton('Redo')
         self.redoButton.clicked.connect(self.redo)
         self.redoButton.setToolTip('Redo the previously undone action.')
+        self.redoButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         undoRedoLayout.addWidget(self.undoButton)
         undoRedoLayout.addWidget(self.redoButton)
         leftLayout.addLayout(undoRedoLayout)
@@ -596,15 +627,18 @@ class MyApp(QWidget):
         leftLayout.addWidget(plotMenuLabel)
         self.cellComboBox = QComboBox()
         self.cellComboBox.setToolTip('Select a cell from the loaded GDS file.')
+        self.cellComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         plotLayout.addWidget(self.cellComboBox)
 
         self.plotLayersComboBox = QComboBox()
         self.plotLayersComboBox.setToolTip('Select a layer from the list to plot for the cell.')
+        self.plotLayersComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         plotLayout.addWidget(self.plotLayersComboBox)
 
         self.matplotlibButton = QPushButton('Routing Tool')
         self.matplotlibButton.clicked.connect(self.showMatplotlibWindow)
         self.matplotlibButton.setToolTip('Click to show an interactive plot of the selected cell for routing.')
+        self.matplotlibButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         plotLayout.addWidget(self.matplotlibButton)
 
         leftLayout.addLayout(plotLayout)
@@ -613,7 +647,8 @@ class MyApp(QWidget):
         self.diePlacementButton = QPushButton('Open Die Placement Menu')
         self.diePlacementButton.clicked.connect(self.showDiePlacementUtility)
         self.diePlacementButton.setToolTip('Click to open the Die Placement menu.')
-        leftLayout.addWidget(self.diePlacementButton)  # Add the button to your desired layout, e.g., leftLayout
+        self.diePlacementButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        leftLayout.addWidget(self.diePlacementButton)
 
         # Test Structures layout
         testLayout = QVBoxLayout()
@@ -626,20 +661,26 @@ class MyApp(QWidget):
             testCheckBox = QCheckBox(name)
             testCheckBox.stateChanged.connect(self.createCheckStateHandler)
             testCheckBox.setToolTip(f'Check to include {name} in the design.')
+            testCheckBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             cellBoxLabel = QLabel('Cell Name')
+            cellBoxLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             testCellComboBox = QComboBox()
             testCellComboBox.setPlaceholderText(f'Select Cell to Place {name}')
             testCellComboBox.setToolTip(f'Select the cell on which to place {name}.')
+            testCellComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             paramLabel = QLabel('Parameters')
+            paramLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             paramComboBox = TooltipComboBox()
             paramComboBox.addItems(self.parameters[name])
             paramComboBox.setItemTooltips([self.paramTooltips[name].get(param, '') for param in self.parameters[name]])
             paramComboBox.currentTextChanged.connect(self.createParamChangeHandler)
             paramComboBox.setToolTip(f'Select parameters for {name}.') 
+            paramComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
             addButton = QPushButton("Add to Design")
             addButton.clicked.connect(self.createAddToDesignHandler)
             addButton.setToolTip(f'Click to add {name} to the design.')
+            addButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
             paramValueEdit = CycleLineEdit(paramComboBox, addButton)  # Use CycleLineEdit instead of QLineEdit
             paramName = paramComboBox.currentText()
@@ -647,6 +688,7 @@ class MyApp(QWidget):
                 paramValueEdit.setText(str(self.defaultParams[name][paramName]))
             paramValueEdit.editingFinished.connect(self.createParamStoreHandler)
             paramValueEdit.setToolTip(f'Enter value for the selected parameter of {name}.')
+            paramValueEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
             gridLayout.addWidget(testCheckBox, row, 0)
             gridLayout.addWidget(cellBoxLabel, row, 1)
@@ -660,18 +702,21 @@ class MyApp(QWidget):
                 self.polygonButton = QPushButton('Select Polygon Points File')
                 self.polygonButton.clicked.connect(self.selectPolygonPointsFile)
                 self.polygonButton.setToolTip('Click to select a file containing polygon points.')
+                self.polygonButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 gridLayout.addWidget(self.polygonButton, row, 7)
             
             if name == "Path":
                 self.pathButton = QPushButton('Select Path Points File')
                 self.pathButton.clicked.connect(self.selectPathPointsFile)
                 self.pathButton.setToolTip('Click to select a file containing path points.')
+                self.pathButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 gridLayout.addWidget(self.pathButton, row, 7)
             
             if name == "Escape Routing":
                 self.escapeButton = QPushButton('Select Escape Routing File')
                 self.escapeButton.clicked.connect(self.selectEscapeRoutingFile)
                 self.escapeButton.setToolTip('Click to select a file containing pad coordinates for escape routing.')
+                self.escapeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 gridLayout.addWidget(self.escapeButton, row, 7)
 
             if name == "Custom Test Structure":
@@ -679,18 +724,21 @@ class MyApp(QWidget):
                 self.customTestCellComboBox.setPlaceholderText("Select Custom Test Structure Cell")
                 self.customTestCellComboBox.activated.connect(self.handleCustomTestCellName)
                 self.customTestCellComboBox.setToolTip('Select a custom test structure cell.')
+                self.customTestCellComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 gridLayout.addWidget(self.customTestCellComboBox, row, 7)
                 
                 # New button to select other .gds file
                 self.selectOtherGDSButton = QPushButton('Select Other .gds File')
                 self.selectOtherGDSButton.clicked.connect(self.selectOtherGDSFile)
                 self.selectOtherGDSButton.setToolTip('Click to select another .gds file.')
-                gridLayout.addWidget(self.selectOtherGDSButton, row, 8)  # Adjust the position as needed
+                self.selectOtherGDSButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                gridLayout.addWidget(self.selectOtherGDSButton, row, 8)
 
                 # Reset file button
                 self.resetOtherGDSButton = QPushButton('Reset Other .gds File')
                 self.resetOtherGDSButton.clicked.connect(self.resetOtherGDSFile)
                 self.resetOtherGDSButton.setToolTip('Click to reset the other .gds file.')
+                self.resetOtherGDSButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 gridLayout.addWidget(self.resetOtherGDSButton, row, 9)
 
             row += 1
@@ -707,40 +755,47 @@ class MyApp(QWidget):
         leftLayout.addWidget(layerAndCellMenuLabel)
         layersLabel = QLabel('Layers:')
         layersLabel.setToolTip('Layers available in the design.')
+        layersLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(layersLabel)
 
         self.layersComboBox = QComboBox()
         self.layersComboBox.setToolTip('Select a layer from the list.')
+        self.layersComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.layersComboBox)
 
         self.selectSubstrateLayerButton = QPushButton('Select Substrate Layer')
         self.selectSubstrateLayerButton.clicked.connect(self.selectSubstrateLayer)
         self.selectSubstrateLayerButton.setToolTip('Click to select the substrate layer from the dropdown menu.')
-        layersHBoxLayout.addWidget(self.selectSubstrateLayerButton)  # Add the button to the right
+        self.selectSubstrateLayerButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layersHBoxLayout.addWidget(self.selectSubstrateLayerButton)
 
         # New Excluded Layers input field
         self.excludedLayersEdit = QLineEdit()
         self.excludedLayersEdit.setPlaceholderText('Excluded Layers')
         self.excludedLayersEdit.editingFinished.connect(self.updateExcludedLayers)
         self.excludedLayersEdit.setToolTip('Enter comma-separated list of layer numbers or names to exclude from automatic placement search.')
+        self.excludedLayersEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.excludedLayersEdit)
 
         # New Calculate Layer Area button and Layer Area text box
         self.calculateLayerAreaButton = QPushButton('Calculate Layer Area')
         self.calculateLayerAreaButton.clicked.connect(self.calculateLayerArea)
         self.calculateLayerAreaButton.setToolTip('Click to calculate the area for the selected layer.')
+        self.calculateLayerAreaButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.calculateLayerAreaButton)
 
         self.layerCellComboBox = QComboBox()
         self.layerCellComboBox.setPlaceholderText("Select cell on which to calculate area")
         self.layerCellComboBox.setToolTip("Select cell on which to calculate area (optional, will default to the first top cell in design if not provided)")
         self.layerCellComboBox.currentTextChanged.connect(self.calculateLayerArea)
+        self.layerCellComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.layerCellComboBox)
 
         self.layerAreaEdit = QLineEdit()
         self.layerAreaEdit.setPlaceholderText('Layer Area (mm^2)')
         self.layerAreaEdit.setReadOnly(True)
         self.layerAreaEdit.setToolTip('Displays the calculated area of the selected layer in mm^2.')
+        self.layerAreaEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.layerAreaEdit)
 
         # Define Layer layout
@@ -748,12 +803,15 @@ class MyApp(QWidget):
         defineLayerButton = QPushButton('Define New Layer')
         defineLayerButton.clicked.connect(self.defineNewLayer)
         defineLayerButton.setToolTip('Click to define a new layer.')
+        defineLayerButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.newLayerNumberEdit = PushButtonEdit(defineLayerButton)
         self.newLayerNumberEdit.setPlaceholderText('Layer Number')
         self.newLayerNumberEdit.setToolTip('Enter the number of the new layer.')
+        self.newLayerNumberEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.newLayerNameEdit = PushButtonEdit(defineLayerButton)
         self.newLayerNameEdit.setPlaceholderText('Layer Name')
         self.newLayerNameEdit.setToolTip('Enter the name of the new layer.')
+        self.newLayerNameEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         defineLayerHBoxLayout.addWidget(self.newLayerNumberEdit)
         defineLayerHBoxLayout.addWidget(self.newLayerNameEdit)
         defineLayerHBoxLayout.addWidget(defineLayerButton)
@@ -772,6 +830,7 @@ class MyApp(QWidget):
         self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         # Connect the click event to the handler
         self.canvas.mpl_connect('button_press_event', self.on_click)
@@ -786,9 +845,11 @@ class MyApp(QWidget):
         self.routingModeButton = QPushButton('Routing Mode')
         self.routingModeButton.clicked.connect(self.setRoutingMode)
         self.routingModeButton.setToolTip('Click to enter routing mode.')
+        self.routingModeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareModeButton = QPushButton('Flare Mode')
         self.flareModeButton.clicked.connect(self.setFlareMode)
         self.flareModeButton.setToolTip('Click to enter flare (fan out) mode.')
+        self.flareModeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         modeButtonLayout.addWidget(self.routingModeButton)
         modeButtonLayout.addWidget(self.flareModeButton)
         plotAreaLayout.addLayout(modeButtonLayout)
@@ -798,21 +859,27 @@ class MyApp(QWidget):
         self.endingTraceWidthEdit = QLineEdit()
         self.endingTraceWidthEdit.setPlaceholderText('Ending Trace Width')
         self.endingTraceWidthEdit.setToolTip('Enter the ending trace width of the fan out.')
+        self.endingTraceWidthEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.endingTraceSpaceEdit = QLineEdit()
         self.endingTraceSpaceEdit.setPlaceholderText('Ending Trace Space')
         self.endingTraceSpaceEdit.setToolTip('Enter the ending trace space of the fan out.')
+        self.endingTraceSpaceEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareRoutingAngleEdit = QLineEdit()
         self.flareRoutingAngleEdit.setText('90')
         self.flareRoutingAngleEdit.setToolTip('Enter the flare routing angle in degrees: 90 degrees is handled with smooth turns.')
+        self.flareRoutingAngleEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareEscapeExtentEdit = QLineEdit()
         self.flareEscapeExtentEdit.setText('100')
         self.flareEscapeExtentEdit.setToolTip('Enter the extent of the escape in um: increasing this can help avoid collisions.')
+        self.flareEscapeExtentEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareFinalLengthEdit = QLineEdit()
         self.flareFinalLengthEdit.setText('100')
         self.flareFinalLengthEdit.setToolTip('Enter the final length of the traces in the flare.')
+        self.flareFinalLengthEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareAutoroutingAngleEdit = QLineEdit()
         self.flareAutoroutingAngleEdit.setText('45')
         self.flareAutoroutingAngleEdit.setToolTip('Enter the angle for autorouting in degrees.')
+        self.flareAutoroutingAngleEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         flareModeLayout.addWidget(self.endingTraceWidthEdit)
         flareModeLayout.addWidget(self.endingTraceSpaceEdit)
         flareModeLayout.addWidget(self.flareRoutingAngleEdit)
@@ -835,9 +902,11 @@ class MyApp(QWidget):
         defineCellButton = QPushButton('Define New Cell')
         defineCellButton.clicked.connect(self.defineNewCell)
         defineCellButton.setToolTip('Click to define a new cell.')
+        defineCellButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.newCellNameEdit = PushButtonEdit(defineCellButton)
         self.newCellNameEdit.setPlaceholderText('Cell Name')
         self.newCellNameEdit.setToolTip('Enter the name of the new cell.')
+        self.newCellNameEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         defineCellHBoxLayout.addWidget(self.newCellNameEdit)
         defineCellHBoxLayout.addWidget(defineCellButton)
         leftLayout.addLayout(defineCellHBoxLayout)
@@ -847,14 +916,17 @@ class MyApp(QWidget):
         self.placementCellComboBox = QComboBox()
         self.placementCellComboBox.setPlaceholderText('Select Cell to Place Dies')
         self.placementCellComboBox.setToolTip('Select the cell from the GDS file to place dies.')
+        self.placementCellComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.dicingStreetsLayerComboBox = QComboBox()
         self.dicingStreetsLayerComboBox.setPlaceholderText('Select Dicing Streets Layer')
         self.dicingStreetsLayerComboBox.setToolTip('Select the layer for the dicing streets.')
+        self.dicingStreetsLayerComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.dieTextLayerComboBox = QComboBox()
         self.dieTextLayerComboBox.setPlaceholderText('Select Die Text Layer')
         self.dieTextLayerComboBox.setToolTip('Select the layer for the die text.')
+        self.dieTextLayerComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.setLayout(mainLayout)
         self.setWindowTitle('GDS Automation GUI')
