@@ -2055,6 +2055,10 @@ class MyApp(QWidget):
         self.storeParameterValue(comboBox, valueEdit, name)
 
     def createAddToDesignHandler(self):
+        if self.gds_design is None:
+            QMessageBox.critical(self, "Design Error", "No GDS design loaded.", QMessageBox.Ok)
+            logging.error("No GDS design loaded.")
+            return
         sender = self.sender()
         for checkBox, _, _, _, _, addButton in self.testStructures:
             if addButton == sender:
