@@ -827,10 +827,10 @@ class MyApp(QWidget):
 
         # Plot Area Layout
         plotAreaLayout = QVBoxLayout()
-        self.fig = Figure(figsize=(12, 8))  # Adjust the figsize to make the plot bigger
+        self.fig = Figure(figsize=(20, 12))  # Adjust the figsize to make the plot bigger
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
-        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
         # Connect the click event to the handler
         self.canvas.mpl_connect('button_press_event', self.on_click)
