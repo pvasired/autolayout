@@ -1,7 +1,7 @@
 import sys
 import argparse
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip, QDialog, QSizePolicy
+    QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QLineEdit, QFileDialog, QMessageBox, QComboBox, QGridLayout, QToolTip, QDialog, QSizePolicy, QProgressBar
 )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QEvent
@@ -1391,7 +1391,13 @@ class MyApp(QWidget):
         if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
             dicing_layer = self.dicingStreetsLayerComboBox.currentText()
         self.addSnapshot()
+
+        total_locations = len(self.diePlacement.keys())
+        progress_cnt = 0
+        self.diePlacementProgressBar.show()
         for loc in self.diePlacement:
+            progress = int((progress_cnt + 1) / total_locations * 100)
+            self.diePlacementProgressBar.setValue(progress)
             if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() == '':
                 QMessageBox.critical(self, 'Error', 'Please select a layer for the dicing streets.', QMessageBox.Ok)
                 logging.error("Error placing dies: No layer selected for dicing streets")
@@ -1483,11 +1489,17 @@ class MyApp(QWidget):
                                              ((loc[0]+self.die_width/2)*1000-2*len(die_label)*self.dieLabelTextHeight*GDS_TEXT_SPACING_FACTOR-self.dieLabelTextBuffer, 
                                               (loc[1]+self.die_height/2)*1000-self.dieLabelTextHeight-self.dieLabelTextBuffer), 
                                              self.dieLabelTextHeight)
+            
+            progress_cnt += 1
                 
         self.writeToGDS()
         placement_map_filename = ''.join(self.outputFileName.split('.')[:-1]) + '_die_placement.png'
         self.dieFig.savefig(placement_map_filename, dpi=300)
         logging.info(f"Dies placed on design {self.outputFileName}, map saved to {placement_map_filename}")
+
+        # Reset progress bar to 0 or hide it when the task is complete
+        self.diePlacementProgressBar.setValue(0)
+        self.diePlacementProgressBar.hide()
         
     # Method to add a row
     def addRow(self):
@@ -1708,6 +1720,15 @@ class MyApp(QWidget):
         self.blacklistButton.clicked.connect(self.setBlacklistMode)
         modeButtonLayout.addWidget(self.blacklistButton)
         diePlotLayout.addLayout(modeButtonLayout)
+
+        # Create a progress bar
+        self.diePlacementProgressBar = QProgressBar(self)
+        self.diePlacementProgressBar.setMaximum(100)  # Set the maximum value of the progress bar
+        self.diePlacementProgressBar.setValue(0)  # Initialize with 0 value
+        self.diePlacementProgressBar.hide()
+        
+        # Add the progress bar to the layout
+        diePlotLayout.addWidget(self.diePlacementProgressBar)
 
         mainLayout.addLayout(diePlotLayout)
 
