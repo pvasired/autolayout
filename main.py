@@ -381,7 +381,7 @@ class MyApp(QWidget):
                 "Interior Width": 5,
                 "Interior X Extent": 50,
                 "Interior Y Extent": 50,
-                "Automatic Placement": True
+                "Automatic Placement": False
             },
             "Resistance Test": {
                 "Layer": '',
@@ -400,7 +400,7 @@ class MyApp(QWidget):
                 "Add Interlayer Short": False,
                 "Layer Name Short": '',
                 "Short Text": '',
-                "Automatic Placement": True
+                "Automatic Placement": False
             },
             "Trace Test": {
                 "Layer": '',
@@ -411,7 +411,7 @@ class MyApp(QWidget):
                 "Num Lines": 4,
                 "Line Spacing": 80,
                 "Text Height": 100,
-                "Automatic Placement": True
+                "Automatic Placement": False
             },
             "Interlayer Via Test": {
                 "Layer Number 1": '',
@@ -427,7 +427,7 @@ class MyApp(QWidget):
                 "Via Width": 7,
                 "Via Height": 7,
                 "Text Height": 100,
-                "Automatic Placement": True
+                "Automatic Placement": False
             },
             "Electronics Via Test": {
                 "Layer Number 1": '',
@@ -444,7 +444,7 @@ class MyApp(QWidget):
                 "Via Height": 7,
                 "Via Spacing": 10,
                 "Text Height": 100,
-                "Automatic Placement": True
+                "Automatic Placement": False
             },
             "Short Test": {
                 "Layer": '',
@@ -457,7 +457,7 @@ class MyApp(QWidget):
                 "Num Groups": 6,
                 "Num Lines Vert": 100,
                 "Text Height": 100,
-                "Automatic Placement": True
+                "Automatic Placement": False
             },
             "Rectangle": {
                 "Layer": '',
@@ -526,7 +526,7 @@ class MyApp(QWidget):
                 "Copies Y": 1,
                 "Pitch X": 0,
                 "Pitch Y": 0,
-                "Automatic Placement": True
+                "Automatic Placement": False
             }
         }
         self.testStructures = []  # Initialize testStructures here
@@ -549,7 +549,7 @@ class MyApp(QWidget):
 
     def initUI(self):
         # Set a global stylesheet for the entire application
-        font_size = 24  # Adjust the font size as needed
+        font_size = 28  # Adjust the font size as needed
         self.setStyleSheet(f"""
             QWidget {{
                 font-size: {font_size}px;
@@ -740,6 +740,7 @@ class MyApp(QWidget):
                 self.resetOtherGDSButton.setToolTip('Click to reset the other .gds file.')
                 self.resetOtherGDSButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 gridLayout.addWidget(self.resetOtherGDSButton, row, 9)
+                self.resetOtherGDSButton.hide()
 
             row += 1
 
@@ -939,6 +940,7 @@ class MyApp(QWidget):
         self.custom_design = None
 
         self.updateCellComboBox()
+        self.resetOtherGDSButton.hide()
 
     def updatePlacementLegend(self):
         # Iterate through self.diePlacement and find the colors that are used
@@ -2238,6 +2240,10 @@ class MyApp(QWidget):
                 logging.error("File selection error: Not a .gds file")
     
     def selectOtherGDSFile(self):
+        if self.gds_design is None:
+            QMessageBox.critical(self, "Design Error", "No GDS design loaded.", QMessageBox.Ok)
+            logging.error("No GDS design loaded.")
+            return
         # Output: sets self.customFileName and self.custom_design, updates customTestCellComboBox
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
@@ -2260,6 +2266,8 @@ class MyApp(QWidget):
                 self.customTestCellComboBox.clear()
                 self.customTestCellComboBox.addItems(self.custom_design.lib.cells.keys())
                 logging.info(f"Custom Test Structure cell names: {list(self.custom_design.lib.cells.keys())}")
+
+                self.resetOtherGDSButton.show()
             else:
                 QMessageBox.critical(self, "File Error", "Please select a .gds file.", QMessageBox.Ok)
                 logging.error("File selection error: Not a .gds file")
@@ -2886,6 +2894,7 @@ class MyApp(QWidget):
             logging.error("MLA Alignment Mark placement error: Center position not specified")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Center": Center,
             "Outer Rect Width": Outer_Rect_Width,
@@ -2998,6 +3007,7 @@ class MyApp(QWidget):
             logging.error("Resistance Test placement error: Center position not specified")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Center": Center,
             "Probe Pad Width": Probe_Pad_Width,
@@ -3095,6 +3105,7 @@ class MyApp(QWidget):
             logging.error("Trace Test placement error: Center position not specified")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Center": Center,
             "Text": Text,
@@ -3199,6 +3210,7 @@ class MyApp(QWidget):
             logging.error("Interlayer Via Test placement error: Center position not specified")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer Number 1": Layer_Number_1,
             "Layer Number 2": Layer_Number_2,
             "Via Layer": Via_Layer,
@@ -3238,6 +3250,7 @@ class MyApp(QWidget):
             logging.error(f"Rectangle placement error: {str(e)}")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Center": Center,
             "Width": Width,
@@ -3267,6 +3280,7 @@ class MyApp(QWidget):
             logging.error(f"Circle placement error: {str(e)}")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Center": Center,
             "Diameter": Diameter
@@ -3311,6 +3325,7 @@ class MyApp(QWidget):
             logging.error(f"Text placement error: {str(e)}")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Center": Center,
             "Text": Text,
@@ -3338,6 +3353,7 @@ class MyApp(QWidget):
             logging.error(f"Polygon placement error: {str(e)}")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Points": Points
         }
@@ -3367,6 +3383,7 @@ class MyApp(QWidget):
             logging.error(f"Path placement error: {str(e)}")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Points": Points,
             "Width": Width
@@ -3469,6 +3486,7 @@ class MyApp(QWidget):
             logging.error("Electronics Via Test placement error: Center position not specified")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer Number 1": Layer_Number_1,
             "Layer Number 2": Layer_Number_2,
             "Via Layer": Via_Layer,
@@ -3570,6 +3588,7 @@ class MyApp(QWidget):
             logging.error("Short Test placement error: Center position not specified")
             return False
         params = {
+            "Cell Name": Cell_Name,
             "Layer": Layer,
             "Center": Center,
             "Text": Text,
@@ -3692,7 +3711,8 @@ class MyApp(QWidget):
                     logging.error("Custom Test Structure placement error: Center position not specified")
                     return False
                 params = {
-                    "Cell Name": self.customTestCellName,
+                    "Parent Cell Name": Parent_Cell_Name,
+                    "Child Cell Name": self.customTestCellName,
                     "Center": Center,
                     "Magnification": Magnification,
                     "Rotation": Rotation,
@@ -3781,7 +3801,8 @@ class MyApp(QWidget):
                     logging.error("Custom Test Structure placement error: Center position not specified")
                     return False
                 params = {
-                    "Cell Name": self.customTestCellName,
+                    "Parent Cell Name": Parent_Cell_Name,
+                    "Child Cell Name": self.customTestCellName,
                     "Center": Center,
                     "Magnification": Magnification,
                     "Rotation": Rotation,
