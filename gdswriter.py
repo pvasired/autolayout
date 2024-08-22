@@ -54,7 +54,7 @@ class GDSDesign:
                     for (lay, dat), polys in polygons_by_spec.items():
                         unique_layers.add(lay)
                         for poly in polys:
-                            self.cells[cell_name]['polygons'].append(poly)
+                            self.cells[cell_name]['polygons'].append((lay, poly))
                             self.cells[cell_name]['netIDs'].append((lay, default_netID))
 
             top_cells = self.lib.top_level()
@@ -471,21 +471,21 @@ class GDSDesign:
         if isinstance(component, gdspy.Polygon) or isinstance(component, gdspy.Rectangle) or isinstance(component, gdspy.Text):
             assert layer_number is not None, "Layer number must be specified for polygons."
             cell.add(component)
-            self.cells[cell_name]['polygons'].append(component.polygons[0])
+            self.cells[cell_name]['polygons'].append((layer_number, component.polygons[0]))
             self.cells[cell_name]['netIDs'].append((layer_number, netID))
         elif isinstance(component, gdspy.CellReference):
             cell.add(component)
             polygons_by_spec = component.get_polygons(by_spec=True)
             for (lay, dat), polys in polygons_by_spec.items():
                 for poly in polys:
-                    self.cells[cell_name]['polygons'].append(poly)
+                    self.cells[cell_name]['polygons'].append((lay, poly))
                     self.cells[cell_name]['netIDs'].append((lay, netID))
         elif isinstance(component, gdspy.FlexPath):
             assert layer_number is not None, "Layer number must be specified for FlexPath."
             cell.add(component)
             polygons = component.get_polygons()
             for poly in polygons:
-                self.cells[cell_name]['polygons'].append(poly)
+                self.cells[cell_name]['polygons'].append((layer_number, poly))
                 self.cells[cell_name]['netIDs'].append((layer_number, netID))
         else:
             raise ValueError(f"Error: Unsupported component type '{type(component)}'. Please use gdspy.Polygon, gdspy.CellReference, or gdspy.FlexPath.")
