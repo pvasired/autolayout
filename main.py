@@ -166,18 +166,36 @@ class TooltipComboBox(QComboBox):
     def __init__(self, tooltips=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tooltips = tooltips or {}
+        self.tooltip_widget = QLabel("", self)
+        self.tooltip_widget.setWindowFlags(Qt.ToolTip)
+        self.tooltip_widget.setStyleSheet("background-color: yellow; border: 1px solid black;")
         self.view().viewport().installEventFilter(self)
+        self.setMouseTracking(True)
 
     def setItemTooltips(self, tooltips):
         self.tooltips = tooltips
 
+    def showCustomTooltip(self, text, pos):
+        self.tooltip_widget.setText(text)
+        self.tooltip_widget.adjustSize()
+        self.tooltip_widget.move(pos)
+        self.tooltip_widget.show()
+
+    def hideCustomTooltip(self):
+        self.tooltip_widget.hide()
+
     def eventFilter(self, source, event):
-        if event.type() == event.MouseMove and source is self.view().viewport():
+        if event.type() == QEvent.MouseMove and source is self.view().viewport():
             index = self.view().indexAt(event.pos()).row()
             if index >= 0 and index < len(self.tooltips):
-                QToolTip.showText(event.globalPos(), self.tooltips[index], self.view().viewport())
+                global_pos = self.mapToGlobal(event.pos())
+                self.showCustomTooltip(self.tooltips[index], global_pos)
             else:
-                QToolTip.hideText()
+                self.hideCustomTooltip()
+            return False
+        elif event.type() == QEvent.Leave and source is self.view().viewport():
+            self.hideCustomTooltip()
+            return False
         return super().eventFilter(source, event)
 
 class MyApp(QWidget):
@@ -217,159 +235,159 @@ class MyApp(QWidget):
         }
         self.paramTooltips = {
             "MLA Alignment Mark": {
-                "Layer": "Select the layer for the alignment mark.",
-                "Center": "Enter the center (x, y) coordinate of the alignment mark.",
-                "Outer Rect Width": "Enter the width of the outer rectangle.",
-                "Outer Rect Height": "Enter the height of the outer rectangle.",
-                "Interior Width": "Enter the width of the interior lines.",
-                "Interior X Extent": "Enter the extent of the interior lines in the x direction.",
-                "Interior Y Extent": "Enter the extent of the interior lines in the y direction.",
-                "Automatic Placement": "Check to automatically place the alignment mark."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the alignment mark.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the alignment mark in um.",
+                "Outer Rect Width": "type:(number) Enter the width of the outer rectangle in um.",
+                "Outer Rect Height": "type:(number) Enter the height of the outer rectangle in um.",
+                "Interior Width": "type:(number) Enter the width of the interior lines in um.",
+                "Interior X Extent": "type:(number) Enter the extent of the interior lines in the x direction in um.",
+                "Interior Y Extent": "type:(number) Enter the extent of the interior lines in the y direction in um.",
+                "Automatic Placement": "type:(case-ignored string 'True' or 'False') Check to automatically place the alignment mark."
             },
             "Resistance Test": {
-                "Layer": "Select the layer for the resistance test structure.",
-                "Center": "Enter the center (x, y) coordinate of the resistance test structure.",
-                "Probe Pad Width": "Enter the width of the probe pad.",
-                "Probe Pad Height": "Enter the height of the probe pad.",
-                "Probe Pad Spacing": "Enter the spacing between probe pads.",
-                "Plug Width": "Enter the width of the plug.",
-                "Plug Height": "Enter the height of the plug.",
-                "Trace Width": "Enter the width of the traces.",
-                "Trace Spacing": "Enter the spacing between traces.",
-                "Switchbacks": "Enter the number of switchbacks.",
-                "X Extent": "Enter the extent of the structure in the x direction.",
-                "Text Height": "Enter the height of the text.",
-                "Text": "Enter the text to display on the structure.",
-                "Add Interlayer Short": "Check to add an interlayer short.",
-                "Layer Name Short": "Enter the name of the short layer.",
-                "Short Text": "Enter the text to display for the short.",
-                "Automatic Placement": "Check to automatically place the resistance test structure."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the resistance test structure.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the resistance test structure in um.",
+                "Probe Pad Width": "type:(number) Enter the width of the probe pad in um.",
+                "Probe Pad Height": "type:(number) Enter the height of the probe pad in um.",
+                "Probe Pad Spacing": "type:(number) Enter the spacing between probe pads in um.",
+                "Plug Width": "type:(number) Enter the width of the plug in um.",
+                "Plug Height": "type:(number) Enter the height of the plug in um.",
+                "Trace Width": "type:(number) Enter the width of the traces in um.",
+                "Trace Spacing": "type:(number) Enter the spacing between traces in um.",
+                "Switchbacks": "type:(integer) Enter the number of switchbacks.",
+                "X Extent": "type:(number) Enter the extent of the structure in the x direction in um.",
+                "Text Height": "type:(number) Enter the height of the text in um.",
+                "Text": "type:(string) Enter the text to display on the structure.",
+                "Add Interlayer Short": "type:(case-ignored string 'True' or 'False') Check to add an interlayer short.",
+                "Layer Name Short": "type:(layer number integer or layer name string) Enter the name of the short layer.",
+                "Short Text": "type:(string) Enter the text to display for the short.",
+                "Automatic Placement": "type:(case-ignored string 'True' or 'False') Check to automatically place the resistance test structure."
             },
             "Trace Test": {
-                "Layer": "Select the layer for the trace test structure.",
-                "Center": "Enter the center (x, y) coordinate of the trace test structure.",
-                "Text": "Enter the text to display on the structure.",
-                "Line Width": "Enter the width of the lines.",
-                "Line Height": "Enter the height of the lines.",
-                "Num Lines": "Enter the number of lines.",
-                "Line Spacing": "Enter the spacing between lines.",
-                "Text Height": "Enter the height of the text.",
-                "Automatic Placement": "Check to automatically place the trace test structure."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the trace test structure.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the trace test structure in um.",
+                "Text": "type:(string) Enter the text to display on the structure.",
+                "Line Width": "type:(number) Enter the width of the lines in um.",
+                "Line Height": "type:(number) Enter the height of the lines in um.",
+                "Num Lines": "type:(integer) Enter the number of lines.",
+                "Line Spacing": "type:(number) Enter the spacing between lines in um.",
+                "Text Height": "type:(number) Enter the height of the text in um.",
+                "Automatic Placement": "type:(case-ignored string 'True' or 'False') Check to automatically place the trace test structure."
             },
             "Interlayer Via Test": {
-                "Layer Number 1": "Select the first layer for the interlayer via test structure.",
-                "Layer Number 2": "Select the second layer for the interlayer via test structure.",
-                "Via Layer": "Select the via layer for the interlayer via test structure.",
-                "Center": "Enter the center (x, y) coordinate of the interlayer via test structure.",
-                "Text": "Enter the text to display on the structure.",
-                "Layer 1 Rectangle Spacing": "Enter the spacing between rectangles on layer 1.",
-                "Layer 1 Rectangle Width": "Enter the width of the rectangles on layer 1.",
-                "Layer 1 Rectangle Height": "Enter the height of the rectangles on layer 1.",
-                "Layer 2 Rectangle Width": "Enter the width of the rectangles on layer 2.",
-                "Layer 2 Rectangle Height": "Enter the height of the rectangles on layer 2.",
-                "Via Width": "Enter the width of the vias.",
-                "Via Height": "Enter the height of the vias.",
-                "Text Height": "Enter the height of the text.",
-                "Automatic Placement": "Check to automatically place the interlayer via test structure."
+                "Layer Number 1": "type:(layer number integer or layer name string) Enter the first layer for the interlayer via test structure.",
+                "Layer Number 2": "type:(layer number integer or layer name string) Enter the second layer for the interlayer via test structure.",
+                "Via Layer": "type:(layer number integer or layer name string) Enter the via layer for the interlayer via test structure.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the interlayer via test structure in um.",
+                "Text": "type(string) Enter the text to display on the structure.",
+                "Layer 1 Rectangle Spacing": "type:(number) Enter the spacing between rectangles on layer 1 in um.",
+                "Layer 1 Rectangle Width": "type:(number) Enter the width of the rectangles on layer 1 in um.",
+                "Layer 1 Rectangle Height": "type:(number) Enter the height of the rectangles on layer 1 in um.",
+                "Layer 2 Rectangle Width": "type:(number) Enter the width of the rectangles on layer 2 in um.",
+                "Layer 2 Rectangle Height": "type:(number) Enter the height of the rectangles on layer 2 in um.",
+                "Via Width": "type:(number) Enter the width of the vias in um.",
+                "Via Height": "type:(number) Enter the height of the vias in um.",
+                "Text Height": "type:(number) Enter the height of the text in um.",
+                "Automatic Placement": "type:(case-ignored string 'True' or 'False') Check to automatically place the interlayer via test structure."
             },
             "Electronics Via Test": {
-                "Layer Number 1": "Select the first layer for the electronics via test structure.",
-                "Layer Number 2": "Select the second layer for the electronics via test structure.",
-                "Via Layer": "Select the via layer for the electronics via test structure.",
-                "Center": "Enter the center (x, y) coordinate of the electronics via test structure.",
-                "Text": "Enter the text to display on the structure.",
-                "Layer 1 Rect Width": "Enter the width of the rectangles on layer 1.",
-                "Layer 1 Rect Height": "Enter the height of the rectangles on layer 1.",
-                "Layer 2 Rect Width": "Enter the width of the rectangles on layer 2.",
-                "Layer 2 Rect Height": "Enter the height of the rectangles on layer 2.",
-                "Layer 2 Rect Spacing": "Enter the spacing between rectangles on layer 2.",
-                "Via Width": "Enter the width of the vias.",
-                "Via Height": "Enter the height of the vias.",
-                "Via Spacing": "Enter the spacing between vias and edge of rectangles in layer 2.",
-                "Text Height": "Enter the height of the text.",
-                "Automatic Placement": "Check to automatically place the electronics via test structure."
+                "Layer Number 1": "type:(layer number integer or layer name string) Enter the first layer for the electronics via test structure.",
+                "Layer Number 2": "type:(layer number integer or layer name string) Enter the second layer for the electronics via test structure.",
+                "Via Layer": "type:(layer number integer or layer name string) Enter the via layer for the electronics via test structure.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the electronics via test structure in um.",
+                "Text": "type:(string) Enter the text to display on the structure.",
+                "Layer 1 Rect Width": "type:(number) Enter the width of the rectangles on layer 1 in um.",
+                "Layer 1 Rect Height": "type:(number) Enter the height of the rectangles on layer 1 in um.",
+                "Layer 2 Rect Width": "type:(number) Enter the width of the rectangles on layer 2 in um.",
+                "Layer 2 Rect Height": "type:(number) Enter the height of the rectangles on layer 2 in um.",
+                "Layer 2 Rect Spacing": "type:(number) Enter the spacing between rectangles on layer 2 in um.",
+                "Via Width": "type:(number) Enter the width of the vias in um.",
+                "Via Height": "type:(number) Enter the height of the vias in um.",
+                "Via Spacing": "type:(number) Enter the spacing between vias and edge of rectangles in layer 2 in um.",
+                "Text Height": "type:(number) Enter the height of the text in um.",
+                "Automatic Placement": "type:(case-ignored string 'True' or 'False') Check to automatically place the electronics via test structure."
             },
             "Short Test": {
-                "Layer": "Select the layer for the short test structure.",
-                "Center": "Enter the center (x, y) coordinate of the short test structure.",
-                "Text": "Enter the text to display on the structure.",
-                "Rect Width": "Enter the width of the rectangles.",
-                "Trace Width": "Enter the width of the traces.",
-                "Num Lines": "Enter the number of lines.",
-                "Group Spacing": "Enter the spacing between groups.",
-                "Num Groups": "Enter the number of groups.",
-                "Num Lines Vert": "Enter the number of lines in the vertical direction.",
-                "Text Height": "Enter the height of the text.",
-                "Automatic Placement": "Check to automatically place the short test structure."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the short test structure.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the short test structure in um.",
+                "Text": "type:(string) Enter the text to display on the structure.",
+                "Rect Width": "type:(number) Enter the width of the rectangles in um.",
+                "Trace Width": "type:(number) Enter the width of the traces in um.",
+                "Num Lines": "type:(integer) Enter the number of lines.",
+                "Group Spacing": "type:(number) Enter the spacing between groups in um.",
+                "Num Groups": "type:(integer) Enter the number of groups.",
+                "Num Lines Vert": "type:(integer) Enter the number of lines in the vertical direction.",
+                "Text Height": "type:(number) Enter the height of the text in um.",
+                "Automatic Placement": "type:(case-ignored string 'True' or 'False') Check to automatically place the short test structure."
             },
             "Rectangle": {
-                "Layer": "Select the layer for the rectangle.",
-                "Center": "Enter the center (x, y) coordinate of the rectangle.",
-                "Width": "Enter the width of the rectangle.",
-                "Height": "Enter the height of the rectangle.",
-                "Lower Left": "Enter the lower left (x, y) coordinate of the rectangle.",
-                "Upper Right": "Enter the upper right (x, y) coordinate of the rectangle.",
-                "Rotation": "Enter the rotation angle of the rectangle."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the rectangle.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the rectangle in um.",
+                "Width": "type:(number) Enter the width of the rectangle in um.",
+                "Height": "type:(number) Enter the height of the rectangle in um.",
+                "Lower Left": "type:(comma-separated tuple x,y) Enter the lower left (x, y) coordinate of the rectangle in um.",
+                "Upper Right": "type:(comma-separated tuple x,y) Enter the upper right (x, y) coordinate of the rectangle in um.",
+                "Rotation": "type:(number) Enter the rotation angle of the rectangle in degrees."
             },
             "Circle": {
-                "Layer": "Select the layer for the circle.",
-                "Center": "Enter the center (x, y) coordinate of the circle.",
-                "Diameter": "Enter the diameter of the circle."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the circle.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the circle in um.",
+                "Diameter": "type:(number) Enter the diameter of the circle in um."
             },
             "Text": {
-                "Layer": "Select the layer for the text.",
-                "Center": "Enter the center (x, y) coordinate of the text.",
-                "Text": "Enter the text to display.",
-                "Height": "Enter the height of the text.",
-                "Rotation": "Enter the rotation angle of the text."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the text.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the text in um.",
+                "Text": "type:(string) Enter the text to display.",
+                "Height": "type:(number) Enter the height of the text in um.",
+                "Rotation": "type:(number) Enter the rotation angle of the text in degrees."
             },
             "Polygon": {
-                "Layer": "Select the layer for the polygon."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the polygon."
             },
             "Path": {
-                "Layer": "Select the layer for the path.",
-                "Width": "Enter the width of the path."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the path.",
+                "Width": "type(number) Enter the width of the path in um."
             },
             "Escape Routing": {
-                "Layer": "Select the layer for the escape routing.",
-                "Center": "Enter the center (x, y) coordinate of the escape routing.",
-                "Copies X": "Enter the number of copies in the x direction.",
-                "Copies Y": "Enter the number of copies in the y direction.",
-                "Pitch X": "Enter the center-to-center pitch between copies in the x direction.",
-                "Pitch Y": "Enter the center-to-center pitch between copies in the y direction.",
-                "Trace Width": "Enter the width of the traces.",
-                "Trace Space": "Enter the spacing between traces.",
-                "Pad Diameter": "Enter the diameter of the pads.",
-                "Orientation": "Enter the orientation of the escape routing.",
-                "Escape Extent": "Enter the extent of the escape routing.",
-                "Cable Tie Routing Angle": "Enter the angle of the cable tie routing in degrees.",
-                "Autorouting Angle": "Enter the angle for autorouting in degrees."
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the escape routing.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the escape routing in um.",
+                "Copies X": "type:(integer) Enter the number of copies in the x direction.",
+                "Copies Y": "type:(integer) Enter the number of copies in the y direction.",
+                "Pitch X": "type:(number) Enter the center-to-center pitch between copies in the x direction in um.",
+                "Pitch Y": "type:(number) Enter the center-to-center pitch between copies in the y direction in um.",
+                "Trace Width": "type:(number) Enter the width of the traces in um.",
+                "Trace Space": "type:(number) Enter the spacing between traces in um.",
+                "Pad Diameter": "type:(number) Enter the diameter of the pads in um.",
+                "Orientation": "type:(comma-separated tuple #sides,direction. Valid orientations include '1,-y', '2,x', '3,+x', and '4'.) Enter the orientation of the escape routing.",
+                "Escape Extent": "type:(number) Enter the extent of the escape routing in um.",
+                "Cable Tie Routing Angle": "type:(either 45 or 90) Enter the angle of the cable tie routing in degrees",
+                "Autorouting Angle": "type:(either 45 or 90) Enter the angle for autorouting in degrees ."
             },
             "Connect Rows": {
-                "Layer": "Select the layer for the connect rows.",
-                "Row 1 Start": "Enter the start of the first row.",
-                "Row 1 End": "Enter the end of the first row.",
-                "Row 1 Spacing": "Enter the spacing between elements in the first row.",
-                "Row 1 Constant": "Enter the constant value for the first row.",
-                "Row 2 Start": "Enter the start of the second row.",
-                "Row 2 End": "Enter the end of the second row.",
-                "Row 2 Spacing": "Enter the spacing between elements in the second row.",
-                "Row 2 Constant": "Enter the constant value for the second row.",
-                "Orientation": "Enter the orientation of the connect rows.",
-                "Trace Width": "Enter the width of the traces.",
-                "Escape Extent": "Enter the extent of the escape segment.",
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the connect rows.",
+                "Row 1 Start": "type:(number) Enter the start position of the first row in um.",
+                "Row 1 End": "type:(number) Enter the end position of the first row in um.",
+                "Row 1 Spacing": "type:(number) Enter the spacing between elements in the first row in um.",
+                "Row 1 Constant": "type:(number) Enter the constant value for the first row in um.",
+                "Row 2 Start": "type:(number) Enter the start position of the second row in um.",
+                "Row 2 End": "type:(number) Enter the end position of the second row in um.",
+                "Row 2 Spacing": "type:(number) Enter the spacing between elements in the second row in um.",
+                "Row 2 Constant": "type:(number) Enter the constant value for the second row in um.",
+                "Orientation": "type:(direction string '+x', '-x', '+y', or '-y') Enter the orientation of the connect rows.",
+                "Trace Width": "type:(number) Enter the width of the traces in um.",
+                "Escape Extent": "type:(number) Enter the extent of the escape segment in um.",
             },
             "Custom Test Structure": {
-                "Center": "Enter the center (x, y) coordinate of the custom test structure.",
-                "Magnification": "Enter the magnification factor of the custom test structure.",
-                "Rotation": "Enter the rotation angle of the custom test structure.",
-                "X Reflection": "Check to reflect the structure in the x direction.",
-                "Array": "Check to create an array of the structure.",
-                "Copies X": "Enter the number of copies in the x direction.",
-                "Copies Y": "Enter the number of copies in the y direction.",
-                "Pitch X": "Enter the center-to-center pitch between copies in the x direction.",
-                "Pitch Y": "Enter the center-to-center pitch between copies in the y direction.",
-                "Automatic Placement": "Check to automatically place the custom test structure."
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the custom test structure in um.",
+                "Magnification": "type:(number) Enter the magnification factor of the custom test structure.",
+                "Rotation": "type:(number) Enter the rotation angle of the custom test structure in degrees.",
+                "X Reflection": "type:(case-ignored string 'True' or 'False') Check to reflect the structure in the x direction.",
+                "Array": "type:(case-ignored string 'True' or 'False') Check to create an array of the structure.",
+                "Copies X": "type:(integer) Enter the number of copies in the x direction.",
+                "Copies Y": "type:(integer) Enter the number of copies in the y direction.",
+                "Pitch X": "type:(number) Enter the center-to-center pitch between copies in the x direction in um.",
+                "Pitch Y": "type:(number) Enter the center-to-center pitch between copies in the y direction in um.",
+                "Automatic Placement": "type:(case-ignored string 'True' or 'False') Check to automatically place the custom test structure."
             }
         }
         self.defaultParams = {
@@ -551,6 +569,11 @@ class MyApp(QWidget):
         # Set a global stylesheet for the entire application
         font_size = 28  # Adjust the font size as needed
         self.setStyleSheet(f"""
+            QToolTip {{
+                background-color: yellow; 
+                color: black; 
+                border: 1px solid black; 
+            }}
             QWidget {{
                 font-size: {font_size}px;
             }}
@@ -600,7 +623,7 @@ class MyApp(QWidget):
         self.outFileField = PushButtonEdit(self.writeButton)
         self.outFileField.setPlaceholderText('Output File')
         self.outFileField.editingFinished.connect(self.validateOutputFileName)
-        self.outFileField.setToolTip('Enter the name of the output GDS file.')
+        self.outFileField.setToolTip("type:(filename or path ending with '.gds') Enter the name of the output GDS file.")
         self.outFileField.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         fileLayout.addWidget(self.initFileButton)
         fileLayout.addWidget(self.blankFileButton)
@@ -652,7 +675,7 @@ class MyApp(QWidget):
 
         # Test Structures layout
         testLayout = QVBoxLayout()
-        testLabel = QLabel('Add Components')
+        testLabel = QLabel('Add Components (NOTE: all spatial units are in microns)')
         testLayout.addWidget(testLabel)
 
         gridLayout = QGridLayout()
@@ -774,7 +797,7 @@ class MyApp(QWidget):
         self.excludedLayersEdit = QLineEdit()
         self.excludedLayersEdit.setPlaceholderText('Excluded Layers')
         self.excludedLayersEdit.editingFinished.connect(self.updateExcludedLayers)
-        self.excludedLayersEdit.setToolTip('Enter comma-separated list of layer numbers or names to exclude from automatic placement search.')
+        self.excludedLayersEdit.setToolTip('type:(comma-separated list of layer number integers or layer name strings) Enter comma-separated list of layer numbers or names to exclude from automatic placement search.')
         self.excludedLayersEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.excludedLayersEdit)
 
@@ -807,11 +830,11 @@ class MyApp(QWidget):
         defineLayerButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.newLayerNumberEdit = PushButtonEdit(defineLayerButton)
         self.newLayerNumberEdit.setPlaceholderText('Layer Number')
-        self.newLayerNumberEdit.setToolTip('Enter the number of the new layer.')
+        self.newLayerNumberEdit.setToolTip('type:(integer) Enter the number of the new layer.')
         self.newLayerNumberEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.newLayerNameEdit = PushButtonEdit(defineLayerButton)
         self.newLayerNameEdit.setPlaceholderText('Layer Name')
-        self.newLayerNameEdit.setToolTip('Enter the name of the new layer.')
+        self.newLayerNameEdit.setToolTip('type:(string) Enter the name of the new layer.')
         self.newLayerNameEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         defineLayerHBoxLayout.addWidget(self.newLayerNumberEdit)
         defineLayerHBoxLayout.addWidget(self.newLayerNameEdit)
@@ -859,27 +882,27 @@ class MyApp(QWidget):
         flareModeLayout = QHBoxLayout()
         self.endingTraceWidthEdit = QLineEdit()
         self.endingTraceWidthEdit.setPlaceholderText('Ending Trace Width')
-        self.endingTraceWidthEdit.setToolTip('Enter the ending trace width of the fan out.')
+        self.endingTraceWidthEdit.setToolTip('type:(number) Enter the ending trace width of the fan out in um.')
         self.endingTraceWidthEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.endingTraceSpaceEdit = QLineEdit()
         self.endingTraceSpaceEdit.setPlaceholderText('Ending Trace Space')
-        self.endingTraceSpaceEdit.setToolTip('Enter the ending trace space of the fan out.')
+        self.endingTraceSpaceEdit.setToolTip('type:(number) Enter the ending trace space of the fan out in um.')
         self.endingTraceSpaceEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareRoutingAngleEdit = QLineEdit()
         self.flareRoutingAngleEdit.setText('90')
-        self.flareRoutingAngleEdit.setToolTip('Enter the flare routing angle in degrees: 90 degrees is handled with smooth turns.')
+        self.flareRoutingAngleEdit.setToolTip('type:(45 or 90) Enter the flare routing angle in degrees: 90 degrees is handled with smooth turns.')
         self.flareRoutingAngleEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareEscapeExtentEdit = QLineEdit()
         self.flareEscapeExtentEdit.setText('100')
-        self.flareEscapeExtentEdit.setToolTip('Enter the extent of the escape in um: increasing this can help avoid collisions.')
+        self.flareEscapeExtentEdit.setToolTip('type:(number) Enter the extent of the escape in um: increasing this can help avoid collisions.')
         self.flareEscapeExtentEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareFinalLengthEdit = QLineEdit()
         self.flareFinalLengthEdit.setText('100')
-        self.flareFinalLengthEdit.setToolTip('Enter the final length of the traces in the flare.')
+        self.flareFinalLengthEdit.setToolTip('type:(number) Enter the final length of the traces in the flare in um.')
         self.flareFinalLengthEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.flareAutoroutingAngleEdit = QLineEdit()
         self.flareAutoroutingAngleEdit.setText('45')
-        self.flareAutoroutingAngleEdit.setToolTip('Enter the angle for autorouting in degrees.')
+        self.flareAutoroutingAngleEdit.setToolTip('type:(45 or 90) Enter the angle for autorouting in degrees.')
         self.flareAutoroutingAngleEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         flareModeLayout.addWidget(self.endingTraceWidthEdit)
         flareModeLayout.addWidget(self.endingTraceSpaceEdit)
@@ -906,7 +929,7 @@ class MyApp(QWidget):
         defineCellButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.newCellNameEdit = PushButtonEdit(defineCellButton)
         self.newCellNameEdit.setPlaceholderText('Cell Name')
-        self.newCellNameEdit.setToolTip('Enter the name of the new cell.')
+        self.newCellNameEdit.setToolTip('type:(string) Enter the name of the new cell.')
         self.newCellNameEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         defineCellHBoxLayout.addWidget(self.newCellNameEdit)
         defineCellHBoxLayout.addWidget(defineCellButton)
@@ -1531,20 +1554,20 @@ class MyApp(QWidget):
         # Text Input Field for Number of Dies
         numDiesEdit = PushButtonEdit(self.autoPlaceButton)
         numDiesEdit.setPlaceholderText('Number of Dies')
-        numDiesEdit.setToolTip('Enter the number of dies to place.')
+        numDiesEdit.setToolTip('type:(integer) Enter the number of dies to place.')
         rowLayout.addWidget(numDiesEdit)
 
         # Text Input Field for Die Label
         dieLabelEdit = PushButtonEdit(self.autoPlaceButton)
         dieLabelEdit.setPlaceholderText('Die Label')
-        dieLabelEdit.setToolTip('Enter the text to display for the die label.')
+        dieLabelEdit.setToolTip('type:(string) Enter the text to display for the die label.')
         dieLabelEdit.editingFinished.connect(self.updatePlacementLegend)
         rowLayout.addWidget(dieLabelEdit)
 
         # Text Input Field for Die Notes
         dieNotesEdit = PushButtonEdit(self.autoPlaceButton)
         dieNotesEdit.setPlaceholderText('Die Notes')
-        dieNotesEdit.setToolTip('Enter any notes for the die.')
+        dieNotesEdit.setToolTip('type:(string) Enter any notes for the die.')
         dieNotesEdit.editingFinished.connect(self.updatePlacementLegend)
         rowLayout.addWidget(dieNotesEdit)
 
@@ -1608,29 +1631,29 @@ class MyApp(QWidget):
         self.dieLeftLayout.addLayout(substrateLayout)
 
         dieDimensionsLayout = QHBoxLayout()
-        dieWidthLabel = QLabel('Die Width:')
+        dieWidthLabel = QLabel('Die Width (mm):')
         self.dieWidthEdit = EnterLineEdit()
         self.dieWidthEdit.setPlaceholderText('Die Width (mm)')
         self.dieWidthEdit.editingFinished.connect(self.createDiePlacement)
-        self.dieWidthEdit.setToolTip('Enter the width of the die in mm.')
+        self.dieWidthEdit.setToolTip('type:(number) Enter the width of the die in mm.')
 
-        dieHeightLabel = QLabel('Die Height:')
+        dieHeightLabel = QLabel('Die Height (mm):')
         self.dieHeightEdit = EnterLineEdit()
         self.dieHeightEdit.setPlaceholderText('Die Height (mm)')
         self.dieHeightEdit.editingFinished.connect(self.createDiePlacement)
-        self.dieHeightEdit.setToolTip('Enter the height of the die in mm.')
+        self.dieHeightEdit.setToolTip('type:(number) Enter the height of the die in mm.')
 
-        dicingStreetLabel = QLabel('Dicing Street Width:')
+        dicingStreetLabel = QLabel('Dicing Street Width (mm):')
         self.dicingStreetEdit = EnterLineEdit()
         self.dicingStreetEdit.setPlaceholderText('Dicing Street Width (mm)')
         self.dicingStreetEdit.editingFinished.connect(self.createDiePlacement)
-        self.dicingStreetEdit.setToolTip('Enter the width of the dicing street in mm.')
+        self.dicingStreetEdit.setToolTip('type:(number) Enter the width of the dicing street in mm.')
 
-        edgeMarginLabel = QLabel('Edge Margin:')
+        edgeMarginLabel = QLabel('Edge Margin (mm):')
         self.edgeMarginEdit = EnterLineEdit()
         self.edgeMarginEdit.setPlaceholderText('Edge Margin (mm)')
         self.edgeMarginEdit.editingFinished.connect(self.createDiePlacement)
-        self.edgeMarginEdit.setToolTip('Enter the edge margin in mm.')
+        self.edgeMarginEdit.setToolTip('type:(number) Enter the edge margin in mm.')
 
         centeredPlacementLabel = QLabel('Centered Placement:')
         self.centeredPlacementCheckBox = QCheckBox()
