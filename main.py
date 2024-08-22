@@ -1509,9 +1509,9 @@ class MyApp(QWidget):
                     self.gds_design.add_text(self.placementCellComboBox.currentText(), 
                                              die_label, 
                                              self.dieTextLayerComboBox.currentText().split(':')[1].strip(), 
-                                             ((loc[0]+self.die_width/2)*1000-2*len(die_label)*self.dieLabelTextHeight*GDS_TEXT_SPACING_FACTOR-self.dieLabelTextBuffer, 
+                                             ((loc[0]+self.die_width/2)*1000-2*len(die_label)*self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR*GDS_TEXT_SPACING_FACTOR-self.dieLabelTextBuffer, 
                                               (loc[1]+self.die_height/2)*1000-self.dieLabelTextHeight-self.dieLabelTextBuffer), 
-                                             self.dieLabelTextHeight)
+                                             self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR)
             
             progress_cnt += 1
                 
