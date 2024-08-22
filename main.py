@@ -1686,10 +1686,17 @@ class MyApp(QWidget):
         self.dicingStreetsCheckBox = QCheckBox('Add Dicing Streets?')
         self.dicingStreetsCheckBox.stateChanged.connect(self.dicingStreetsCheckBoxChanged)
         dieTextLayerLabel = QLabel('Layer for Die Labels:')
+        dieTextSizeLabel = QLabel('Label Text Height:')
+        dieTextSizeTextBox = EnterLineEdit()
+        dieTextSizeTextBox.setText(str(self.dieLabelTextHeight))
+        dieTextSizeTextBox.setToolTip('type:(number) Enter the text height for the die labels in um.')
+        dieTextSizeTextBox.editingFinished.connect(self.setDieLabelTextHeight)
         diePlacementLayout.addWidget(placementCellLabel)
         diePlacementLayout.addWidget(self.placementCellComboBox)
         diePlacementLayout.addWidget(dieTextLayerLabel)
         diePlacementLayout.addWidget(self.dieTextLayerComboBox)
+        diePlacementLayout.addWidget(dieTextSizeLabel)
+        diePlacementLayout.addWidget(dieTextSizeTextBox)
         diePlacementLayout.addWidget(self.dicingStreetsCheckBox)
         diePlacementLayout.addWidget(self.dicingStreetsLayerComboBox)
 
@@ -1727,8 +1734,9 @@ class MyApp(QWidget):
 
         diePlotLayout = QVBoxLayout()
         # Graphical Interface using Matplotlib
-        self.dieFig = Figure(figsize=(12, 8))  # Adjust size as needed
+        self.dieFig = Figure(figsize=(20, 12))  # Adjust size as needed
         self.dieCanvas = FigureCanvas(self.dieFig)
+        self.dieCanvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.dieCanvas.mpl_connect('button_press_event', self.die_on_click)
         self.dieAx = self.dieFig.add_subplot(111)
         diePlotLayout.addWidget(self.dieCanvas)
@@ -1759,6 +1767,10 @@ class MyApp(QWidget):
         self.diePlacementWindow.setLayout(mainLayout)
         self.diePlacementWindow.resize(3000, 1200)  # Adjust window size as needed
         self.diePlacementWindow.show()
+
+    def setDieLabelTextHeight(self):
+        self.dieLabelTextHeight = float(self.sender().text())
+        logging.info(f"Die label text height set to {self.dieLabelTextHeight}")
 
     def dicingStreetsCheckBoxChanged(self):
         if self.dicingStreetsCheckBox.isChecked():
