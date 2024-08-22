@@ -358,7 +358,7 @@ class MyApp(QWidget):
                 "Trace Width": "type:(number) Enter the width of the traces in um.",
                 "Trace Space": "type:(number) Enter the spacing between traces in um.",
                 "Pad Diameter": "type:(number) Enter the diameter of the pads in um.",
-                "Orientation": "type:(comma-separated tuple #sides,direction. Valid orientations include '1,-y', '2,x', '3,+x', and '4'.) Enter the orientation of the escape routing.",
+                "Orientation": "type:(comma-separated tuple #sides,direction. Examples of valid orientations include '1,-y', '2,x', '3,+x', and '4'.) Enter the orientation of the escape routing.",
                 "Escape Extent": "type:(number) Enter the extent of the escape routing in um.",
                 "Cable Tie Routing Angle": "type:(either 45 or 90) Enter the angle of the cable tie routing in degrees",
                 "Autorouting Angle": "type:(either 45 or 90) Enter the angle for autorouting in degrees ."
@@ -2865,6 +2865,10 @@ class MyApp(QWidget):
             return False
 
     def addMLAAlignmentMark(self, Cell_Name, Layer, Center, Outer_Rect_Width, Outer_Rect_Height, Interior_Width, Interior_X_Extent, Interior_Y_Extent, Automatic_Placement):
+        if type(Automatic_Placement) != bool and Automatic_Placement is not None:
+            QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
+            logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
+            return False
         if type(Center) == tuple:
             try:
                 self.gds_design.add_MLA_alignment_mark(
@@ -2952,6 +2956,10 @@ class MyApp(QWidget):
         return True
 
     def addResistanceTest(self, Cell_Name, Layer, Center, Probe_Pad_Width, Probe_Pad_Height, Probe_Pad_Spacing, Plug_Width, Plug_Height, Trace_Width, Trace_Spacing, Switchbacks, X_Extent, Text_Height, Text, Add_Interlayer_Short, Layer_Name_Short, Short_Text, Automatic_Placement):
+        if type(Automatic_Placement) != bool and Automatic_Placement is not None:
+            QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
+            logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
+            return False
         if type(Center) == tuple:
             try:
                 self.gds_design.add_resistance_test_structure(
@@ -3074,6 +3082,10 @@ class MyApp(QWidget):
         return True
 
     def addTraceTest(self, Cell_Name, Layer, Center, Text, Line_Width, Line_Height, Num_Lines, Line_Spacing, Text_Height, Automatic_Placement):
+        if type(Automatic_Placement) != bool and Automatic_Placement is not None:
+            QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
+            logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
+            return False
         if type(Center) == tuple:
             try:
                 self.gds_design.add_line_test_structure(
@@ -3164,6 +3176,10 @@ class MyApp(QWidget):
         return True
 
     def addInterlayerViaTest(self, Cell_Name, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rectangle_Spacing, Layer_1_Rectangle_Width, Layer_1_Rectangle_Height, Layer_2_Rectangle_Width, Layer_2_Rectangle_Height, Via_Width, Via_Height, Text_Height, Automatic_Placement):
+        if type(Automatic_Placement) != bool and Automatic_Placement is not None:
+            QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
+            logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
+            return False
         if type(Center) == tuple:
             try:
                 self.gds_design.add_p_via_test_structure(
@@ -3285,8 +3301,8 @@ class MyApp(QWidget):
                 center=self.validateCenter(Center) if Center else None,
                 width=float(Width) if Width else None,
                 height=float(Height) if Height else None,
-                lower_left=float(Lower_Left) if Lower_Left else None,
-                upper_right=float(Upper_Right) if Upper_Right else None,
+                lower_left=self.validateCenter(Lower_Left) if Lower_Left else None,
+                upper_right=self.validateCenter(Upper_Right) if Upper_Right else None,
                 rotation=float(Rotation)*math.pi/180
             )
         except Exception as e:
@@ -3437,6 +3453,10 @@ class MyApp(QWidget):
         return True
 
     def addElectronicsViaTest(self, Cell_Name, Layer_Number_1, Layer_Number_2, Via_Layer, Center, Text, Layer_1_Rect_Width, Layer_1_Rect_Height, Layer_2_Rect_Width, Layer_2_Rect_Height, Layer_2_Rect_Spacing, Via_Width, Via_Height, Via_Spacing, Text_Height, Automatic_Placement):
+        if type(Automatic_Placement) != bool and Automatic_Placement is not None:
+            QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
+            logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
+            return False
         if type(Center) == tuple:
             try:
                 self.gds_design.add_electronics_via_test_structure(
@@ -3551,6 +3571,10 @@ class MyApp(QWidget):
         return True
 
     def addShortTest(self, Cell_Name, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
+        if type(Automatic_Placement) != bool and Automatic_Placement is not None:
+            QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
+            logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
+            return False
         if type(Center) == tuple:
             try:
                 self.gds_design.add_short_test_structure(
@@ -3649,6 +3673,18 @@ class MyApp(QWidget):
         return True
 
     def addCustomTestStructure(self, Parent_Cell_Name, Center, Magnification, Rotation, X_Reflection, Array, Copies_X, Copies_Y, Pitch_X, Pitch_Y, Automatic_Placement):
+        if type(Array) != bool and Array is not None:
+            QMessageBox.critical(self, "Array Placement Error", "Please enter 'True' or 'False' for Array.", QMessageBox.Ok)
+            logging.error("Array Placement Error: Invalid value entered for Array")
+            return False
+        if type(X_Reflection) != bool and X_Reflection is not None:
+            QMessageBox.critical(self, "Placement Error", "Please enter 'True' or 'False' for X Reflection.", QMessageBox.Ok)
+            logging.error("Placement Error: Invalid value entered for X Reflection")
+            return False
+        if type(Automatic_Placement) != bool and Automatic_Placement is not None:
+            QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
+            logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
+            return False
         if Parent_Cell_Name == "":
             QMessageBox.critical(self, "Parent Cell Name Error", "Please enter a parent cell name.", QMessageBox.Ok)
             logging.error("Custom Test Structure placement error: No parent cell name provided")
