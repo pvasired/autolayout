@@ -1966,7 +1966,7 @@ class MyApp(QWidget):
 
                     self.gds_design.route_ports_a_star(self.cellComboBox.currentText(), ports1, orientations1,
                                                 ports2, orientations2, trace_width1, trace_space1, layer_name,
-                                                show_animation=False, obstacles=obstacles)
+                                                show_animation=True, obstacles=obstacles)
 
                     # Remove the routed ports from the corresponding escapeDicts
                     for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:

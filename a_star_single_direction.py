@@ -225,7 +225,7 @@ def draw_control(org_closed, flag, start, end, bound, obstacle, show_animation=F
             if show_animation:  # draw the path
                 print('Path found!')
                 plt.plot(path[:, 0], path[:, 1], '-r')
-                plt.title('Robot Arrived', size=20, loc='center')
+                plt.title('Path Arrived', size=20, loc='center')
                 plt.pause(0.01)
                 plt.show()
     elif flag == 1:  # start point blocked first
@@ -234,7 +234,7 @@ def draw_control(org_closed, flag, start, end, bound, obstacle, show_animation=F
             print('There is no path to the goal! Start point is blocked!')
     if show_animation:  # blocked case, draw the border line
         info = 'There is no path to the goal!' \
-               ' Robot&Goal are split by border' \
+               ' Start&Goal are split by border' \
                ' shown in red \'x\'!'
         if flag == 1:
             border = get_border_line(org_closed, obstacle)
@@ -283,10 +283,10 @@ def convert_polygons_to_obstacles(polygons, path_width, spacing):
     for i, poly_coords in enumerate(polygons):
         raw_poly = np.array(poly_coords)/spacing
         polygon = Polygon(raw_poly)
-        buffered_polygon = polygon.buffer(path_width)  # Buffer the polygon
+        buffered_polygon = polygon.buffer(path_width-1)  # Buffer the polygon
         xmin, ymin, xmax, ymax = buffered_polygon.bounds
-        for x in range(math.floor(xmin), math.ceil(xmax)+1):
-            for y in range(math.floor(ymin), math.ceil(ymax)+1):
+        for x in range(math.ceil(xmin), math.floor(xmax)+1):
+            for y in range(math.ceil(ymin), math.floor(ymax)+1):
                 if (x, y) not in obstacles:
                     point = Point(x, y)
                     if prep(buffered_polygon).contains(point):
