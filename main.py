@@ -822,6 +822,32 @@ class MyApp(QWidget):
         self.layerAreaEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.layerAreaEdit)
 
+        # Invert Layer Laout
+        invertLayerHBoxLayout = QHBoxLayout()
+        invertLayerButton = QPushButton('Invert Layer')
+        invertLayerButton.clicked.connect(self.invertLayer)
+        invertLayerButton.setToolTip('Click to invert the selected layer.')
+        invertLayerButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        invertLayerComboBoxLabel = QLabel('Select Layer to Invert:')
+        self.invertLayerComboBox = QComboBox()
+        self.invertLayerComboBox.setToolTip('Select a layer to invert.')
+        self.invertLayerComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        invertLayerCellComboBoxLabel = QLabel('Select Cell to Invert:')
+        self.invertLayerCellComboBox = QComboBox()
+        self.invertLayerCellComboBox.setToolTip('Select a cell to invert.')
+        self.invertLayerCellComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        inverLayerOutputComboBoxLabel = QLabel('Select Output Layer:')
+        self.invertLayerOutputComboBox = QComboBox()
+        self.invertLayerOutputComboBox.setToolTip('Select the output layer for the inverted layer.')
+        self.invertLayerOutputComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        invertLayerHBoxLayout.addWidget(invertLayerComboBoxLabel)
+        invertLayerHBoxLayout.addWidget(self.invertLayerComboBox)
+        invertLayerHBoxLayout.addWidget(invertLayerCellComboBoxLabel)
+        invertLayerHBoxLayout.addWidget(self.invertLayerCellComboBox)
+        invertLayerHBoxLayout.addWidget(inverLayerOutputComboBoxLabel)
+        invertLayerHBoxLayout.addWidget(self.invertLayerOutputComboBox)
+        invertLayerHBoxLayout.addWidget(invertLayerButton)        
+
         # Define Layer layout
         defineLayerHBoxLayout = QHBoxLayout()
         defineLayerButton = QPushButton('Define New Layer')
@@ -843,6 +869,7 @@ class MyApp(QWidget):
         # Layers and Define Layer layout
         layersVBoxLayout = QVBoxLayout()
         layersVBoxLayout.addLayout(layersHBoxLayout)
+        layersVBoxLayout.addLayout(invertLayerHBoxLayout)
         layersVBoxLayout.addLayout(defineLayerHBoxLayout)
 
         leftLayout.addLayout(layersVBoxLayout)
@@ -956,6 +983,9 @@ class MyApp(QWidget):
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3600, 800)  # Set the initial size of the window
         self.show()
+
+    def invertLayer(self):
+        pass
 
     def resetOtherGDSFile(self):
         logging.info("Resetting other GDS file")
@@ -2581,6 +2611,10 @@ class MyApp(QWidget):
         self.placementCellComboBox.addItems(sorted_keys)
         logging.info(f"Placement combo box populated with cells: {sorted_keys}")
 
+        self.invertLayerCellComboBox.clear()
+        self.invertLayerCellComboBox.addItems(sorted_keys)
+        logging.info(f"Invert Layer combo box populated with cells: {sorted_keys}")
+
         for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             cellComboBox.clear()
             cellComboBox.addItems(sorted_keys)
@@ -2591,6 +2625,8 @@ class MyApp(QWidget):
         self.plotLayersComboBox.clear()
         self.dicingStreetsLayerComboBox.clear()
         self.dieTextLayerComboBox.clear()
+        self.invertLayerComboBox.clear()
+        self.invertLayerOutputComboBox.clear()
         # Add layers to the dropdown sorted by layer number
         self.layerData.sort(key=lambda x: int(x[0]))
         for number, name in self.layerData:
@@ -2598,6 +2634,8 @@ class MyApp(QWidget):
             self.plotLayersComboBox.addItem(f"{number}: {name}")
             self.dicingStreetsLayerComboBox.addItem(f"{number}: {name}")
             self.dieTextLayerComboBox.addItem(f"{number}: {name}")
+            self.invertLayerComboBox.addItem(f"{number}: {name}")
+            self.invertLayerOutputComboBox.addItem(f"{number}: {name}")
         logging.info("Layers dropdowns updated")
 
     def validateOutputFileName(self):
