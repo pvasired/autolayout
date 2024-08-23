@@ -1418,6 +1418,7 @@ class MyApp(QWidget):
         total_locations = len(self.diePlacement.keys())
         progress_cnt = 0
         self.diePlacementProgressBar.show()
+        found_die_labels = {}
         for loc in self.diePlacement:
             progress = int((progress_cnt + 1) / total_locations * 100)
             self.diePlacementProgressBar.setValue(progress)
@@ -1499,13 +1500,13 @@ class MyApp(QWidget):
 
                 position = (loc[0]*1000 - offset[0], loc[1]*1000 - offset[1])   # Convert to um
                 self.gds_design.add_cell_reference(self.placementCellComboBox.currentText(), child_cell_name, position)
-                self.logTestStructure(die_label, {'notes': die_notes, 
-                                                  'center position (um)': (loc[0]*1000, loc[1]*1000), 
-                                                  'die cell name': child_cell_name,
-                                                  'die layers': die_layers, 
-                                                  'die filename': child_filename})
 
                 if die_label != '':
+                    if die_label not in found_die_labels:
+                        found_die_labels[die_label] = 1
+                    else:
+                        found_die_labels[die_label] += 1
+                    die_label = die_label + str(found_die_labels[die_label])
                     if self.diePlacement[loc][0]['dieTextPosition'] is None:
                         self.gds_design.add_text(self.placementCellComboBox.currentText(), 
                                                 die_label, 
@@ -1520,6 +1521,12 @@ class MyApp(QWidget):
                                                 self.dieTextLayerComboBox.currentText().split(':')[1].strip(), 
                                                 ((loc[0]+x)*1000, (loc[1]+y)*1000), 
                                                 self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR)
+                
+                self.logTestStructure(die_label, {'notes': die_notes, 
+                                                  'center position (um)': (loc[0]*1000, loc[1]*1000), 
+                                                  'die cell name': child_cell_name,
+                                                  'die layers': die_layers, 
+                                                  'die filename': child_filename})
             
             progress_cnt += 1
                 
