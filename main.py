@@ -1401,6 +1401,11 @@ class MyApp(QWidget):
                     QMessageBox.warning(self, 'Warning', f"Cell {cell_name} dimensions exceed the die dimensions.", QMessageBox.Ok)
                     logging.warning(f"Cell {cell_name} dimensions exceed the die dimensions")
                 self.dieInfo[rowIndex]['offset'] = cell_offset
+                if self.deepSiEtchingLayer is not None:
+                    deepSiEtchMin, deepSiEtchMax = dieDesign.get_minmax_feature_size(cell_name, self.deepSiEtchingLayer)
+                    self.dieInfo[rowIndex]['dieDeepSiEtchingMinFeatureSizeEdit'].setText(f'{round(deepSiEtchMin, 1)}um')
+                    self.dieInfo[rowIndex]['dieDeepSiEtchingMaxFeatureSizeEdit'].setText(f'{round(deepSiEtchMax, 1)}um')
+                    logging.info(f"Cell {cell_name} deep Si etching feature size: {deepSiEtchMin} - {deepSiEtchMax} um")
         
         logging.info("Die cells validated")
 
@@ -1618,6 +1623,18 @@ class MyApp(QWidget):
         dieTextPositionEdit.editingFinished.connect(self.updateDieLabelPosition)
         rowLayout.addWidget(dieTextPositionEdit)
 
+        dieDeepSiEtchingMinFeatureSizeEdit = QLineEdit()
+        dieDeepSiEtchingMinFeatureSizeEdit.setPlaceholderText('0')
+        dieDeepSiEtchingMinFeatureSizeEdit.setReadOnly(True)
+        dieDeepSiEtchingMinFeatureSizeEdit.setToolTip('Displays the minimum feature size for deep Si etching.')
+        rowLayout.addWidget(dieDeepSiEtchingMinFeatureSizeEdit)
+
+        dieDeepSiEtchingMaxFeatureSizeEdit = QLineEdit()
+        dieDeepSiEtchingMaxFeatureSizeEdit.setPlaceholderText('0')
+        dieDeepSiEtchingMaxFeatureSizeEdit.setReadOnly(True)
+        dieDeepSiEtchingMaxFeatureSizeEdit.setToolTip('Displays the maximum feature size for deep Si etching.')
+        rowLayout.addWidget(dieDeepSiEtchingMaxFeatureSizeEdit)
+
         # Add the row widget (with layout and color) to the left layout
         self.dieLeftLayout.addWidget(rowWidget)
         self.dieInfo[self.rowIndex] = {}
@@ -1632,6 +1649,8 @@ class MyApp(QWidget):
         self.dieInfo[self.rowIndex]['offset'] = None
         self.dieInfo[self.rowIndex]['fileName'] = None
         self.dieInfo[self.rowIndex]['dieTextPosition'] = None
+        self.dieInfo[self.rowIndex]['dieDeepSiEtchingMinFeatureSizeEdit'] = dieDeepSiEtchingMinFeatureSizeEdit
+        self.dieInfo[self.rowIndex]['dieDeepSiEtchingMaxFeatureSizeEdit'] = dieDeepSiEtchingMaxFeatureSizeEdit
         self.rowIndex += 1
         
     def showDiePlacementUtility(self):
@@ -1652,6 +1671,7 @@ class MyApp(QWidget):
         self.dicing_street_width = None
         self.dieLabelTextBuffer = 100
         self.dieLabelTextHeight = 200
+        self.deepSiEtchingLayer = 50
 
         # Main layout
         mainLayout = QHBoxLayout()
@@ -1732,30 +1752,42 @@ class MyApp(QWidget):
         # Die Placement layout
         diePlacementLayout = QHBoxLayout()
         placementCellLabel = QLabel('Cell to Place Dies:')
-        self.dicingStreetsCheckBox = QCheckBox('Add Dicing Streets?')
-        self.dicingStreetsCheckBox.stateChanged.connect(self.dicingStreetsCheckBoxChanged)
         dieTextLayerLabel = QLabel('Layer for Die Labels:')
         dieTextSizeLabel = QLabel('Label Text Height:')
         dieTextSizeTextBox = EnterLineEdit()
         dieTextSizeTextBox.setText(str(self.dieLabelTextHeight))
         dieTextSizeTextBox.setToolTip('type:(number) Enter the text height for the die labels in um.')
         dieTextSizeTextBox.editingFinished.connect(self.setDieLabelTextHeight)
-        subdicingStreetsLayerLabel = QLabel('Subdicing Streets Layer:')
-        self.subdicingStreetsLayerEdit = EnterLineEdit()
-        self.subdicingStreetsLayerEdit.setToolTip('type:(integer) Enter the layer number for the subdicing streets.')
         diePlacementLayout.addWidget(placementCellLabel)
         diePlacementLayout.addWidget(self.placementCellComboBox)
         diePlacementLayout.addWidget(dieTextLayerLabel)
         diePlacementLayout.addWidget(self.dieTextLayerComboBox)
         diePlacementLayout.addWidget(dieTextSizeLabel)
         diePlacementLayout.addWidget(dieTextSizeTextBox)
-        diePlacementLayout.addWidget(subdicingStreetsLayerLabel)
-        diePlacementLayout.addWidget(self.subdicingStreetsLayerEdit)
-        diePlacementLayout.addWidget(self.dicingStreetsCheckBox)
-        diePlacementLayout.addWidget(self.dicingStreetsLayerComboBox)
+        
+        self.dieLeftLayout.addLayout(diePlacementLayout)
+
+        diePlacementOptionsLayout = QHBoxLayout()
+        self.dicingStreetsCheckBox = QCheckBox('Add Dicing Streets?')
+        self.dicingStreetsCheckBox.stateChanged.connect(self.dicingStreetsCheckBoxChanged)
+        subdicingStreetsLayerLabel = QLabel('Subdicing Streets Layer:')
+        self.subdicingStreetsLayerEdit = EnterLineEdit()
+        self.subdicingStreetsLayerEdit.setToolTip('type:(integer) Enter the layer number for the subdicing streets.')
+        deepSiEtchingLayerLabel = QLabel('Deep Si Etching Layer:')
+        self.deepSiEtchingLayerEdit = EnterLineEdit()
+        self.deepSiEtchingLayerEdit.setText(str(self.deepSiEtchingLayer))
+        self.deepSiEtchingLayerEdit.setToolTip('type:(integer) Enter the layer number for deep Si etching.')
+        self.deepSiEtchingLayerEdit.editingFinished.connect(self.setDeepSiEtchingLayer)
+
+        diePlacementOptionsLayout.addWidget(subdicingStreetsLayerLabel)
+        diePlacementOptionsLayout.addWidget(self.subdicingStreetsLayerEdit)
+        diePlacementOptionsLayout.addWidget(deepSiEtchingLayerLabel)
+        diePlacementOptionsLayout.addWidget(self.deepSiEtchingLayerEdit)
+        diePlacementOptionsLayout.addWidget(self.dicingStreetsCheckBox)
+        diePlacementOptionsLayout.addWidget(self.dicingStreetsLayerComboBox)
 
         self.dicingStreetsLayerComboBox.hide()
-        self.dieLeftLayout.addLayout(diePlacementLayout)
+        self.dieLeftLayout.addLayout(diePlacementOptionsLayout)
 
         addRowButton = QPushButton('+ Add Row')
         addRowButton.clicked.connect(self.addRow)
@@ -1822,8 +1854,20 @@ class MyApp(QWidget):
 
         # Set the layout for the pop-up window
         self.diePlacementWindow.setLayout(mainLayout)
-        self.diePlacementWindow.resize(3000, 1200)  # Adjust window size as needed
+        self.diePlacementWindow.resize(3500, 1200)  # Adjust window size as needed
         self.diePlacementWindow.show()
+    
+    def setDeepSiEtchingLayer(self):
+        if self.deepSiEtchingLayerEdit.text() == '':
+            self.deepSiEtchingLayer = None
+            logging.info("Deep Si etching layer set to None")
+            return
+        try:
+            self.deepSiEtchingLayer = int(self.deepSiEtchingLayerEdit.text().strip())
+            logging.info(f"Deep Si etching layer set to {self.deepSiEtchingLayer}")
+        except:
+            QMessageBox.critical(self, 'Error', 'Deep Si etching layer must be an integer.', QMessageBox.Ok)
+            logging.error("Error setting deep Si etching layer")
 
     def updateDieLabelPosition(self):
         sender = self.sender()
