@@ -2226,6 +2226,25 @@ class GDSDesign:
     def write_gds(self, filename):
         self.lib.write_gds(filename)
         print(f'GDS file written to {filename}')
+    
+    def invert_polygons_on_layer(self, cell_name, layer_name, output_layer_name):
+        cell = self.check_cell_exists(cell_name)
+        layer_number = self.get_layer_number(layer_name)
+        output_layer_number = self.get_layer_number(output_layer_name)
+
+        # Get polygons by specification (layer and datatype)
+        polygons_by_spec = cell.get_polygons(by_spec=True)
+
+        width, height, offset = self.calculate_cell_size(cell_name)
+        inversion_box = box(offset[0]-width/2, offset[1]-height/2, offset[0]+width/2, offset[1]+height/2)
+        x, y = inversion_box.exterior.coords.xy
+        coords = [np.vstack((x, y)).T]
+        for (lay, dat), polys in polygons_by_spec.items():
+            if lay == layer_number:
+                output = gdspy.boolean(coords, polys, 'not', layer=output_layer_number)
+        
+        for poly in output.polygons:
+            self.add_polygon(cell_name, poly, output_layer_name)
 
     def determine_available_space(self, substrate_layer_name, excluded_layers):
         """

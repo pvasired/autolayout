@@ -822,7 +822,7 @@ class MyApp(QWidget):
         self.layerAreaEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layersHBoxLayout.addWidget(self.layerAreaEdit)
 
-        # Invert Layer Laout
+        # Invert Layer Layout
         invertLayerHBoxLayout = QHBoxLayout()
         invertLayerButton = QPushButton('Invert Layer')
         invertLayerButton.clicked.connect(self.invertLayer)
@@ -985,7 +985,37 @@ class MyApp(QWidget):
         self.show()
 
     def invertLayer(self):
-        pass
+        if self.invertLayerComboBox.currentText() == '':
+            QMessageBox.critical(self, "Layer Error", "Please select a layer to invert.", QMessageBox.Ok)
+            logging.error("Layer selection error: No layer selected for inversion")
+            return
+        if self.invertLayerOutputComboBox.currentText() == '':
+            QMessageBox.critical(self, "Layer Error", "Please select an output layer for the inverted layer.", QMessageBox.Ok)
+            logging.error("Layer selection error: No output layer selected for inversion")
+            return
+        if self.invertLayerCellComboBox.currentText() == '':
+            QMessageBox.critical(self, "Cell Error", "Please select a cell to invert.", QMessageBox.Ok)
+            logging.error("Cell selection error: No cell selected for inversion")
+            return
+        if self.gds_design is None:
+            QMessageBox.critical(self, "Design Error", "Please load a GDS file before inverting a layer.", QMessageBox.Ok)
+            logging.error("Design error: No GDS file loaded for inversion")
+            return
+        layer_name = self.invertLayerComboBox.currentText().split(':')[1].strip()
+        output_layer_name = self.invertLayerOutputComboBox.currentText().split(':')[1].strip()
+        cell_name = self.invertLayerCellComboBox.currentText()
+        self.addSnapshot()
+        try:
+            self.gds_design.invert_polygons_on_layer(cell_name, layer_name, output_layer_name)
+            logging.info(f"Layer {layer_name} inverted and output to {output_layer_name} in cell {cell_name}")
+            self.writeToGDS()
+            self.updateAvailableSpace()
+            self.update_plot_data()
+        except (ValueError, AssertionError, Exception) as e:
+            QMessageBox.critical(self, "Inversion Error", f"Error inverting layer: {e}", QMessageBox.Ok)
+            logging.error(f"Inversion error: {e}")
+
+            self.undo()
 
     def resetOtherGDSFile(self):
         logging.info("Resetting other GDS file")
