@@ -1322,7 +1322,10 @@ class MyApp(QWidget):
             return
         
         keys = [key for key, value in self.diePlacement.items() if value[0] is None and value[1].get_facecolor() != (0, 0, 0, 1)]
-        random.shuffle(keys)
+        if self.shuffleCheckBox.isChecked():
+            random.shuffle(keys)
+        else:
+            keys = sorted(keys, key=lambda x: (x[1], x[0]))
 
         numDies_tot = 0
         for rowIndex in self.dieInfo:
@@ -1735,6 +1738,9 @@ class MyApp(QWidget):
         self.autoPlaceButton.clicked.connect(self.autoPlaceDies)
         self.autoPlaceButton.setToolTip('Click to automatically place the dies in the available locations.')
         buttonLayout.addWidget(self.autoPlaceButton)
+        self.shuffleCheckBox = QCheckBox('Shuffle Placement?')
+        self.shuffleCheckBox.setToolTip('Check to shuffle the automatic placement of the dies.')
+        buttonLayout.addWidget(self.shuffleCheckBox)
         clearButton = QPushButton('Clear Die Placement')
         clearButton.clicked.connect(self.createDiePlacement)
         clearButton.setToolTip('Click to clear the die placement.')
