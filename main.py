@@ -1412,8 +1412,8 @@ class MyApp(QWidget):
                     logging.warning(f"Cell {cell_name} dimensions exceed the die dimensions")
                 self.dieInfo[rowIndex]['offset'] = cell_offset
                 if self.deepSiEtchingLayerComboBox.currentText() != '':
-                    deepSiEtchingLayer = self.deepSiEtchingLayerComboBox.currentText().split(':')[1].strip()
-                    deepSiEtchMin, deepSiEtchMax = dieDesign.get_minmax_feature_size(cell_name, deepSiEtchingLayer)
+                    deepSiEtchingLayerNumber = int(self.deepSiEtchingLayerComboBox.currentText().split(':')[0].strip())
+                    deepSiEtchMin, deepSiEtchMax = dieDesign.get_minmax_feature_size(cell_name, deepSiEtchingLayerNumber)
                     self.dieInfo[rowIndex]['dieDeepSiEtchingMinFeatureSizeEdit'].setText(f'{round(deepSiEtchMin, 1)}um')
                     self.dieInfo[rowIndex]['dieDeepSiEtchingMaxFeatureSizeEdit'].setText(f'{round(deepSiEtchMax, 1)}um')
                     logging.info(f"Cell {cell_name} deep Si etching feature size: {deepSiEtchMin} - {deepSiEtchMax} um")
