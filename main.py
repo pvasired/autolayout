@@ -1506,12 +1506,20 @@ class MyApp(QWidget):
                                                   'die filename': child_filename})
 
                 if die_label != '':
-                    self.gds_design.add_text(self.placementCellComboBox.currentText(), 
-                                             die_label, 
-                                             self.dieTextLayerComboBox.currentText().split(':')[1].strip(), 
-                                             ((loc[0]+self.die_width/2)*1000-2*len(die_label)*self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR*GDS_TEXT_SPACING_FACTOR-self.dieLabelTextBuffer, 
-                                              (loc[1]+self.die_height/2)*1000-self.dieLabelTextHeight-self.dieLabelTextBuffer), 
-                                             self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR)
+                    if self.diePlacement[loc][0]['dieTextPosition'] is None:
+                        self.gds_design.add_text(self.placementCellComboBox.currentText(), 
+                                                die_label, 
+                                                self.dieTextLayerComboBox.currentText().split(':')[1].strip(), 
+                                                ((loc[0]+self.die_width/2)*1000-2*len(die_label)*self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR*GDS_TEXT_SPACING_FACTOR-self.dieLabelTextBuffer, 
+                                                (loc[1]+self.die_height/2)*1000-self.dieLabelTextHeight-self.dieLabelTextBuffer), 
+                                                self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR)
+                    else:
+                        x, y = self.diePlacement[loc][0]['dieTextPosition']
+                        self.gds_design.add_text(self.placementCellComboBox.currentText(), 
+                                                die_label, 
+                                                self.dieTextLayerComboBox.currentText().split(':')[1].strip(), 
+                                                ((loc[0]+x)*1000, (loc[1]+y)*1000), 
+                                                self.dieLabelTextHeight/TEXT_HEIGHT_FACTOR)
             
             progress_cnt += 1
                 
@@ -1571,6 +1579,12 @@ class MyApp(QWidget):
         dieNotesEdit.editingFinished.connect(self.updatePlacementLegend)
         rowLayout.addWidget(dieNotesEdit)
 
+        dieTextPositionEdit = PushButtonEdit(self.autoPlaceButton)
+        dieTextPositionEdit.setPlaceholderText('Label Position x,y (mm)')
+        dieTextPositionEdit.setToolTip('type:(comma-separated tuple x,y) Enter the bottom-left text position for the die labels in mm assuming 0,0 is at the center of the window for the die. Can leave blank for default.')
+        dieTextPositionEdit.editingFinished.connect(self.updateDieLabelPosition)
+        rowLayout.addWidget(dieTextPositionEdit)
+
         # Add the row widget (with layout and color) to the left layout
         self.dieLeftLayout.addWidget(rowWidget)
         self.dieInfo[self.rowIndex] = {}
@@ -1579,10 +1593,12 @@ class MyApp(QWidget):
         self.dieInfo[self.rowIndex]['numDiesEdit'] = numDiesEdit
         self.dieInfo[self.rowIndex]['dieLabelEdit'] = dieLabelEdit
         self.dieInfo[self.rowIndex]['dieNotesEdit'] = dieNotesEdit
+        self.dieInfo[self.rowIndex]['dieTextPositionEdit'] = dieTextPositionEdit
         self.dieInfo[self.rowIndex]['rowWidget'] = rowWidget
         self.dieInfo[self.rowIndex]['dieDesign'] = None
         self.dieInfo[self.rowIndex]['offset'] = None
         self.dieInfo[self.rowIndex]['fileName'] = None
+        self.dieInfo[self.rowIndex]['dieTextPosition'] = None
         self.rowIndex += 1
         
     def showDiePlacementUtility(self):
@@ -1767,6 +1783,41 @@ class MyApp(QWidget):
         self.diePlacementWindow.setLayout(mainLayout)
         self.diePlacementWindow.resize(3000, 1200)  # Adjust window size as needed
         self.diePlacementWindow.show()
+
+    def updateDieLabelPosition(self):
+        sender = self.sender()
+        for rowIndex in self.dieInfo:
+            dieTextPositionEdit= self.dieInfo[rowIndex]['dieTextPositionEdit']
+            if dieTextPositionEdit == sender:
+                break
+
+        raw_text = sender.text()
+        if raw_text == '':
+            self.dieInfo[rowIndex]['dieTextPosition'] = None
+            logging.info("Die label position set to None")
+            return
+        if self.die_width is None or self.die_height is None:
+            QMessageBox.critical(self, 'Error', 'Please set the die dimensions before positioning labels.', QMessageBox.Ok)
+            logging.error("Error updating die label position: Die dimensions not set")
+            return
+        split = raw_text.split(',')
+        if len(split) != 2:
+            QMessageBox.critical(self, 'Error', 'Invalid format for die label position.', QMessageBox.Ok)
+            logging.error("Error updating die label position: Invalid format")
+            return
+        try:
+            x = float(split[0].strip())
+            y = float(split[1].strip())
+            if x <= -self.die_width/2 or x >= self.die_width/2 or y <= -self.die_height/2 or y >= self.die_height/2:
+                QMessageBox.critical(self, 'Error', 'Die label position outside the die dimensions.', QMessageBox.Ok)
+                logging.error("Error updating die label position: Position outside die dimensions")
+                return
+            self.dieInfo[rowIndex]['dieTextPosition'] = (x, y)
+            logging.info(f"Die label position set to {self.dieInfo[rowIndex]['dieTextPosition']}")
+        except:
+            QMessageBox.critical(self, 'Error', 'Invalid format for die label position.', QMessageBox.Ok)
+            logging.error("Error updating die label position: Invalid format")
+            return
 
     def setDieLabelTextHeight(self):
         self.dieLabelTextHeight = float(self.sender().text())
