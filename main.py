@@ -851,10 +851,10 @@ class MyApp(QWidget):
 
         # Plot Area Layout
         plotAreaLayout = QVBoxLayout()
-        self.fig = Figure(figsize=(20, 12))  # Adjust the figsize to make the plot bigger
+        self.fig = Figure(figsize=(15, 10))  # Adjust the figsize to make the plot bigger
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
-        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.canvas.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         
         # Connect the click event to the handler
         self.canvas.mpl_connect('button_press_event', self.on_click)
@@ -1822,9 +1822,9 @@ class MyApp(QWidget):
 
         diePlotLayout = QVBoxLayout()
         # Graphical Interface using Matplotlib
-        self.dieFig = Figure(figsize=(20, 12))  # Adjust size as needed
+        self.dieFig = Figure(figsize=(12, 8))  # Adjust size as needed
         self.dieCanvas = FigureCanvas(self.dieFig)
-        self.dieCanvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.dieCanvas.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.dieCanvas.mpl_connect('button_press_event', self.die_on_click)
         self.dieAx = self.dieFig.add_subplot(111)
         diePlotLayout.addWidget(self.dieCanvas)
