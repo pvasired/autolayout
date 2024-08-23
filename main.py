@@ -1428,6 +1428,8 @@ class MyApp(QWidget):
             if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() == '':
                 QMessageBox.critical(self, 'Error', 'Please select a layer for the dicing streets.', QMessageBox.Ok)
                 logging.error("Error placing dies: No layer selected for dicing streets")
+                self.diePlacementProgressBar.setValue(0)
+                self.diePlacementProgressBar.hide()
                 return
             if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
                 dicing_layer_name = self.dicingStreetsLayerComboBox.currentText().split(':')[1].strip()
@@ -1496,9 +1498,29 @@ class MyApp(QWidget):
                 if die_label != '' and self.dieTextLayerComboBox.currentText() == '':
                     QMessageBox.critical(self, 'Error', 'Please select a layer for the die text.', QMessageBox.Ok)
                     logging.error("Error placing dies: No layer selected for die text")
+
+                    self.diePlacementProgressBar.setValue(0)
+                    self.diePlacementProgressBar.hide()
                     return
                 die_notes = self.diePlacement[loc][0]['dieNotesEdit'].text()
                 die_layers = child_design.get_layers_on_cell(child_cell_name)
+                if 'subdicing' in die_notes.lower():
+                    try:
+                        subdicing_layer = int(self.subdicingStreetsLayerEdit.text().strip())
+                    except:
+                        QMessageBox.critical(self, 'Error', 'Subdicing layer must be an integer.', QMessageBox.Ok)
+                        logging.error("Error placing dies: Subdicing layer not an integer")
+
+                        self.diePlacementProgressBar.setValue(0)
+                        self.diePlacementProgressBar.hide()
+                        return
+                    if subdicing_layer not in die_layers:
+                        QMessageBox.critical(self, 'Error', 'Subdicing layer not found in die layers.', QMessageBox.Ok)
+                        logging.error("Error placing dies: Subdicing layer not found in die layers")
+
+                        self.diePlacementProgressBar.setValue(0)
+                        self.diePlacementProgressBar.hide()
+                        return
                 offset = self.diePlacement[loc][0]['offset']
 
                 position = (loc[0]*1000 - offset[0], loc[1]*1000 - offset[1])   # Convert to um
@@ -1717,12 +1739,17 @@ class MyApp(QWidget):
         dieTextSizeTextBox.setText(str(self.dieLabelTextHeight))
         dieTextSizeTextBox.setToolTip('type:(number) Enter the text height for the die labels in um.')
         dieTextSizeTextBox.editingFinished.connect(self.setDieLabelTextHeight)
+        subdicingStreetsLayerLabel = QLabel('Subdicing Streets Layer:')
+        self.subdicingStreetsLayerEdit = EnterLineEdit()
+        self.subdicingStreetsLayerEdit.setToolTip('type:(integer) Enter the layer number for the subdicing streets.')
         diePlacementLayout.addWidget(placementCellLabel)
         diePlacementLayout.addWidget(self.placementCellComboBox)
         diePlacementLayout.addWidget(dieTextLayerLabel)
         diePlacementLayout.addWidget(self.dieTextLayerComboBox)
         diePlacementLayout.addWidget(dieTextSizeLabel)
         diePlacementLayout.addWidget(dieTextSizeTextBox)
+        diePlacementLayout.addWidget(subdicingStreetsLayerLabel)
+        diePlacementLayout.addWidget(self.subdicingStreetsLayerEdit)
         diePlacementLayout.addWidget(self.dicingStreetsCheckBox)
         diePlacementLayout.addWidget(self.dicingStreetsLayerComboBox)
 
