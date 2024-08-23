@@ -851,10 +851,10 @@ class MyApp(QWidget):
 
         # Plot Area Layout
         plotAreaLayout = QVBoxLayout()
-        self.fig = Figure(figsize=(15, 10))  # Adjust the figsize to make the plot bigger
+        self.fig = Figure(figsize=(20, 12))  # Adjust the figsize to make the plot bigger
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
-        self.canvas.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
         # Connect the click event to the handler
         self.canvas.mpl_connect('button_press_event', self.on_click)
@@ -952,16 +952,6 @@ class MyApp(QWidget):
         self.dieTextLayerComboBox.setToolTip('Select the layer for the die text.')
         self.dieTextLayerComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        self.subdicingStreetsLayerComboBox = QComboBox()
-        self.subdicingStreetsLayerComboBox.setPlaceholderText('Select Subdicing Streets Layer')
-        self.subdicingStreetsLayerComboBox.setToolTip('Select the layer for the subdicing streets.')
-        self.subdicingStreetsLayerComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-        self.deepSiEtchingLayerComboBox = QComboBox()
-        self.deepSiEtchingLayerComboBox.setPlaceholderText('Select Deep Si Etching Layer')
-        self.deepSiEtchingLayerComboBox.setToolTip('Select the layer for deep Si etching.')
-        self.deepSiEtchingLayerComboBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
         self.setLayout(mainLayout)
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3600, 800)  # Set the initial size of the window
@@ -1012,10 +1002,9 @@ class MyApp(QWidget):
                         break
                 # Load the GDS file using GDSDesign
                 dieDesign = GDSDesign(filename=fileName)
-                sorted_keys = sorted(dieDesign.cells.keys(), key=lambda x: x.lower())
                 self.dieInfo[rowIndex]['cellComboBox'].clear()
-                self.dieInfo[rowIndex]['cellComboBox'].addItems(sorted_keys)
-                logging.info(f"Cell combo box populated with cells: {sorted_keys}")
+                self.dieInfo[rowIndex]['cellComboBox'].addItems(dieDesign.cells.keys())
+                logging.info(f"Cell combo box populated with cells: {list(dieDesign.cells.keys())}")
 
                 # Store the GDSDesign instance
                 self.dieInfo[rowIndex]['dieDesign'] = dieDesign
@@ -1411,12 +1400,6 @@ class MyApp(QWidget):
                     QMessageBox.warning(self, 'Warning', f"Cell {cell_name} dimensions exceed the die dimensions.", QMessageBox.Ok)
                     logging.warning(f"Cell {cell_name} dimensions exceed the die dimensions")
                 self.dieInfo[rowIndex]['offset'] = cell_offset
-                if self.deepSiEtchingLayerComboBox.currentText() != '':
-                    deepSiEtchingLayerNumber = int(self.deepSiEtchingLayerComboBox.currentText().split(':')[0].strip())
-                    deepSiEtchMin, deepSiEtchMax = dieDesign.get_minmax_feature_size(cell_name, deepSiEtchingLayerNumber)
-                    self.dieInfo[rowIndex]['dieDeepSiEtchingMinFeatureSizeEdit'].setText(f'{round(deepSiEtchMin, 1)}um')
-                    self.dieInfo[rowIndex]['dieDeepSiEtchingMaxFeatureSizeEdit'].setText(f'{round(deepSiEtchMax, 1)}um')
-                    logging.info(f"Cell {cell_name} deep Si etching feature size: {deepSiEtchMin} - {deepSiEtchMax} um")
         
         logging.info("Die cells validated")
 
@@ -1523,7 +1506,7 @@ class MyApp(QWidget):
                 die_layers = child_design.get_layers_on_cell(child_cell_name)
                 if 'subdicing' in die_notes.lower():
                     try:
-                        subdicing_layer = int(self.subdicingStreetsLayerComboBox.currentText().split(':')[0].strip())
+                        subdicing_layer = int(self.subdicingStreetsLayerEdit.text().strip())
                     except:
                         QMessageBox.critical(self, 'Error', 'Subdicing layer must be an integer.', QMessageBox.Ok)
                         logging.error("Error placing dies: Subdicing layer not an integer")
@@ -1634,18 +1617,6 @@ class MyApp(QWidget):
         dieTextPositionEdit.editingFinished.connect(self.updateDieLabelPosition)
         rowLayout.addWidget(dieTextPositionEdit)
 
-        dieDeepSiEtchingMinFeatureSizeEdit = QLineEdit()
-        dieDeepSiEtchingMinFeatureSizeEdit.setPlaceholderText('0')
-        dieDeepSiEtchingMinFeatureSizeEdit.setReadOnly(True)
-        dieDeepSiEtchingMinFeatureSizeEdit.setToolTip('Displays the minimum feature size for deep Si etching.')
-        rowLayout.addWidget(dieDeepSiEtchingMinFeatureSizeEdit)
-
-        dieDeepSiEtchingMaxFeatureSizeEdit = QLineEdit()
-        dieDeepSiEtchingMaxFeatureSizeEdit.setPlaceholderText('0')
-        dieDeepSiEtchingMaxFeatureSizeEdit.setReadOnly(True)
-        dieDeepSiEtchingMaxFeatureSizeEdit.setToolTip('Displays the maximum feature size for deep Si etching.')
-        rowLayout.addWidget(dieDeepSiEtchingMaxFeatureSizeEdit)
-
         # Add the row widget (with layout and color) to the left layout
         self.dieLeftLayout.addWidget(rowWidget)
         self.dieInfo[self.rowIndex] = {}
@@ -1660,8 +1631,6 @@ class MyApp(QWidget):
         self.dieInfo[self.rowIndex]['offset'] = None
         self.dieInfo[self.rowIndex]['fileName'] = None
         self.dieInfo[self.rowIndex]['dieTextPosition'] = None
-        self.dieInfo[self.rowIndex]['dieDeepSiEtchingMinFeatureSizeEdit'] = dieDeepSiEtchingMinFeatureSizeEdit
-        self.dieInfo[self.rowIndex]['dieDeepSiEtchingMaxFeatureSizeEdit'] = dieDeepSiEtchingMaxFeatureSizeEdit
         self.rowIndex += 1
         
     def showDiePlacementUtility(self):
@@ -1771,7 +1740,8 @@ class MyApp(QWidget):
         dieTextSizeTextBox.setToolTip('type:(number) Enter the text height for the die labels in um.')
         dieTextSizeTextBox.editingFinished.connect(self.setDieLabelTextHeight)
         subdicingStreetsLayerLabel = QLabel('Subdicing Streets Layer:')
-        deepSiEtchingLayerLabel = QLabel('Deep Si Etching Layer:')
+        self.subdicingStreetsLayerEdit = EnterLineEdit()
+        self.subdicingStreetsLayerEdit.setToolTip('type:(integer) Enter the layer number for the subdicing streets.')
         diePlacementLayout.addWidget(placementCellLabel)
         diePlacementLayout.addWidget(self.placementCellComboBox)
         diePlacementLayout.addWidget(dieTextLayerLabel)
@@ -1779,9 +1749,7 @@ class MyApp(QWidget):
         diePlacementLayout.addWidget(dieTextSizeLabel)
         diePlacementLayout.addWidget(dieTextSizeTextBox)
         diePlacementLayout.addWidget(subdicingStreetsLayerLabel)
-        diePlacementLayout.addWidget(self.subdicingStreetsLayerComboBox)
-        diePlacementLayout.addWidget(deepSiEtchingLayerLabel)
-        diePlacementLayout.addWidget(self.deepSiEtchingLayerComboBox)
+        diePlacementLayout.addWidget(self.subdicingStreetsLayerEdit)
         diePlacementLayout.addWidget(self.dicingStreetsCheckBox)
         diePlacementLayout.addWidget(self.dicingStreetsLayerComboBox)
 
@@ -1822,9 +1790,9 @@ class MyApp(QWidget):
 
         diePlotLayout = QVBoxLayout()
         # Graphical Interface using Matplotlib
-        self.dieFig = Figure(figsize=(12, 8))  # Adjust size as needed
+        self.dieFig = Figure(figsize=(20, 12))  # Adjust size as needed
         self.dieCanvas = FigureCanvas(self.dieFig)
-        self.dieCanvas.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.dieCanvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.dieCanvas.mpl_connect('button_press_event', self.die_on_click)
         self.dieAx = self.dieFig.add_subplot(111)
         diePlotLayout.addWidget(self.dieCanvas)
@@ -2442,10 +2410,9 @@ class MyApp(QWidget):
                             logging.warning(f'Duplicate cell found. Renaming cell {cell} to {cell}_custom_{idstr}')
 
                 # Populate the custom test cell combo box with cell names
-                sorted_custom_keys = sorted(self.custom_design.lib.cells.keys(), key=lambda x: x.lower())
                 self.customTestCellComboBox.clear()
-                self.customTestCellComboBox.addItems(sorted_custom_keys)
-                logging.info(f"Custom Test Structure cell names: {sorted_custom_keys}")
+                self.customTestCellComboBox.addItems(self.custom_design.lib.cells.keys())
+                logging.info(f"Custom Test Structure cell names: {list(self.custom_design.lib.cells.keys())}")
 
                 self.resetOtherGDSButton.show()
             else:
@@ -2546,41 +2513,36 @@ class MyApp(QWidget):
             logging.error(f"Error reading escape routing points file: {str(e)}")
     
     def updateCellComboBox(self):
-        sorted_keys = sorted(self.gds_design.cells.keys(), key=lambda x: x.lower())
-
         self.cellComboBox.clear()
-        self.cellComboBox.addItems(sorted_keys)
-        logging.info(f"Cell combo box populated with cells: {sorted_keys}")
+        self.cellComboBox.addItems(self.gds_design.cells.keys())
+        logging.info(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         self.layerCellComboBox.clear()
-        self.layerCellComboBox.addItems(sorted_keys)
-        logging.info(f"Layer cell combo box populated with cells: {sorted_keys}")
+        self.layerCellComboBox.addItems(self.gds_design.cells.keys())
+        logging.info(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         self.customTestCellComboBox.clear()
         if self.custom_design is None:
-            self.customTestCellComboBox.addItems(sorted_keys)
-            logging.info(f"Custom Test Structure combo box populated with cells: {sorted_keys}")
+            self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
+            logging.info(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
         else:
-            sorted_custom_keys = sorted(self.custom_design.cells.keys(), key=lambda x: x.lower())
-            self.customTestCellComboBox.addItems(sorted_custom_keys)
-            logging.info(f"Custom Test Structure combo box populated with cells: {sorted_custom_keys}")
+            self.customTestCellComboBox.addItems(self.custom_design.cells.keys())
+            logging.info(f"Custom Test Structure combo box populated with cells: {list(self.custom_design.cells.keys())}")
 
         self.placementCellComboBox.clear()
-        self.placementCellComboBox.addItems(sorted_keys)
-        logging.info(f"Placement combo box populated with cells: {sorted_keys}")
+        self.placementCellComboBox.addItems(self.gds_design.cells.keys())
+        logging.info(f"Placement combo box populated with cells: {list(self.gds_design.cells.keys())}")
 
         for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             cellComboBox.clear()
-            cellComboBox.addItems(sorted_keys)
-            logging.info(f"Cell combo box populated for {checkBox.text()} test structure: {sorted_keys}")
+            cellComboBox.addItems(self.gds_design.cells.keys())
+            logging.info(f"Cell combo box populated for {checkBox.text()} test structure: {list(self.gds_design.cells.keys())}")
                 
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
         self.plotLayersComboBox.clear()
         self.dicingStreetsLayerComboBox.clear()
         self.dieTextLayerComboBox.clear()
-        self.subdicingStreetsLayerComboBox.clear()
-        self.deepSiEtchingLayerComboBox.clear()
         # Add layers to the dropdown sorted by layer number
         self.layerData.sort(key=lambda x: int(x[0]))
         for number, name in self.layerData:
@@ -2588,8 +2550,6 @@ class MyApp(QWidget):
             self.plotLayersComboBox.addItem(f"{number}: {name}")
             self.dicingStreetsLayerComboBox.addItem(f"{number}: {name}")
             self.dieTextLayerComboBox.addItem(f"{number}: {name}")
-            self.subdicingStreetsLayerComboBox.addItem(f"{number}: {name}")
-            self.deepSiEtchingLayerComboBox.addItem(f"{number}: {name}")
         logging.info("Layers dropdowns updated")
 
     def validateOutputFileName(self):
