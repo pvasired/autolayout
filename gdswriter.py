@@ -2025,7 +2025,8 @@ class GDSDesign:
 
         return return_dict
 
-    def get_minmax_feature_size(self, cell_name, layer_number):        
+    def get_minmax_feature_size(self, cell_name, layer_name):
+        layer_number = self.get_layer_number(layer_name)        
         # Ensure the cell exists
         cell = self.check_cell_exists(cell_name)
 
