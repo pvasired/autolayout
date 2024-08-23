@@ -2025,6 +2025,40 @@ class GDSDesign:
 
         return return_dict
 
+    def get_minmax_feature_size(self, cell_name, layer_number):        
+        # Ensure the cell exists
+        cell = self.check_cell_exists(cell_name)
+
+        # Get polygons by specification (layer and datatype)
+        polygons_by_spec = cell.get_polygons(by_spec=True)
+
+        min_feature_size = np.inf
+        max_feature_size = -np.inf
+        # Filter for the specific layer (and possibly datatype if relevant)
+        for (lay, dat), polys in polygons_by_spec.items():
+            if lay == layer_number:
+                for poly in polys:
+                    # Now `poly` is a numpy array of points for one polygon
+                    # Calculate the bounding box of the polygon
+                    bbox = gdspy.Polygon(poly).get_bounding_box()
+                    width = bbox[1][0] - bbox[0][0]
+                    height = bbox[1][1] - bbox[0][1]
+
+                    if width < min_feature_size:
+                        min_feature_size = width
+                    if height < min_feature_size:
+                        min_feature_size = height
+                    if width > max_feature_size:
+                        max_feature_size = width
+                    if height > max_feature_size:
+                        max_feature_size = height
+        
+        if min_feature_size == np.inf:
+            min_feature_size = 0
+        if max_feature_size == -np.inf:
+            max_feature_size = 0
+        return min_feature_size, max_feature_size
+
     def check_minimum_feature_size(self, cell_name, layer_name, min_size):
         # Assume `layer_number` is already determined from `layer_name`
         layer_number = self.get_layer_number(layer_name)
