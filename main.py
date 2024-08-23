@@ -1002,9 +1002,10 @@ class MyApp(QWidget):
                         break
                 # Load the GDS file using GDSDesign
                 dieDesign = GDSDesign(filename=fileName)
+                sorted_keys = sorted(dieDesign.cells.keys(), key=lambda x: x.lower())
                 self.dieInfo[rowIndex]['cellComboBox'].clear()
-                self.dieInfo[rowIndex]['cellComboBox'].addItems(dieDesign.cells.keys())
-                logging.info(f"Cell combo box populated with cells: {list(dieDesign.cells.keys())}")
+                self.dieInfo[rowIndex]['cellComboBox'].addItems(sorted_keys)
+                logging.info(f"Cell combo box populated with cells: {sorted_keys}")
 
                 # Store the GDSDesign instance
                 self.dieInfo[rowIndex]['dieDesign'] = dieDesign
@@ -2410,9 +2411,10 @@ class MyApp(QWidget):
                             logging.warning(f'Duplicate cell found. Renaming cell {cell} to {cell}_custom_{idstr}')
 
                 # Populate the custom test cell combo box with cell names
+                sorted_custom_keys = sorted(self.custom_design.lib.cells.keys(), key=lambda x: x.lower())
                 self.customTestCellComboBox.clear()
-                self.customTestCellComboBox.addItems(self.custom_design.lib.cells.keys())
-                logging.info(f"Custom Test Structure cell names: {list(self.custom_design.lib.cells.keys())}")
+                self.customTestCellComboBox.addItems(sorted_custom_keys)
+                logging.info(f"Custom Test Structure cell names: {sorted_custom_keys}")
 
                 self.resetOtherGDSButton.show()
             else:
@@ -2513,30 +2515,32 @@ class MyApp(QWidget):
             logging.error(f"Error reading escape routing points file: {str(e)}")
     
     def updateCellComboBox(self):
+        sorted_keys = sorted(self.gds_design.cells.keys(), key=lambda x: x.lower())
         self.cellComboBox.clear()
-        self.cellComboBox.addItems(self.gds_design.cells.keys())
-        logging.info(f"Cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        self.cellComboBox.addItems(sorted_keys)
+        logging.info(f"Cell combo box populated with cells: {sorted_keys}")
 
         self.layerCellComboBox.clear()
-        self.layerCellComboBox.addItems(self.gds_design.cells.keys())
-        logging.info(f"Layer cell combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        self.layerCellComboBox.addItems(sorted_keys)
+        logging.info(f"Layer cell combo box populated with cells: {sorted_keys}")
 
         self.customTestCellComboBox.clear()
         if self.custom_design is None:
-            self.customTestCellComboBox.addItems(self.gds_design.cells.keys())
-            logging.info(f"Custom Test Structure combo box populated with cells: {list(self.gds_design.cells.keys())}")
+            self.customTestCellComboBox.addItems(sorted_keys)
+            logging.info(f"Custom Test Structure combo box populated with cells: {sorted_keys}")
         else:
-            self.customTestCellComboBox.addItems(self.custom_design.cells.keys())
-            logging.info(f"Custom Test Structure combo box populated with cells: {list(self.custom_design.cells.keys())}")
+            sorted_custom_keys = sorted(self.custom_design.cells.keys(), key=lambda x: x.lower())
+            self.customTestCellComboBox.addItems(sorted_custom_keys)
+            logging.info(f"Custom Test Structure combo box populated with cells: {sorted_custom_keys}")
 
         self.placementCellComboBox.clear()
-        self.placementCellComboBox.addItems(self.gds_design.cells.keys())
-        logging.info(f"Placement combo box populated with cells: {list(self.gds_design.cells.keys())}")
+        self.placementCellComboBox.addItems(sorted_keys)
+        logging.info(f"Placement combo box populated with cells: {sorted_keys}")
 
         for checkBox, cellComboBox, comboBox, valueEdit, defaultParams, addButton in self.testStructures:
             cellComboBox.clear()
-            cellComboBox.addItems(self.gds_design.cells.keys())
-            logging.info(f"Cell combo box populated for {checkBox.text()} test structure: {list(self.gds_design.cells.keys())}")
+            cellComboBox.addItems(sorted_keys)
+            logging.info(f"Cell combo box populated for {checkBox.text()} test structure: {sorted_keys}")
                 
     def updateLayersComboBox(self):
         self.layersComboBox.clear()
