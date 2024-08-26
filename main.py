@@ -556,6 +556,7 @@ class MyApp(QWidget):
         self.redoStack = []  # Initialize redo stack
         self.escapeDicts = {}  # To store escape routing dictionaries
         self.routing = []
+        self.STRouting = []
         self.routingMode = False
         self.STRoutingMode = False
         self.flareMode = False
@@ -2227,6 +2228,59 @@ class MyApp(QWidget):
                     self.undo()
 
                 self.routing = []
+
+        elif self.STRoutingMode:
+            logging.info("Single-trace routing mode is active")
+            if self.STRoutingWidthEdit.text() == "":
+                QMessageBox.critical(self, "Design Error", "No trace width provided.", QMessageBox.Ok)
+                logging.error("No trace width provided.")
+                return
+            
+            cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
+            layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
+            layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
+            try:
+                trace_width = float(self.STRoutingWidthEdit.text())
+            except ValueError:
+                QMessageBox.critical(self, "Design Error", "Invalid trace width.", QMessageBox.Ok)
+                logging.error("Invalid trace width.")
+                return
+
+            point = np.array([x, y])
+            self.STRouting.append(np.around(point, 3))
+
+            print(self.STRouting)
+
+            if len(self.STRouting) == 2:
+                start = self.STRouting[0]
+                end = self.STRouting[1]
+
+                obstacles = []
+                polygons_by_spec = cell.get_polygons(by_spec=True)
+                for (lay, dat), polys in polygons_by_spec.items():
+                    if lay == layer_number:
+                        for poly in polys:
+                            poly = np.around(poly, 3)
+                            shapely_poly = Polygon(poly)
+                            if shapely_poly.contains(Point(start)) or shapely_poly.contains(Point(end)):
+                                continue
+                            else:
+                                obstacles.append(poly.tolist())
+
+                self.addSnapshot()  # Store snapshot before adding new design
+                try:
+                    self.gds_design.route_trace_a_star(self.cellComboBox.currentText(), start, end, trace_width, layer_name, 
+                                                    obstacles=obstacles, show_animation=True)
+                    self.writeToGDS()
+                    self.updateAvailableSpace()
+                    self.update_plot_data()
+                except (Exception, AssertionError, ValueError) as e:
+                    QMessageBox.critical(self, "Design Error", f"Error routing trace: {str(e)}", QMessageBox.Ok)
+                    logging.error(f"Error routing trace: {str(e)}")
+
+                    self.undo()
+                
+                self.STRouting = []
 
         elif self.flareMode:
             logging.info("Flare mode is active")
