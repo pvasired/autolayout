@@ -95,16 +95,20 @@ def find_neighbor(node, ob, closed, initial_direction=None, initial_step=False):
                     (1, 1): [(1, 1), (0, 1), (1, 0)],
                     (1, -1): [(1, -1), (1, 0), (0, -1)],
                     (-1, -1): [(-1, -1), (0, -1), (-1, 0)]}
+    all_moves = [(-1, 0), (0, 1), (1, 0), (0, -1), (-1, 1), (1, 1), (1, -1), (-1, -1)]
 
     if initial_direction and initial_step:
         # Restrict to the initial direction for the first step
         allowed_moves = [initial_direction]
     else:
-        current_direction = (
-                node.coordinate[0] - node.parent.coordinate[0],
-                node.coordinate[1] - node.parent.coordinate[1]
-            )
-        allowed_moves = moves_dict[current_direction]
+        if node.parent is not None:
+            current_direction = (
+                    node.coordinate[0] - node.parent.coordinate[0],
+                    node.coordinate[1] - node.parent.coordinate[1]
+                )
+            allowed_moves = moves_dict[current_direction]
+        else:
+            allowed_moves = all_moves
 
     for move in allowed_moves:
         x, y = node.coordinate[0] + move[0], node.coordinate[1] + move[1]
@@ -283,7 +287,7 @@ def convert_polygons_to_obstacles(polygons, path_width, spacing):
     for i, poly_coords in enumerate(polygons):
         raw_poly = np.array(poly_coords)/spacing
         polygon = Polygon(raw_poly)
-        buffered_polygon = polygon.buffer(path_width-1)  # Buffer the polygon
+        buffered_polygon = polygon.buffer(path_width)  # Buffer the polygon
         xmin, ymin, xmax, ymax = buffered_polygon.bounds
         for x in range(math.ceil(xmin), math.floor(xmax)+1):
             for y in range(math.ceil(ymin), math.floor(ymax)+1):
