@@ -3161,8 +3161,8 @@ class GDSDesign:
         end_raw = end / grid_spacing
         end_grid = np.where(end_raw > 0, np.ceil(end_raw), np.floor(end_raw)).astype(int)
 
-        path_width_raw = trace_width + 2*trace_space
-        path_width_grid = math.ceil(path_width_raw / grid_spacing)
+        path_width_raw = trace_width/2 + trace_space
+        path_width_grid = path_width_raw / grid_spacing
 
         # First route from start to end
         a_star_path_grid = a_star_single_direction.main(start_grid.tolist(), end_grid.tolist(), obstacles, path_width_grid,
@@ -3220,36 +3220,36 @@ class GDSDesign:
         ports2_center_grid = np.where(ports2_center_raw > 0, np.ceil(ports2_center_raw), np.floor(ports2_center_raw)).astype(int)
 
         # Calculate the width of the path in the grid
-        path_width_raw = len(ports1) * trace_width + (len(ports1)+1) * trace_space
-        path_width_grid = math.ceil(path_width_raw / grid_spacing)
+        path_width_raw = (len(ports1) * trace_width + (len(ports1)+1) * trace_space)/2
+        path_width_grid = path_width_raw / grid_spacing
 
         # Based on the starting port orientation, start direction is defined and the center of the ports is adjusted
         # to extend beyond the buffer zone based on the path width
         if orientations1[0] == 0:
-            ports1_center_grid[0] += path_width_grid
+            ports1_center_grid[0] += math.ceil(path_width_grid) + 1
             start_direction = (initial_steps, 0)
         elif orientations1[0] == 90:
-            ports1_center_grid[1] += path_width_grid
+            ports1_center_grid[1] += math.ceil(path_width_grid) + 1
             start_direction = (0, initial_steps)
         elif orientations1[0] == 180:
-            ports1_center_grid[0] -= path_width_grid
+            ports1_center_grid[0] -= math.ceil(path_width_grid) + 1
             start_direction = (-initial_steps, 0)
         elif orientations1[0] == 270:
-            ports1_center_grid[1] -= path_width_grid
+            ports1_center_grid[1] -= math.ceil(path_width_grid) + 1
             start_direction = (0, -initial_steps)
 
         # Same as above but for the end direction
         if orientations2[0] == 0:
-            ports2_center_grid[0] += path_width_grid
+            ports2_center_grid[0] += math.ceil(path_width_grid) + 1
             end_direction = (initial_steps, 0)
         elif orientations2[0] == 90:
-            ports2_center_grid[1] += path_width_grid
+            ports2_center_grid[1] += math.ceil(path_width_grid) + 1
             end_direction = (0, initial_steps)
         elif orientations2[0] == 180:
-            ports2_center_grid[0] -= path_width_grid
+            ports2_center_grid[0] -= math.ceil(path_width_grid) + 1
             end_direction = (-initial_steps, 0)
         elif orientations2[0] == 270:
-            ports2_center_grid[1] -= path_width_grid
+            ports2_center_grid[1] -= math.ceil(path_width_grid) + 1
             end_direction = (0, -initial_steps)
 
         # First route from start to end
@@ -3542,7 +3542,7 @@ def create_hinged_path(start_point, angle, extension_y, extension_x, post_rotati
     else:
         hinge_x = extension_y / np.tan(angle_radians)
 
-    assert extension_x >= hinge_x, "Improper Usage: extension_x must be greater than hinge_x"
+    assert extension_x >= hinge_x, f"Improper Usage: extension_x {extension_x} must be greater than hinge_x {hinge_x}"
     
     hinge_point = (hinge_x, extension_y)
     
