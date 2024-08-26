@@ -282,10 +282,13 @@ def searching_control(start, end, bound, obstacle, start_direction=None, show_an
             break
     return path
 
-def convert_polygons_to_obstacles(polygons, path_width, spacing):
+def convert_polygons_to_obstacles(polygons, path_width, spacing, timeout=20):
     obstacles = set()
     
+    start_time = time.time()
     for i, poly_coords in enumerate(polygons):
+        if time.time() - start_time > timeout:
+            raise Exception('Timeout: too many obstacle polygons')
         raw_poly = np.array(poly_coords)/spacing
         polygon = Polygon(raw_poly)
         buffered_polygon = polygon.buffer(path_width)  # Buffer the polygon
