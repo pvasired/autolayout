@@ -556,9 +556,7 @@ class MyApp(QWidget):
         self.redoStack = []  # Initialize redo stack
         self.escapeDicts = {}  # To store escape routing dictionaries
         self.routing = []
-        self.STRouting = []
         self.routingMode = False
-        self.STRoutingMode = False
         self.flareMode = False
         self.pitch_x = None
         self.pitch_y = None
@@ -903,29 +901,9 @@ class MyApp(QWidget):
         self.flareModeButton.clicked.connect(self.setFlareMode)
         self.flareModeButton.setToolTip('Click to enter flare (fan out) mode.')
         self.flareModeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.STRoutingModeButton = QPushButton('Single-Trace Routing Mode')
-        self.STRoutingModeButton.clicked.connect(self.setSTRoutingMode)
-        self.STRoutingModeButton.setToolTip('Click to enter single-trace routing mode.')
-        self.STRoutingModeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         modeButtonLayout.addWidget(self.routingModeButton)
-        modeButtonLayout.addWidget(self.STRoutingModeButton)
         modeButtonLayout.addWidget(self.flareModeButton)
         plotAreaLayout.addLayout(modeButtonLayout)
-
-        STRoutingModeLayout = QHBoxLayout()
-        self.STRoutingWidthEdit = QLineEdit()
-        self.STRoutingWidthEdit.setPlaceholderText('Trace Width')
-        self.STRoutingWidthEdit.setToolTip('type:(number) Enter the width of the trace in um.')
-        self.STRoutingWidthEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.STRoutingWidthEdit.hide()
-        self.STRoutingSpaceEdit = QLineEdit()
-        self.STRoutingSpaceEdit.setPlaceholderText('Trace Space')
-        self.STRoutingSpaceEdit.setToolTip('type:(number) Enter the minimum space between the trace and obstacles in um.')
-        self.STRoutingSpaceEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.STRoutingSpaceEdit.hide()
-        STRoutingModeLayout.addWidget(self.STRoutingWidthEdit)
-        STRoutingModeLayout.addWidget(self.STRoutingSpaceEdit)
-        plotAreaLayout.addLayout(STRoutingModeLayout)
 
         # Add text fields for Flare Mode
         flareModeLayout = QHBoxLayout()
@@ -2029,25 +2007,8 @@ class MyApp(QWidget):
 
     def setRoutingMode(self):
         self.routingMode = True
-        self.STRoutingMode = False
         self.flareMode = False
         self.updateModeButtons()
-        self.STRoutingWidthEdit.hide()
-        self.STRoutingSpaceEdit.hide()
-        self.endingTraceWidthEdit.hide()
-        self.endingTraceSpaceEdit.hide()
-        self.flareRoutingAngleEdit.hide()
-        self.flareEscapeExtentEdit.hide()
-        self.flareFinalLengthEdit.hide()
-        self.flareAutoroutingAngleEdit.hide()
-
-    def setSTRoutingMode(self):
-        self.routingMode = False
-        self.STRoutingMode = True
-        self.flareMode = False
-        self.updateModeButtons()
-        self.STRoutingWidthEdit.show()
-        self.STRoutingSpaceEdit.show()
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
         self.flareRoutingAngleEdit.hide()
@@ -2057,11 +2018,8 @@ class MyApp(QWidget):
 
     def setFlareMode(self):
         self.routingMode = False
-        self.STRoutingMode = False
         self.flareMode = True
         self.updateModeButtons()
-        self.STRoutingWidthEdit.hide()
-        self.STRoutingSpaceEdit.hide()
         self.endingTraceWidthEdit.show()
         self.endingTraceSpaceEdit.show()
         self.flareRoutingAngleEdit.show()
@@ -2072,15 +2030,9 @@ class MyApp(QWidget):
     def updateModeButtons(self):
         if self.routingMode:
             self.routingModeButton.setStyleSheet("background-color: lightgreen")
-            self.STRoutingModeButton.setStyleSheet("")
-            self.flareModeButton.setStyleSheet("")
-        elif self.STRoutingMode:
-            self.routingModeButton.setStyleSheet("")
-            self.STRoutingModeButton.setStyleSheet("background-color: lightgreen")
             self.flareModeButton.setStyleSheet("")
         else:
             self.routingModeButton.setStyleSheet("")
-            self.STRoutingModeButton.setStyleSheet("")
             self.flareModeButton.setStyleSheet("background-color: lightgreen")
     
     def showMatplotlibWindow(self):
@@ -2237,62 +2189,6 @@ class MyApp(QWidget):
                     self.undo()
 
                 self.routing = []
-
-        elif self.STRoutingMode:
-            logging.info("Single-trace routing mode is active")
-            if self.STRoutingWidthEdit.text() == "":
-                QMessageBox.critical(self, "Design Error", "No trace width provided.", QMessageBox.Ok)
-                logging.error("No trace width provided.")
-                return
-            if self.STRoutingSpaceEdit.text() == "":
-                QMessageBox.critical(self, "Design Error", "No trace space provided.", QMessageBox.Ok)
-                logging.error("No trace space provided.")
-                return
-            
-            cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
-            layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
-            layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
-            try:
-                trace_width = float(self.STRoutingWidthEdit.text())
-                trace_space = float(self.STRoutingSpaceEdit.text())
-            except ValueError:
-                QMessageBox.critical(self, "Design Error", "Invalid trace width or space.", QMessageBox.Ok)
-                logging.error("Invalid trace width or space.")
-                return
-
-            point = np.array([x, y])
-            self.STRouting.append(np.around(point, 3))
-
-            if len(self.STRouting) == 2:
-                start = self.STRouting[0]
-                end = self.STRouting[1]
-
-                obstacles = []
-                polygons_by_spec = cell.get_polygons(by_spec=True)
-                for (lay, dat), polys in polygons_by_spec.items():
-                    if lay == layer_number:
-                        for poly in polys:
-                            poly = np.around(poly, 3)
-                            shapely_poly = Polygon(poly)
-                            if shapely_poly.contains(Point(start)) or shapely_poly.contains(Point(end)):
-                                continue
-                            else:
-                                obstacles.append(poly.tolist())
-
-                self.addSnapshot()  # Store snapshot before adding new design
-                try:
-                    self.gds_design.route_trace_a_star(self.cellComboBox.currentText(), start, end, trace_width, trace_space, layer_name, 
-                                                    obstacles=obstacles, show_animation=False)
-                    self.writeToGDS()
-                    self.updateAvailableSpace()
-                    self.update_plot_data()
-                except (Exception, AssertionError, ValueError) as e:
-                    QMessageBox.critical(self, "Design Error", f"Error routing trace: {str(e)}", QMessageBox.Ok)
-                    logging.error(f"Error routing trace: {str(e)}")
-
-                    self.undo()
-                
-                self.STRouting = []
 
         elif self.flareMode:
             logging.info("Flare mode is active")
