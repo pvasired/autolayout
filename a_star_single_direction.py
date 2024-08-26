@@ -203,7 +203,8 @@ def draw(close_origin, start, end, bound):
     plt.gcf().set_size_inches(8,6, forward=True)
     plt.axis('equal')
     plt.plot(close_origin[:, 0], close_origin[:, 1], 'oy')
-    plt.plot(bound[:, 0], bound[:, 1], 'sk')
+    if len(bound) > 0:
+        plt.plot(bound[:, 0], bound[:, 1], 'sk')
     plt.plot(end[0], end[1], '*b', label='Goal')
     plt.plot(start[0], start[1], '^b', label='Origin')
     plt.legend()
