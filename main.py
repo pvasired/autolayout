@@ -557,6 +557,7 @@ class MyApp(QWidget):
         self.escapeDicts = {}  # To store escape routing dictionaries
         self.routing = []
         self.routingMode = False
+        self.STRoutingMode = False
         self.flareMode = False
         self.pitch_x = None
         self.pitch_y = None
@@ -901,9 +902,23 @@ class MyApp(QWidget):
         self.flareModeButton.clicked.connect(self.setFlareMode)
         self.flareModeButton.setToolTip('Click to enter flare (fan out) mode.')
         self.flareModeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.STRoutingModeButton = QPushButton('Single-Trace Routing Mode')
+        self.STRoutingModeButton.clicked.connect(self.setSTRoutingMode)
+        self.STRoutingModeButton.setToolTip('Click to enter single-trace routing mode.')
+        self.STRoutingModeButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         modeButtonLayout.addWidget(self.routingModeButton)
+        modeButtonLayout.addWidget(self.STRoutingModeButton)
         modeButtonLayout.addWidget(self.flareModeButton)
         plotAreaLayout.addLayout(modeButtonLayout)
+
+        STRoutingModeLayout = QHBoxLayout()
+        self.STRoutingWidthEdit = QLineEdit()
+        self.STRoutingWidthEdit.setPlaceholderText('Trace Width')
+        self.STRoutingWidthEdit.setToolTip('type:(number) Enter the width of the trace in um.')
+        self.STRoutingWidthEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.STRoutingWidthEdit.hide()
+        STRoutingModeLayout.addWidget(self.STRoutingWidthEdit)
+        plotAreaLayout.addLayout(STRoutingModeLayout)
 
         # Add text fields for Flare Mode
         flareModeLayout = QHBoxLayout()
@@ -2007,8 +2022,23 @@ class MyApp(QWidget):
 
     def setRoutingMode(self):
         self.routingMode = True
+        self.STRoutingMode = False
         self.flareMode = False
         self.updateModeButtons()
+        self.STRoutingWidthEdit.hide()
+        self.endingTraceWidthEdit.hide()
+        self.endingTraceSpaceEdit.hide()
+        self.flareRoutingAngleEdit.hide()
+        self.flareEscapeExtentEdit.hide()
+        self.flareFinalLengthEdit.hide()
+        self.flareAutoroutingAngleEdit.hide()
+
+    def setSTRoutingMode(self):
+        self.routingMode = False
+        self.STRoutingMode = True
+        self.flareMode = False
+        self.updateModeButtons()
+        self.STRoutingWidthEdit.show()
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
         self.flareRoutingAngleEdit.hide()
@@ -2018,8 +2048,10 @@ class MyApp(QWidget):
 
     def setFlareMode(self):
         self.routingMode = False
+        self.STRoutingMode = False
         self.flareMode = True
         self.updateModeButtons()
+        self.STRoutingWidthEdit.hide()
         self.endingTraceWidthEdit.show()
         self.endingTraceSpaceEdit.show()
         self.flareRoutingAngleEdit.show()
@@ -2030,9 +2062,15 @@ class MyApp(QWidget):
     def updateModeButtons(self):
         if self.routingMode:
             self.routingModeButton.setStyleSheet("background-color: lightgreen")
+            self.STRoutingModeButton.setStyleSheet("")
+            self.flareModeButton.setStyleSheet("")
+        elif self.STRoutingMode:
+            self.routingModeButton.setStyleSheet("")
+            self.STRoutingModeButton.setStyleSheet("background-color: lightgreen")
             self.flareModeButton.setStyleSheet("")
         else:
             self.routingModeButton.setStyleSheet("")
+            self.STRoutingModeButton.setStyleSheet("")
             self.flareModeButton.setStyleSheet("background-color: lightgreen")
     
     def showMatplotlibWindow(self):
