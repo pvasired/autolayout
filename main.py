@@ -918,7 +918,13 @@ class MyApp(QWidget):
         self.STRoutingWidthEdit.setToolTip('type:(number) Enter the width of the trace in um.')
         self.STRoutingWidthEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.STRoutingWidthEdit.hide()
+        self.STRoutingSpaceEdit = QLineEdit()
+        self.STRoutingSpaceEdit.setPlaceholderText('Trace Space')
+        self.STRoutingSpaceEdit.setToolTip('type:(number) Enter the minimum space between the trace and obstacles in um.')
+        self.STRoutingSpaceEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.STRoutingSpaceEdit.hide()
         STRoutingModeLayout.addWidget(self.STRoutingWidthEdit)
+        STRoutingModeLayout.addWidget(self.STRoutingSpaceEdit)
         plotAreaLayout.addLayout(STRoutingModeLayout)
 
         # Add text fields for Flare Mode
@@ -2027,6 +2033,7 @@ class MyApp(QWidget):
         self.flareMode = False
         self.updateModeButtons()
         self.STRoutingWidthEdit.hide()
+        self.STRoutingSpaceEdit.hide()
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
         self.flareRoutingAngleEdit.hide()
@@ -2040,6 +2047,7 @@ class MyApp(QWidget):
         self.flareMode = False
         self.updateModeButtons()
         self.STRoutingWidthEdit.show()
+        self.STRoutingSpaceEdit.show()
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
         self.flareRoutingAngleEdit.hide()
@@ -2053,6 +2061,7 @@ class MyApp(QWidget):
         self.flareMode = True
         self.updateModeButtons()
         self.STRoutingWidthEdit.hide()
+        self.STRoutingSpaceEdit.hide()
         self.endingTraceWidthEdit.show()
         self.endingTraceSpaceEdit.show()
         self.flareRoutingAngleEdit.show()
@@ -2235,21 +2244,24 @@ class MyApp(QWidget):
                 QMessageBox.critical(self, "Design Error", "No trace width provided.", QMessageBox.Ok)
                 logging.error("No trace width provided.")
                 return
+            if self.STRoutingSpaceEdit.text() == "":
+                QMessageBox.critical(self, "Design Error", "No trace space provided.", QMessageBox.Ok)
+                logging.error("No trace space provided.")
+                return
             
             cell = self.gds_design.check_cell_exists(self.cellComboBox.currentText())
             layer_number = int(self.plotLayersComboBox.currentText().split(':')[0].strip())
             layer_name = self.plotLayersComboBox.currentText().split(':')[1].strip()
             try:
                 trace_width = float(self.STRoutingWidthEdit.text())
+                trace_space = float(self.STRoutingSpaceEdit.text())
             except ValueError:
-                QMessageBox.critical(self, "Design Error", "Invalid trace width.", QMessageBox.Ok)
-                logging.error("Invalid trace width.")
+                QMessageBox.critical(self, "Design Error", "Invalid trace width or space.", QMessageBox.Ok)
+                logging.error("Invalid trace width or space.")
                 return
 
             point = np.array([x, y])
             self.STRouting.append(np.around(point, 3))
-
-            print(self.STRouting)
 
             if len(self.STRouting) == 2:
                 start = self.STRouting[0]
@@ -2269,7 +2281,7 @@ class MyApp(QWidget):
 
                 self.addSnapshot()  # Store snapshot before adding new design
                 try:
-                    self.gds_design.route_trace_a_star(self.cellComboBox.currentText(), start, end, trace_width, layer_name, 
+                    self.gds_design.route_trace_a_star(self.cellComboBox.currentText(), start, end, trace_width, trace_space, layer_name, 
                                                     obstacles=obstacles, show_animation=True)
                     self.writeToGDS()
                     self.updateAvailableSpace()
