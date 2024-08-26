@@ -3147,6 +3147,44 @@ class GDSDesign:
 
         return wire_ports, wire_orientations, ending_trace_width, ending_trace_space
     
+    def route_trace_a_star(self, cell_name, start, end, trace_width, layer_name,
+                           show_animation=True, obstacles=[], routing_angle=45):
+        
+        # This spacing ensures that turns will not cause traces to overlap
+        grid_spacing = float(math.ceil(trace_width/np.sin(routing_angle*np.pi/180)-trace_width/np.tan(routing_angle*np.pi/180)))
+
+        start_raw = start / grid_spacing
+        start_grid = np.where(start_raw > 0, np.ceil(start_raw), np.floor(start_raw)).astype(int)
+
+        end_raw = end / grid_spacing
+        end_grid = np.where(end_raw > 0, np.ceil(end_raw), np.floor(end_raw)).astype(int)
+
+        path_width_grid = math.ceil(trace_width / grid_spacing)
+
+        # First route from start to end
+        a_star_path_grid = a_star_single_direction.main(start_grid.tolist(), end_grid.tolist(), obstacles, path_width_grid,
+                                                        grid_spacing, show_animation=show_animation)
+        
+        if a_star_path_grid is None:
+            raise ValueError("No path found between ports")
+        
+        u, ind = np.unique(a_star_path_grid, axis=0, return_index=True)
+        a_star_path_grid = u[np.argsort(ind)]
+        a_star_path = (np.array(a_star_path_grid) * grid_spacing).astype(float)
+
+        a_star_path = np.vstack((start, a_star_path, end))
+        
+        # Extrude the path and add it to the design
+        P = Path(a_star_path)
+        path = P.extrude(trace_width)
+        path_obstacles = []
+        for poly in path.get_polygons():
+            path_obstacles.append(poly.tolist())
+
+        self.add_path_as_polygon(cell_name, a_star_path, trace_width, layer_name)
+
+        return a_star_path, path_obstacles
+    
     def route_ports_a_star(self, cell_name, ports1, orientations1, ports2, orientations2, trace_width, trace_space,
                            layer_name, show_animation=True, obstacles=[], routing_angle=45, initial_steps=1):
         """
