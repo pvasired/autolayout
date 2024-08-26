@@ -3171,8 +3171,6 @@ class GDSDesign:
         u, ind = np.unique(a_star_path_grid, axis=0, return_index=True)
         a_star_path_grid = u[np.argsort(ind)]
         a_star_path = (np.array(a_star_path_grid) * grid_spacing).astype(float)
-
-        a_star_path = np.vstack((start, a_star_path, end))
         
         # Extrude the path and add it to the design
         P = Path(a_star_path)
