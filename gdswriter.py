@@ -2754,7 +2754,7 @@ class GDSDesign:
 
     def flare_ports(self, cell_name, layer_name, ports_, orientations, starting_trace_width, starting_trace_space, 
                     ending_trace_width, ending_trace_space, routing_angle=45, escape_extent=50, flare_angle=45, final_length=100, hinge_extra=100,
-                    autorouting_angle=45):
+                    autorouting_angle=45, curvature_buffer=10):
         """
         Flare routing for a set of ports. Flares the ports outwards to a wider pitch. All ports must have the same orientation.
         Updates the GDS design with the flared routing.
@@ -2792,7 +2792,7 @@ class GDSDesign:
             else:
                 max_y_L = (len(iter_inds_L))*starting_trace_pitch
                 max_y_R = (len(iter_inds_R)+1)*starting_trace_pitch
-                max_y = max(max_y_L, max_y_R) + escape_extent
+                max_y = max(max_y_L, max_y_R) + escape_extent + curvature_buffer*starting_trace_width
 
                 y_increment = starting_trace_pitch
 
@@ -2884,7 +2884,7 @@ class GDSDesign:
             else:
                 max_y_L = (len(iter_inds_L))*starting_trace_pitch
                 max_y_R = (len(iter_inds_R)+1)*starting_trace_pitch
-                max_y = max(max_y_L, max_y_R) + escape_extent
+                max_y = max(max_y_L, max_y_R) + escape_extent + curvature_buffer*starting_trace_width
 
                 y_increment = starting_trace_pitch
 
@@ -2977,7 +2977,7 @@ class GDSDesign:
             else:
                 max_x_B = (len(iter_inds_B))*starting_trace_pitch
                 max_x_T = (len(iter_inds_T)+1)*starting_trace_pitch
-                max_x = max(max_x_B, max_x_T) + escape_extent
+                max_x = max(max_x_B, max_x_T) + escape_extent + curvature_buffer*starting_trace_width
 
                 x_increment = starting_trace_pitch
 
@@ -3069,7 +3069,7 @@ class GDSDesign:
             else:
                 max_x_B = (len(iter_inds_B))*starting_trace_pitch
                 max_x_T = (len(iter_inds_T)+1)*starting_trace_pitch
-                max_x = max(max_x_B, max_x_T) + escape_extent
+                max_x = max(max_x_B, max_x_T) + escape_extent + curvature_buffer*starting_trace_width
 
                 x_increment = starting_trace_pitch
 
