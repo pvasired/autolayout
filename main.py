@@ -1499,14 +1499,14 @@ class MyApp(QWidget):
                 return
             if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
                 dicing_layer_name = self.dicingStreetsLayerComboBox.currentText().split(':')[1].strip()
-                dicing_street_L_LL = (loc[0] - self.die_width/2 - self.dicing_street_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width/2)*1000
-                dicing_street_L_UR = (loc[0] - self.die_width/2)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width/2)*1000
-                dicing_street_R_LL = (loc[0] + self.die_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width/2)*1000
-                dicing_street_R_UR = (loc[0] + self.die_width/2 + self.dicing_street_width/2)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width/2)*1000
-                dicing_street_T_LL = (loc[0] - self.die_width/2 - self.dicing_street_width/2)*1000, (loc[1] + self.die_height/2)*1000
-                dicing_street_T_UR = (loc[0] + self.die_width/2 + self.dicing_street_width/2)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width/2)*1000
-                dicing_street_B_LL = (loc[0] - self.die_width/2 - self.dicing_street_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width/2)*1000
-                dicing_street_B_UR = (loc[0] + self.die_width/2 + self.dicing_street_width/2)*1000, (loc[1] - self.die_height/2)*1000
+                dicing_street_L_LL = (loc[0] - self.die_width/2 - self.dicing_street_width)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width)*1000
+                dicing_street_L_UR = (loc[0] - self.die_width/2)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width)*1000
+                dicing_street_R_LL = (loc[0] + self.die_width/2)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width)*1000
+                dicing_street_R_UR = (loc[0] + self.die_width/2 + self.dicing_street_width)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width)*1000
+                dicing_street_T_LL = (loc[0] - self.die_width/2 - self.dicing_street_width)*1000, (loc[1] + self.die_height/2)*1000
+                dicing_street_T_UR = (loc[0] + self.die_width/2 + self.dicing_street_width)*1000, (loc[1] + self.die_height/2 + self.dicing_street_width)*1000
+                dicing_street_B_LL = (loc[0] - self.die_width/2 - self.dicing_street_width)*1000, (loc[1] - self.die_height/2 - self.dicing_street_width)*1000
+                dicing_street_B_UR = (loc[0] + self.die_width/2 + self.dicing_street_width)*1000, (loc[1] - self.die_height/2)*1000
                 self.gds_design.add_rectangle(self.placementCellComboBox.currentText(), dicing_layer_name, lower_left=dicing_street_L_LL, upper_right=dicing_street_L_UR)
                 self.gds_design.add_rectangle(self.placementCellComboBox.currentText(), dicing_layer_name, lower_left=dicing_street_R_LL, upper_right=dicing_street_R_UR)
                 self.gds_design.add_rectangle(self.placementCellComboBox.currentText(), dicing_layer_name, lower_left=dicing_street_T_LL, upper_right=dicing_street_T_UR)
