@@ -223,7 +223,7 @@ class MyApp(QWidget):
             "Trace Test": ["Layer", "Center", "Text", "Line Width", "Line Height", "Num Lines", "Line Spacing", "Text Height", "Automatic Placement"],
             "Interlayer Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rectangle Spacing", "Layer 1 Rectangle Width", "Layer 1 Rectangle Height", "Layer 2 Rectangle Width", "Layer 2 Rectangle Height", "Via Width", "Via Height", "Text Height", "Automatic Placement"],
             "Electronics Via Test": ["Layer Number 1", "Layer Number 2", "Via Layer", "Center", "Text", "Layer 1 Rect Width", "Layer 1 Rect Height", "Layer 2 Rect Width", "Layer 2 Rect Height", "Layer 2 Rect Spacing", "Via Width", "Via Height", "Via Spacing", "Text Height", "Automatic Placement"],
-            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height", "Automatic Placement"],
+            "Short Test": ["Layer", "Center", "Text", "Rect Width", "Trace Width", "Trace Space", "Num Lines", "Group Spacing", "Num Groups", "Num Lines Vert", "Text Height", "Automatic Placement"],
             "Rectangle": ["Layer", "Center", "Width", "Height", "Lower Left", "Upper Right", "Rotation"],
             "Circle": ["Layer", "Center", "Diameter"],
             "Text": ["Layer", "Center", "Text", "Height", "Rotation"],
@@ -313,6 +313,7 @@ class MyApp(QWidget):
                 "Text": "type:(string) Enter the text to display on the structure.",
                 "Rect Width": "type:(number) Enter the width of the rectangles in um.",
                 "Trace Width": "type:(number) Enter the width of the traces in um.",
+                "Trace Space": "type:(number) Enter the spacing between traces in um.",
                 "Num Lines": "type:(integer) Enter the number of lines.",
                 "Group Spacing": "type:(number) Enter the spacing between groups in um.",
                 "Num Groups": "type:(integer) Enter the number of groups.",
@@ -470,6 +471,7 @@ class MyApp(QWidget):
                 "Text": '',
                 "Rect Width": 1300,
                 "Trace Width": 5,
+                "Trace Space": 5,
                 "Num Lines": 5,
                 "Group Spacing": 130,
                 "Num Groups": 6,
@@ -3789,7 +3791,7 @@ class MyApp(QWidget):
         logging.info(f"Electronics Via Test added to {Cell_Name} with layers {Layer_Number_1}, {Layer_Number_2}, {Via_Layer} at center {Center}")
         return True
 
-    def addShortTest(self, Cell_Name, Layer, Center, Text, Rect_Width, Trace_Width, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
+    def addShortTest(self, Cell_Name, Layer, Center, Text, Rect_Width, Trace_Width, Trace_Space, Num_Lines, Group_Spacing, Num_Groups, Num_Lines_Vert, Text_Height, Automatic_Placement):
         if type(Automatic_Placement) != bool and Automatic_Placement is not None:
             QMessageBox.critical(self, "Automatic Placement Error", "Please enter 'True' or 'False' for Automatic Placement.", QMessageBox.Ok)
             logging.error("Automatic Placement Error: Invalid value entered for Automatic Placement")
@@ -3803,6 +3805,7 @@ class MyApp(QWidget):
                     text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
                     rect_width=float(Rect_Width),
                     trace_width=float(Trace_Width),
+                    trace_space=float(Trace_Space),
                     num_lines=int(Num_Lines),
                     group_spacing=float(Group_Spacing),
                     num_groups=int(Num_Groups),
@@ -3828,6 +3831,7 @@ class MyApp(QWidget):
                     text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
                     rect_width=float(Rect_Width),
                     trace_width=float(Trace_Width),
+                    trace_space=float(Trace_Space),
                     num_lines=int(Num_Lines),
                     group_spacing=float(Group_Spacing),
                     num_groups=int(Num_Groups),
@@ -3863,6 +3867,7 @@ class MyApp(QWidget):
                 text=Text if Text else f"{Layer} SHORT TEST",  # Use the layer name if text is not provided
                 rect_width=float(Rect_Width),
                 trace_width=float(Trace_Width),
+                trace_space=float(Trace_Space),
                 num_lines=int(Num_Lines),
                 group_spacing=float(Group_Spacing),
                 num_groups=int(Num_Groups),
@@ -3881,6 +3886,7 @@ class MyApp(QWidget):
             "Text": Text,
             "Rect Width": Rect_Width,
             "Trace Width": Trace_Width,
+            "Trace Space": Trace_Space,
             "Num Lines": Num_Lines,
             "Group Spacing": Group_Spacing,
             "Num Groups": Num_Groups,
