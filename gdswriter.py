@@ -397,12 +397,13 @@ class GDSDesign:
 
     # TODO: decouple trace width and spacing
     def add_short_test_structure(self, cell_name, layer_name, center, text, rect_width=1300,
-                                 trace_width=5, num_lines=5, group_spacing=130, num_groups=6, num_lines_vert=100,
-                                 text_height=250, text_angle=90, text_position=None):
+                                 trace_width=5, trace_space=5, num_lines=5, group_spacing=130, num_groups=6, 
+                                 num_lines_vert=100, text_height=250, text_angle=90, text_position=None):
         # Check that types are valid
         assert isinstance(center, tuple), "Error: Center must be a tuple."
         assert isinstance(rect_width, (int, float)), "Error: Rectangle width must be a number."
         assert isinstance(trace_width, (int, float)), "Error: Trace width must be a number."
+        assert isinstance(trace_space, (int, float)), "Error: Trace spacing must be a number."
         assert isinstance(num_lines, int), "Error: Number of lines must be an integer."
         assert isinstance(group_spacing, (int, float)), "Error: Group spacing must be a number."
         assert isinstance(num_groups, int), "Error: Number of groups must be an integer."
@@ -413,40 +414,42 @@ class GDSDesign:
             assert isinstance(text_position, tuple), "Error: Text position must be a tuple."
         assert isinstance(text, str), "Error: Text must be a string."
 
-        group_height = (4*num_lines - 1)*trace_width + group_spacing + 2*trace_width
-        rect_height = group_height*num_groups+trace_width*(num_groups-1)
-        rect_spacing = (4*num_lines_vert - 1)*trace_width + 2*trace_width
+        trace_pitch = trace_width + trace_space
+
+        group_height = 2*num_lines*trace_width + (2*num_lines-1)*trace_space + group_spacing + trace_pitch
+        rect_height = group_height*num_groups+trace_space*(num_groups-1)
+        rect_spacing = 2*num_lines_vert*trace_width + (2*num_lines_vert-1)*trace_space + trace_pitch
 
         # Add rectangles
         self.add_rectangle(cell_name, layer_name, center=(center[0]-rect_spacing/2-rect_width/2, center[1]), width=rect_width, height=rect_height)
         self.add_rectangle(cell_name, layer_name, center=(center[0]+rect_spacing/2+rect_width/2, center[1]), width=rect_width, height=rect_height)
 
         center1 = center[1]+rect_height/2-trace_width/2
-        center2 = center[1]+rect_height/2-trace_width/2-2*trace_width
+        center2 = center[1]+rect_height/2-trace_width/2-trace_pitch
         for j in range(num_groups):
             for i in range(num_lines):
-                self.add_rectangle(cell_name, layer_name, center=(center[0]-trace_width, center1), width=rect_spacing, height=trace_width)
-                center1 -= 4*trace_width
+                self.add_rectangle(cell_name, layer_name, center=(center[0]-trace_space, center1), width=rect_spacing, height=trace_width)
+                center1 -= 2*trace_pitch
 
-                self.add_rectangle(cell_name, layer_name, center=(center[0]+trace_width, center2), width=rect_spacing, height=trace_width)
-                center2 -= 4*trace_width
+                self.add_rectangle(cell_name, layer_name, center=(center[0]+trace_space, center2), width=rect_spacing, height=trace_width)
+                center2 -= 2*trace_pitch
 
-            center3 = center[0]-rect_spacing/2+trace_width+trace_width/2
-            center4 = center[0]-rect_spacing/2+trace_width+trace_width/2 + 2*trace_width
+            center3 = center[0]-rect_spacing/2+trace_space+trace_width/2
+            center4 = center[0]-rect_spacing/2+trace_space+trace_width/2 + trace_pitch
             for k in range(num_lines_vert):
-                self.add_rectangle(cell_name, layer_name, center=(center3, center1-group_spacing/2+2*trace_width), width=trace_width, height=group_spacing+trace_width)
-                center3 += 4*trace_width
+                self.add_rectangle(cell_name, layer_name, center=(center3, center1-group_spacing/2+trace_pitch), width=trace_width, height=group_spacing+trace_width)
+                center3 += 2*trace_pitch
 
                 self.add_rectangle(cell_name, layer_name, center=(center4, center1-group_spacing/2), width=trace_width, height=group_spacing+trace_width)
-                center4 += 4*trace_width
+                center4 += 2*trace_pitch
             
             center1 -= group_spacing
             center2 -= group_spacing
 
-            self.add_rectangle(cell_name, layer_name, center=(center[0]-trace_width, center1), width=rect_spacing, height=trace_width)
+            self.add_rectangle(cell_name, layer_name, center=(center[0]-trace_space, center1), width=rect_spacing, height=trace_width)
 
-            center1 -= 2*trace_width
-            center2 -= 2*trace_width
+            center1 -= trace_pitch
+            center2 -= trace_pitch
 
         if text_position is None:
             text_position = (center[0]-rect_spacing/2-rect_width-text_height, center[1] - len(text)*text_height*TEXT_SPACING_FACTOR)
