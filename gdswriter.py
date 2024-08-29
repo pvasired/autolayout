@@ -418,7 +418,7 @@ class GDSDesign:
 
         group_height = 2*num_lines*trace_width + (2*num_lines-1)*trace_space + group_spacing + trace_pitch
         rect_height = group_height*num_groups+trace_space*(num_groups-1)
-        rect_spacing = 2*num_lines_vert*trace_width + (2*num_lines_vert-1)*trace_space + trace_pitch
+        rect_spacing = 2*num_lines_vert*trace_width + (2*num_lines_vert-1)*trace_space + 2*trace_space
 
         # Add rectangles
         self.add_rectangle(cell_name, layer_name, center=(center[0]-rect_spacing/2-rect_width/2, center[1]), width=rect_width, height=rect_height)
