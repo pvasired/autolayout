@@ -9,7 +9,7 @@ This is a helper tool for automating certain tedious steps in .gds design. In pa
 
 # Installation
 ## Dependencies
-The code relies heavily on some fantastic open-source software, namely [gdspy] (https://github.com/heitzmann/gdspy), [shapely] (https://shapely.readthedocs.io/en/stable/), and [phidl] (https://github.com/amccaugh/phidl). For specific versions see `requirements.txt`
+The code relies heavily on some fantastic open-source software, namely [gdspy](https://github.com/heitzmann/gdspy), [shapely](https://shapely.readthedocs.io/en/stable/), and [phidl](https://github.com/amccaugh/phidl). For specific versions see `requirements.txt`
 - Python (tested with version 3.11.9)
 - see `requirements.txt` for other required packages and versions
 
