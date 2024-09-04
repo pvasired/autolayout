@@ -2434,33 +2434,49 @@ class MyApp(QWidget):
             logging.error("No redo history is currently stored")
 
     def createBlankDesign(self):
-        self.inputFileName = ""
-        self.outputFileName = ""
-        self.outFileField.setText("")
-        self.logFileName = ""
-        self.layerData = []
-        self.substrateLayer = None
-        self.availableSpace = None
-        self.allOtherPolygons = None
-        self.undoStack = []  # Initialize undo stack
-        self.redoStack = []  # Initialize redo stack
-        self.escapeDicts = {}  # To store escape routing dictionaries
-        self.routing = []
-        self.routingMode = False
-        self.flareMode = False
-        self.pitch_x = None
-        self.pitch_y = None
-        self.copies_x = None
-        self.copies_y = None
-        self.center_escape = None
+        # Open file dialog to select a filename for the GDS file
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getSaveFileName(self, 
+                                                "Save GDS File", 
+                                                "", 
+                                                "GDS Files (*.gds);;All Files (*)", 
+                                                options=options)
+        if file_name:
+            self.inputFileName = ""
+            self.outputFileName = ""
+            self.outFileField.setText("")
+            self.logFileName = ""
+            self.layerData = []
+            self.substrateLayer = None
+            self.availableSpace = None
+            self.allOtherPolygons = None
+            self.undoStack = []  # Initialize undo stack
+            self.redoStack = []  # Initialize redo stack
+            self.escapeDicts = {}  # To store escape routing dictionaries
+            self.routing = []
+            self.routingMode = False
+            self.flareMode = False
+            self.pitch_x = None
+            self.pitch_y = None
+            self.copies_x = None
+            self.copies_y = None
+            self.center_escape = None
 
-        self.gds_design = GDSDesign()
-        logging.info("Blank GDS design created")
+            self.gds_design = GDSDesign()
+            logging.info("Blank GDS design created")
 
-        self.updateCellComboBox()
-        self.updateLayersComboBox()
+            self.updateCellComboBox()
+            self.updateLayersComboBox()
 
-        QMessageBox.information(self, "Design Created", "Blank GDS design created.", QMessageBox.Ok)
+            self.outFileField.setText(file_name)
+            self.validateOutputFileName()
+            self.writeToGDS()
+
+            QMessageBox.information(self, "Design Created", "Blank GDS design created.", QMessageBox.Ok)
+            
+        else:
+            QMessageBox.critical(self, "Design Error", "No GDS design created.", QMessageBox.Ok)
+            logging.error("No GDS design created.")
 
     def selectInputFile(self):
         # Output: sets self.inputFileName, self.outputFileName, self.logFileName, self.gds_design, self.layerData, and updates layersComboBox and customTestCellComboBox
@@ -2679,17 +2695,18 @@ class MyApp(QWidget):
             self.logFileName = f"{outputFileName.rsplit('.', 1)[0]}-log.txt"  # Update log file name based on new output file name
             
             if os.path.exists(oldLogFileName):
-                if os.path.exists(self.logFileName):
-                    reply = QMessageBox.question(self, "Log File Exists", f"Log file {self.logFileName} already exists. Do you want to overwrite it?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                    if reply == QMessageBox.Yes:
-                        os.replace(oldLogFileName, self.logFileName)
-                else:
-                    os.rename(oldLogFileName, self.logFileName)  # Rename the existing log file to the new log file name
+                if oldLogFileName != self.logFileName:
+                    if os.path.exists(self.logFileName):
+                        reply = QMessageBox.question(self, "Log File Exists", f"Log file {self.logFileName} already exists. Do you want to overwrite it?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                        if reply == QMessageBox.Yes:
+                            os.replace(oldLogFileName, self.logFileName)
+                    else:
+                        os.rename(oldLogFileName, self.logFileName)  # Rename the existing log file to the new log file name
             else:
                 self.initLogFile()
             
             logging.info(f"Output File set to: {self.outputFileName}")
-            logging.info(f"Log File renamed to: {self.logFileName}")
+            logging.info(f"Log File set to: {self.logFileName}")
         else:
             QMessageBox.critical(self, "File Error", "Output file must be a .gds file.", QMessageBox.Ok)
             self.outFileField.setText(self.outputFileName)
