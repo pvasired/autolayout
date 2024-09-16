@@ -202,6 +202,7 @@ class MyApp(QWidget):
     def __init__(self, verbose=False):
         super().__init__()
         self.verbose = verbose
+        self.show_animation = False
         self.inputFileName = ""
         self.outputFileName = ""
         self.customTestCellName = ""
@@ -907,6 +908,15 @@ class MyApp(QWidget):
         modeButtonLayout.addWidget(self.flareModeButton)
         plotAreaLayout.addLayout(modeButtonLayout)
 
+        routingModeLayout = QHBoxLayout()
+        self.showAnimationCheckBox = QCheckBox('Show Animation?')
+        self.showAnimationCheckBox.setToolTip('Check to show animation of the routing process.')
+        self.showAnimationCheckBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.showAnimationCheckBox.stateChanged.connect(self.showAnimationChecked)
+        self.showAnimationCheckBox.hide()
+        routingModeLayout.addWidget(self.showAnimationCheckBox)
+        plotAreaLayout.addLayout(routingModeLayout)
+
         # Add text fields for Flare Mode
         flareModeLayout = QHBoxLayout()
         self.endingTraceWidthEdit = QLineEdit()
@@ -985,6 +995,12 @@ class MyApp(QWidget):
         self.setWindowTitle('GDS Automation GUI')
         self.resize(3600, 800)  # Set the initial size of the window
         self.show()
+
+    def showAnimationChecked(self, state):
+        if state == Qt.Checked:
+            self.show_animation = True
+        else:
+            self.show_animation = False
 
     def invertLayer(self):
         if self.invertLayerComboBox.currentText() == '':
@@ -2011,6 +2027,7 @@ class MyApp(QWidget):
         self.routingMode = True
         self.flareMode = False
         self.updateModeButtons()
+        self.showAnimationCheckBox.show()
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
         self.flareRoutingAngleEdit.hide()
@@ -2022,6 +2039,7 @@ class MyApp(QWidget):
         self.routingMode = False
         self.flareMode = True
         self.updateModeButtons()
+        self.showAnimationCheckBox.hide()
         self.endingTraceWidthEdit.show()
         self.endingTraceSpaceEdit.show()
         self.flareRoutingAngleEdit.show()
@@ -2164,7 +2182,7 @@ class MyApp(QWidget):
 
                     self.gds_design.route_ports_a_star(self.cellComboBox.currentText(), ports1, orientations1,
                                                 ports2, orientations2, trace_width1, trace_space1, layer_name,
-                                                show_animation=False, obstacles=obstacles)
+                                                show_animation=self.show_animation, obstacles=obstacles)
 
                     # Remove the routed ports from the corresponding escapeDicts
                     for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:
