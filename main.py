@@ -1496,10 +1496,6 @@ class MyApp(QWidget):
             QMessageBox.critical(self, 'Error', 'Please select a cell to place the dies.', QMessageBox.Ok)
             logging.error("Error placing dies: No cell selected")
             return
-        if self.dieTextLayerComboBox.currentText() != '':
-            die_text_layer = self.dieTextLayerComboBox.currentText()
-        if self.dicingStreetsCheckBox.isChecked() and self.dicingStreetsLayerComboBox.currentText() != '':
-            dicing_layer = self.dicingStreetsLayerComboBox.currentText()
         self.addSnapshot()
 
         total_locations = len(self.diePlacement.keys())
@@ -1561,22 +1557,6 @@ class MyApp(QWidget):
 
                     logging.info(f"Current layers: {self.gds_design.layers}")
                     self.updateLayersComboBox()
-
-                    # Iterate through each item in the combo box
-                    for index in range(self.dieTextLayerComboBox.count()):
-                        entry = self.dieTextLayerComboBox.itemText(index)  # Get the text of the item at the current index
-                        
-                        if entry == die_text_layer:
-                            self.dieTextLayerComboBox.setCurrentIndex(index)
-                            break
-
-                    # Iterate through each item in the combo box
-                    for index in range(self.dicingStreetsLayerComboBox.count()):
-                        entry = self.dicingStreetsLayerComboBox.itemText(index)  # Get the text of the item at the current index
-                        
-                        if entry == dicing_layer:
-                            self.dicingStreetsLayerComboBox.setCurrentIndex(index)
-                            break
 
                 die_label = self.diePlacement[loc][0]['dieLabelEdit'].text()
                 if die_label != '' and self.dieTextLayerComboBox.currentText() == '':
@@ -2414,7 +2394,7 @@ class MyApp(QWidget):
 
     def addSnapshot(self):
         logging.info("Adding snapshot to undo stack and clearing redo stack")
-        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
+        self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.layerData)))
         self.redoStack.clear()
 
     def readLogEntries(self):
@@ -2428,12 +2408,13 @@ class MyApp(QWidget):
     def undo(self):
         if self.undoStack:
             logging.info("Adding snapshot to redo stack and reverting to previous state")
-            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.undoStack.pop()
+            self.redoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.layerData)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.layerData = self.undoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
             self.update_plot_data()
+            self.updateLayersComboBox()
         else:
             QMessageBox.critical(self, "Edit Error", "No undo history is currently stored", QMessageBox.Ok)
             logging.error("No undo history is currently stored")
@@ -2441,12 +2422,13 @@ class MyApp(QWidget):
     def redo(self):
         if self.redoStack:
             logging.info("Adding snapshot to undo stack and reverting to previous state")
-            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts)))
-            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts = self.redoStack.pop()
+            self.undoStack.append((deepcopy(self.gds_design), self.readLogEntries(), deepcopy(self.availableSpace), deepcopy(self.allOtherPolygons), deepcopy(self.escapeDicts), deepcopy(self.layerData)))
+            self.gds_design, log_entries, self.availableSpace, self.allOtherPolygons, self.escapeDicts, self.layerData = self.redoStack.pop()
             self.writeLogEntries(log_entries)
             self.writeToGDS()
 
             self.update_plot_data()
+            self.updateLayersComboBox()
         else:
             QMessageBox.critical(self, "Edit Error", "No redo history is currently stored", QMessageBox.Ok)
             logging.error("No redo history is currently stored")
@@ -2687,11 +2669,17 @@ class MyApp(QWidget):
             logging.info(f"Cell combo box populated for {checkBox.text()} test structure: {sorted_keys}")
                 
     def updateLayersComboBox(self):
+        layersComboBoxNumber = int(self.layersComboBox.currentText().split(':')[0].strip()) if self.layersComboBox.currentText() else None
         self.layersComboBox.clear()
+        plotLayersComboBoxNumber = int(self.plotLayersComboBox.currentText().split(':')[0].strip()) if self.plotLayersComboBox.currentText() else None
         self.plotLayersComboBox.clear()
+        dicingStreetsLayerComboBoxNumber = int(self.dicingStreetsLayerComboBox.currentText().split(':')[0].strip()) if self.dicingStreetsLayerComboBox.currentText() else None
         self.dicingStreetsLayerComboBox.clear()
+        dieTextLayerComboBoxNumber = int(self.dieTextLayerComboBox.currentText().split(':')[0].strip()) if self.dieTextLayerComboBox.currentText() else None
         self.dieTextLayerComboBox.clear()
+        invertLayerComboBoxNumber = int(self.invertLayerComboBox.currentText().split(':')[0].strip()) if self.invertLayerComboBox.currentText() else None
         self.invertLayerComboBox.clear()
+        invertLayerOutputComboBoxNumber = int(self.invertLayerOutputComboBox.currentText().split(':')[0].strip()) if self.invertLayerOutputComboBox.currentText() else None
         self.invertLayerOutputComboBox.clear()
         # Add layers to the dropdown sorted by layer number
         self.layerData.sort(key=lambda x: int(x[0]))
@@ -2702,6 +2690,21 @@ class MyApp(QWidget):
             self.dieTextLayerComboBox.addItem(f"{number}: {name}")
             self.invertLayerComboBox.addItem(f"{number}: {name}")
             self.invertLayerOutputComboBox.addItem(f"{number}: {name}")
+
+        layer_numbers = np.array([int(number) for number, name in self.layerData])
+        
+        if layersComboBoxNumber:
+            self.layersComboBox.setCurrentIndex(np.where(layer_numbers == layersComboBoxNumber)[0][0])
+        if plotLayersComboBoxNumber:
+            self.plotLayersComboBox.setCurrentIndex(np.where(layer_numbers == plotLayersComboBoxNumber)[0][0])
+        if dieTextLayerComboBoxNumber:
+            self.dieTextLayerComboBox.setCurrentIndex(np.where(layer_numbers == dieTextLayerComboBoxNumber)[0][0])
+        if dicingStreetsLayerComboBoxNumber:
+            self.dicingStreetsLayerComboBox.setCurrentIndex(np.where(layer_numbers == dicingStreetsLayerComboBoxNumber)[0][0])
+        if invertLayerComboBoxNumber:
+            self.invertLayerComboBox.setCurrentIndex(np.where(layer_numbers == invertLayerComboBoxNumber)[0][0])
+        if invertLayerOutputComboBoxNumber:
+            self.invertLayerOutputComboBox.setCurrentIndex(np.where(layer_numbers == invertLayerOutputComboBoxNumber)[0][0])
         logging.info("Layers dropdowns updated")
 
     def validateOutputFileName(self):
