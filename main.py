@@ -2466,7 +2466,7 @@ class MyApp(QWidget):
             logging.info("Blank GDS design created")
 
             self.updateCellComboBox()
-            self.updateLayersComboBox()
+            self.clearLayersComboBox()
 
             self.outFileField.setText(file_name)
             self.validateOutputFileName()
@@ -2667,6 +2667,14 @@ class MyApp(QWidget):
             cellComboBox.clear()
             cellComboBox.addItems(sorted_keys)
             logging.info(f"Cell combo box populated for {checkBox.text()} test structure: {sorted_keys}")
+
+    def clearLayersComboBox(self):
+        self.layersComboBox.clear()
+        self.plotLayersComboBox.clear()
+        self.dicingStreetsLayerComboBox.clear()
+        self.dieTextLayerComboBox.clear()
+        self.invertLayerComboBox.clear()
+        self.invertLayerOutputComboBox.clear()
                 
     def updateLayersComboBox(self):
         layersComboBoxNumber = int(self.layersComboBox.currentText().split(':')[0].strip()) if self.layersComboBox.currentText() else None
