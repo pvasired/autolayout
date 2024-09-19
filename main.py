@@ -931,7 +931,13 @@ class MyApp(QWidget):
         self.showAnimationCheckBox.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.showAnimationCheckBox.stateChanged.connect(self.showAnimationChecked)
         self.showAnimationCheckBox.hide()
+        self.gridSizeEdit = QLineEdit()
+        self.gridSizeEdit.setPlaceholderText('Grid Size: Default')
+        self.gridSizeEdit.setToolTip('type:(number) Enter the grid size in um.')
+        self.gridSizeEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.gridSizeEdit.hide()
         routingModeLayout.addWidget(self.showAnimationCheckBox)
+        routingModeLayout.addWidget(self.gridSizeEdit)
         plotAreaLayout.addLayout(routingModeLayout)
 
         # Add text fields for Flare Mode
@@ -2025,6 +2031,7 @@ class MyApp(QWidget):
         self.flareMode = False
         self.updateModeButtons()
         self.showAnimationCheckBox.show()
+        self.gridSizeEdit.show()
         self.endingTraceWidthEdit.hide()
         self.endingTraceSpaceEdit.hide()
         self.flareRoutingAngleEdit.hide()
@@ -2037,6 +2044,7 @@ class MyApp(QWidget):
         self.flareMode = True
         self.updateModeButtons()
         self.showAnimationCheckBox.hide()
+        self.gridSizeEdit.hide()
         self.endingTraceWidthEdit.show()
         self.endingTraceSpaceEdit.show()
         self.flareRoutingAngleEdit.show()
@@ -2179,7 +2187,8 @@ class MyApp(QWidget):
 
                     self.gds_design.route_ports_a_star(self.cellComboBox.currentText(), ports1, orientations1,
                                                 ports2, orientations2, trace_width1, trace_space1, layer_name,
-                                                show_animation=self.show_animation, obstacles=obstacles)
+                                                show_animation=self.show_animation, obstacles=obstacles, 
+                                                grid_spacing=float(self.gridSizeEdit.text().strip()) if self.gridSizeEdit.text() != '' else None)
 
                     # Remove the routed ports from the corresponding escapeDicts
                     for escapeDict in self.escapeDicts[self.cellComboBox.currentText()]:

@@ -3151,7 +3151,7 @@ class GDSDesign:
         return wire_ports, wire_orientations, ending_trace_width, ending_trace_space
     
     def route_ports_a_star(self, cell_name, ports1, orientations1, ports2, orientations2, trace_width, trace_space,
-                           layer_name, show_animation=True, obstacles=[], routing_angle=45, initial_steps=1):
+                           layer_name, show_animation=True, obstacles=[], routing_angle=45, initial_steps=1, grid_spacing=None):
         """
         Route ports using single-sided A* routing. The routing is done in two steps: first, the path is routed from the
         center of the first set of ports to the center of the second set of ports. Then, the path is routed from the center
@@ -3171,8 +3171,11 @@ class GDSDesign:
 
         layer_number = self.get_layer_number(layer_name)
 
-        # This spacing ensures that turns will not cause traces to overlap
-        grid_spacing = float(math.ceil((trace_pitch/np.sin(routing_angle*np.pi/180)-trace_pitch/np.tan(routing_angle*np.pi/180))*len(ports1)))
+        if grid_spacing is None:
+            # This spacing ensures that turns will not cause traces to overlap
+            grid_spacing = float(math.ceil((trace_pitch/np.sin(routing_angle*np.pi/180)-trace_pitch/np.tan(routing_angle*np.pi/180))*len(ports1)))
+        else:
+            assert isinstance(grid_spacing, (int, float)), "grid_spacing must be a number"
 
         # Snap the center of the ports to the grid
         ports1_center = np.mean(ports1, axis=0)
@@ -3271,9 +3274,13 @@ class GDSDesign:
 
         if orientations1[0] == 90:
             ports1 = ports1[np.argsort(ports1[:, 0])]
-            assert len(np.unique(np.around(np.diff(ports1[:, 0]), 3))) == 1, "Ports must be evenly spaced"
-            spacing = np.unique(np.around(np.diff(ports1[:, 0]), 3))[0]
-            center_diff = center2[0] - np.mean(ports1, axis=0)[0] 
+            if len(ports1) > 1:
+                assert len(np.unique(np.around(np.diff(ports1[:, 0]), 3))) == 1, "Ports must be evenly spaced"
+                spacing = np.unique(np.around(np.diff(ports1[:, 0]), 3))[0]
+                center_diff = center2[0] - np.mean(ports1, axis=0)[0]
+            else:
+                center_diff = center2[0] - ports1[0][0]
+                spacing = 0 
             if center_diff > 0:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
                 y_accumulated = 0
@@ -3300,9 +3307,13 @@ class GDSDesign:
 
         elif orientations1[0] == 0:
             ports1 = ports1[np.argsort(ports1[:, 1])]
-            assert len(np.unique(np.around(np.diff(ports1[:, 1]), 3))) == 1, "Ports must be evenly spaced"
-            spacing = np.unique(np.around(np.diff(ports1[:, 1]), 3))[0]
-            center_diff = center2[1] - np.mean(ports1, axis=0)[1] 
+            if len(ports1) > 1:
+                assert len(np.unique(np.around(np.diff(ports1[:, 1]), 3))) == 1, "Ports must be evenly spaced"
+                spacing = np.unique(np.around(np.diff(ports1[:, 1]), 3))[0]
+                center_diff = center2[1] - np.mean(ports1, axis=0)[1]
+            else:
+                center_diff = center2[1] - ports1[0][1]
+                spacing = 0 
             if center_diff > 0:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
                 x_accumulated = 0
@@ -3329,9 +3340,13 @@ class GDSDesign:
 
         elif orientations1[0] == 180:
             ports1 = ports1[np.argsort(ports1[:, 1])]
-            assert len(np.unique(np.around(np.diff(ports1[:, 1]), 3))) == 1, "Ports must be evenly spaced"
-            spacing = np.unique(np.around(np.diff(ports1[:, 1]), 3))[0]
-            center_diff = center2[1] - np.mean(ports1, axis=0)[1]
+            if len(ports1) > 1:
+                assert len(np.unique(np.around(np.diff(ports1[:, 1]), 3))) == 1, "Ports must be evenly spaced"
+                spacing = np.unique(np.around(np.diff(ports1[:, 1]), 3))[0]
+                center_diff = center2[1] - np.mean(ports1, axis=0)[1]
+            else:
+                center_diff = center2[1] - ports1[0][1]
+                spacing = 0
             if center_diff > 0:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 1]))]
                 x_accumulated = 0
@@ -3358,9 +3373,13 @@ class GDSDesign:
         
         elif orientations1[0] == 270:
             ports1 = ports1[np.argsort(ports1[:, 0])]
-            assert len(np.unique(np.around(np.diff(ports1[:, 0]), 3))) == 1, "Ports must be evenly spaced"
-            spacing = np.unique(np.around(np.diff(ports1[:, 0]), 3))[0]
-            center_diff = center2[0] - np.mean(ports1, axis=0)[0]
+            if len(ports1) > 1:
+                assert len(np.unique(np.around(np.diff(ports1[:, 0]), 3))) == 1, "Ports must be evenly spaced"
+                spacing = np.unique(np.around(np.diff(ports1[:, 0]), 3))[0]
+                center_diff = center2[0] - np.mean(ports1, axis=0)[0]
+            else:
+                center_diff = center2[0] - ports1[0][0]
+                spacing = 0
             if center_diff > 0:
                 ports1 = ports1[np.flip(np.argsort(ports1[:, 0]))]
                 y_accumulated = 0
