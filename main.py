@@ -216,7 +216,7 @@ class MyApp(QWidget):
         self.testStructureNames = [
             "MLA Alignment Mark", "Resistance Test", "Trace Test", 
             "Interlayer Via Test", "Electronics Via Test", "Short Test", 
-            "Rectangle", "Circle", "Text", "Polygon", "Path", "Escape Routing", "Connect Rows", "Custom Test Structure"
+            "Rectangle", "Circle", "Text", "Polygon", "Path", "Escape Routing", "Register Ports", "Connect Rows", "Custom Test Structure"
         ]
         self.parameters = {
             "MLA Alignment Mark": ["Layer", "Center", "Outer Rect Width", "Outer Rect Height", "Interior Width", "Interior X Extent", "Interior Y Extent", "Automatic Placement"],
@@ -231,6 +231,7 @@ class MyApp(QWidget):
             "Polygon": ["Layer"],
             "Path": ["Layer", "Width"],
             "Escape Routing": ["Layer", "Center", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Trace Width", "Trace Space", "Pad Diameter", "Orientation", "Escape Extent", "Cable Tie Routing Angle", "Autorouting Angle"],
+            "Register Ports": ["Layer", "Orientation", "Center", "Num Ports", "Trace Width", "Trace Space"],
             "Connect Rows": ["Layer", "Row 1 Start", "Row 1 End", "Row 1 Spacing", "Row 1 Constant", "Row 2 Start", "Row 2 End", "Row 2 Spacing", "Row 2 Constant", "Orientation", "Trace Width", "Escape Extent"],
             "Custom Test Structure": ["Center", "Magnification", "Rotation", "X Reflection", "Array", "Copies X", "Copies Y", "Pitch X", "Pitch Y", "Automatic Placement"]
         }
@@ -364,6 +365,14 @@ class MyApp(QWidget):
                 "Escape Extent": "type:(number) Enter the extent of the escape routing in um.",
                 "Cable Tie Routing Angle": "type:(either 45 or 90) Enter the angle of the cable tie routing in degrees",
                 "Autorouting Angle": "type:(either 45 or 90) Enter the angle for autorouting in degrees ."
+            },
+            "Register Ports": {
+                "Layer": "type:(layer number integer or layer name string) Enter the layer for the ports.",
+                "Orientation": "type:(integer 0, 90, 180, or 270) Enter the orientation of the ports.",
+                "Center": "type:(comma-separated tuple x,y) Enter the center (x, y) coordinate of the ports in um.",
+                "Num Ports": "type:(integer) Enter the number of ports.",
+                "Trace Width": "type:(number) Enter the width of the traces in um.",
+                "Trace Space": "type:(number) Enter the spacing between traces in um."
             },
             "Connect Rows": {
                 "Layer": "type:(layer number integer or layer name string) Enter the layer for the connect rows.",
@@ -522,6 +531,14 @@ class MyApp(QWidget):
                 "Escape Extent": 100,
                 "Cable Tie Routing Angle": 45,
                 "Autorouting Angle": 45
+            },
+            "Register Ports": {
+                "Layer": '',
+                "Orientation": '',
+                "Center": '',
+                "Num Ports": '',
+                "Trace Width": '',
+                "Trace Space": ''
             },
             "Connect Rows": {
                 "Layer": '',
@@ -2847,6 +2864,8 @@ class MyApp(QWidget):
                 retval = self.addPath(cell_name, **params)
             elif testStructureName == "Escape Routing":
                 retval = self.addEscapeRouting(cell_name, **params)
+            elif testStructureName == "Register Ports":
+                retval = self.addRegisterPorts(cell_name, **params)
             elif testStructureName == "Connect Rows":
                 retval = self.addConnectRows(cell_name, **params)
             
@@ -2919,7 +2938,88 @@ class MyApp(QWidget):
                             value = None
                     params[param.replace(" ", "_")] = value
         return params
-    
+
+    def addRegisterPorts(self, Cell_Name, Layer, Orientation, Center, Num_Ports, Trace_Width, Trace_Space):
+        try:
+            Orientation = int(Orientation.strip())
+            if Orientation not in [0, 90, 180, 270]:
+                QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+                logging.error("Orientation Error: Invalid orientation entered for register ports")
+                return False
+        except:
+            QMessageBox.critical(self, "Orientation Error", "Invalid orientation. Please enter a valid orientation.", QMessageBox.Ok)
+            logging.error("Orientation Error: Invalid orientation entered for register ports")
+            return False
+
+        try:
+            Num_Ports = int(Num_Ports.strip())
+            if Num_Ports < 1:
+                QMessageBox.critical(self, "Number of Ports Error", "Please enter a positive integer for the number of ports.", QMessageBox.Ok)
+                logging.error("Number of Ports Error: Invalid number of ports entered")
+                return False
+        except:
+            QMessageBox.critical(self, "Number of Ports Error", "Please enter a positive integer for the number of ports.", QMessageBox.Ok)
+            logging.error("Number of Ports Error: Invalid number of ports entered")
+            return False
+
+        try:
+            Trace_Width = float(Trace_Width.strip())
+            if Trace_Width <= 0:
+                QMessageBox.critical(self, "Trace Width Error", "Please enter a positive number for the trace width.", QMessageBox.Ok)
+                logging.error("Trace Width Error: Invalid trace width entered")
+                return False
+        except:
+            QMessageBox.critical(self, "Trace Width Error", "Please enter a positive number for the trace width.", QMessageBox.Ok)
+            logging.error("Trace Width Error: Invalid trace width entered")
+            return False
+
+        try:
+            Trace_Space = float(Trace_Space.strip())
+            if Trace_Space < 0:
+                QMessageBox.critical(self, "Trace Space Error", "Please enter a non-negative number for the trace space.", QMessageBox.Ok)
+                logging.error("Trace Space Error: Invalid trace space entered")
+                return False
+        except:
+            QMessageBox.critical(self, "Trace Space Error", "Please enter a non-negative number for the trace space.", QMessageBox.Ok)
+            logging.error("Trace Space Error: Invalid trace space entered")
+            return False
+
+        trace_pitch = Trace_Width + Trace_Space
+        if Orientation == 0:
+            ymax = Center[1] + (Num_Ports - 1) * trace_pitch / 2
+            ymin = Center[1] - (Num_Ports - 1) * trace_pitch / 2
+            ports = np.array([(Center[0], y) for y in np.linspace(ymin, ymax, Num_Ports)])
+
+        elif Orientation == 90:
+            xmax = Center[0] + (Num_Ports - 1) * trace_pitch / 2
+            xmin = Center[0] - (Num_Ports - 1) * trace_pitch / 2
+            ports = np.array([(x, Center[1]) for x in np.linspace(xmin, xmax, Num_Ports)])
+        
+        elif Orientation == 180:
+            ymax = Center[1] + (Num_Ports - 1) * trace_pitch / 2
+            ymin = Center[1] - (Num_Ports - 1) * trace_pitch / 2
+            ports = np.array([(Center[0], y) for y in np.linspace(ymin, ymax, Num_Ports)])
+        
+        elif Orientation == 270:
+            xmax = Center[0] + (Num_Ports - 1) * trace_pitch / 2
+            xmin = Center[0] - (Num_Ports - 1) * trace_pitch / 2
+            ports = np.array([(x, Center[1]) for x in np.linspace(xmin, xmax, Num_Ports)])
+
+        escape_dict = {}
+        escape_dict[Orientation] = {}
+        escape_dict[Orientation]['ports'] = ports
+        escape_dict[Orientation]['orientations'] = np.ones(Num_Ports, dtype=float) * Orientation
+        escape_dict[Orientation]['layer_number'] = self.gds_design.get_layer_number(Layer)
+        escape_dict[Orientation]['trace_width'] = Trace_Width
+        escape_dict[Orientation]['trace_space'] = Trace_Space
+        if Cell_Name not in self.escapeDicts:
+            self.escapeDicts[Cell_Name] = []
+        self.escapeDicts[Cell_Name].append(escape_dict)
+        logging.info(f"{Num_Ports} ports with orientation {Orientation} added to {Cell_Name} on layer {Layer} at center {Center}")
+
+        QMessageBox.information(self, "Ports Registered", f"{Num_Ports} ports with orientation {Orientation} added to {Cell_Name} on layer {Layer} at center {Center}", QMessageBox.Ok)
+        return True
+        
     def addConnectRows(self, Cell_Name, Layer, Row_1_Start, Row_1_End, Row_1_Spacing, Row_1_Constant, Row_2_Start, Row_2_End, Row_2_Spacing, Row_2_Constant, Orientation, Trace_Width, Escape_Extent):
         if Orientation is None:
             QMessageBox.critical(self, "Orientation Error", "Please enter an orientation for the connect rows.", QMessageBox.Ok)
