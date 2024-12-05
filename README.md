@@ -7,6 +7,8 @@ This is a helper tool for automating certain tedious steps in .gds design. In pa
 - Addition of parametric test structures
 - Automated and semi-automated placement of dies and dicing streets on a multi-project wafer
 
+![Demo of Autolayout](demo-obstacles.gif)
+
 # Installation
 ## Dependencies
 The code relies heavily on some fantastic open-source software, namely [Gdspy](https://github.com/heitzmann/gdspy), [Shapely](https://shapely.readthedocs.io/en/stable/), and [PHIDL](https://github.com/amccaugh/phidl). For the specific versions of these packages used, see `requirements.txt`. Additionally, the A* implementation is a modified version of an implementation from [PythonRobotics](https://github.com/AtsushiSakai/PythonRobotics).
